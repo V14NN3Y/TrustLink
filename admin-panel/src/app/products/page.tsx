@@ -1,3 +1,5 @@
+"use client";
+
 import AdminLayout from '@/components/AdminLayout';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -74,7 +76,10 @@ export default function ProductsPage() {
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <p className="text-sm font-bold text-gray-600">{p.seller?.store_name || "Vendeur Inconnu"}</p>
+                    {(() => {
+                      const seller = Array.isArray(p.seller) ? p.seller[0] : p.seller;
+                      return <p className="text-sm font-bold text-gray-600">{seller?.store_name || "Vendeur Inconnu"}</p>;
+                    })()}
                   </td>
                   <td className="px-8 py-6">
                     <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold uppercase tracking-wider">{p.category}</span>

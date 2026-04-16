@@ -1,3 +1,5 @@
+"use client";
+
 import AdminLayout from '@/components/AdminLayout';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';

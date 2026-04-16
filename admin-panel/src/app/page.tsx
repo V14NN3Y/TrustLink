@@ -1,3 +1,5 @@
+"use client";
+
 import AdminLayout from '@/components/AdminLayout';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
@@ -7,7 +9,8 @@ export default function DashboardPage() {
     escrowTotal: 0,
     activeOrders: 0,
     openDisputes: 0,
-    loading: true
+    loading: true,
+    recentActivities: [] as any[]
   });
 
   useEffect(() => {
@@ -32,11 +35,61 @@ export default function DashboardPage() {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'OPEN');
 
+      // 4. Recent Activities (Combine Orders and Messages)
+      const { data: recentOrders } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          created_at,
+          total_cfa,
+          client:profiles!orders_client_id_fkey(first_name, last_name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      const { data: recentMessages } = await supabase
+        .from('vendor_messages')
+        .select(`
+          id,
+          created_at,
+          text,
+          sender,
+          seller:profiles!vendor_messages_seller_id_fkey(store_name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(2);
+
+      const combinedActivities = [
+        ...(recentOrders?.map(o => {
+          const client = Array.isArray(o.client) ? o.client[0] : o.client;
+          return {
+            id: o.id,
+            time: o.created_at,
+            title: `Commande #${o.id.slice(0,8)} reçue`,
+            subtitle: `${client ? `${client.first_name} ${client.last_name?.[0] || ''}.` : 'Client inconnu'} • ${Number(o.total_cfa || 0).toLocaleString()} CFA`,
+            icon: '📦',
+            type: 'order'
+          };
+        }) || []),
+        ...(recentMessages?.map(m => {
+          const seller = Array.isArray(m.seller) ? m.seller[0] : m.seller;
+          return {
+            id: m.id,
+            time: m.created_at,
+            title: m.sender === 'seller' ? `Message de ${seller?.store_name || 'Vendeur'}` : 'Réponse admin envoyée',
+            subtitle: (m.text || '').length > 40 ? (m.text || '').slice(0, 40) + '...' : (m.text || ''),
+            icon: '💬',
+            type: 'message'
+          };
+        }) || [])
+      ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+
       setMetrics({
         escrowTotal,
         activeOrders: activeOrders || 0,
         openDisputes: openDisputes || 0,
-        loading: false
+        loading: false,
+        recentActivities: combinedActivities
       });
     }
 
@@ -122,16 +175,24 @@ export default function DashboardPage() {
       <div className="mt-12">
          <h2 className="text-xl font-extrabold text-foreground mb-6">Activités Récentes</h2>
          <div className="bg-white rounded-3xl border border-border shadow-sm overflow-hidden">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="p-5 border-b border-border flex items-center justify-between hover:bg-gray-50 transition-colors">
+            {metrics.loading ? (
+              <div className="p-8 text-center text-gray-400 italic">Chargement des activités...</div>
+            ) : metrics.recentActivities.length === 0 ? (
+              <div className="p-8 text-center text-gray-400 italic">Aucune activité récente.</div>
+            ) : metrics.recentActivities.map((activity) => (
+              <div key={`${activity.type}-${activity.id}`} className="p-5 border-b border-border flex items-center justify-between hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg">📦</div>
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg">{activity.icon}</div>
                   <div>
-                    <p className="text-sm font-bold text-foreground">Commande #TL-2938{i} validée à Lagos</p>
-                    <p className="text-xs text-gray-500 font-medium">Il y a {i*10} minutes • Par Agent #04</p>
+                    <p className="text-sm font-bold text-foreground">{activity.title}</p>
+                    <p className="text-xs text-gray-500 font-medium">
+                      {new Date(activity.time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} • {activity.subtitle}
+                    </p>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-primary bg-primary/5 px-3 py-1 rounded-full uppercase tracking-tighter">Détails →</span>
+                <span className="text-xs font-bold text-primary bg-primary/5 px-3 py-1 rounded-full uppercase tracking-tighter">
+                  {activity.type === 'order' ? 'Voir Commande' : 'Répondre'} →
+                </span>
               </div>
             ))}
          </div>

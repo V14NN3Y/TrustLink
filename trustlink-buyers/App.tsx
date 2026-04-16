@@ -42,6 +42,8 @@ const ENABLE_NATIVE_MAPS = false; // Désactiver pour éviter les crashs sur Fed
 export default function App() {
   const [products, setProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [userOrders, setUserOrders] = useState<any[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -59,7 +61,50 @@ export default function App() {
       setLoadingProducts(false);
     }
     fetchProducts();
+    fetchUserOrders();
   }, []);
+
+  async function fetchUserOrders() {
+    setLoadingOrders(true);
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        order_items (
+          *,
+          product:products(*)
+        )
+      `)
+      .eq('client_id', '8093db71-155e-4050-8451-9ca79d85f55e') // Current Demo User
+      .order('created_at', { ascending: false });
+
+    if (!error) {
+      setUserOrders(data || []);
+    }
+    setLoadingOrders(false);
+  }
+
+  const getStatusLabel = (status: string) => {
+    const mapping: any = {
+      'PENDING': 'En attente',
+      'FUNDED': 'Payé (Escrow)',
+      'INSPECTED': 'Inspecté (Lagos)',
+      'SHIPPED': 'Expédié',
+      'ARRIVED_AT_HUB': 'Reçu au Hub',
+      'DELIVERED': 'Livré',
+      'DISPUTED': 'Litige'
+    };
+    return mapping[status] || status;
+  };
+
+  const getFilteredOrders = () => {
+    if (activeOrderTab === 'ALL') return userOrders;
+    if (activeOrderTab === 'TO_PAY') return userOrders.filter(o => o.status === 'PENDING');
+    if (activeOrderTab === 'PROCESSING') return userOrders.filter(o => ['FUNDED', 'INSPECTED'].includes(o.status));
+    if (activeOrderTab === 'SHIPPED') return userOrders.filter(o => ['SHIPPED', 'ARRIVED_AT_HUB'].includes(o.status));
+    if (activeOrderTab === 'DISPUTES') return userOrders.filter(o => o.status === 'DISPUTED');
+    return userOrders;
+  };
   const [fontsLoaded] = useFonts({
     'Poppins-Regular': Poppins_400Regular,
     'Poppins-Medium': Poppins_500Medium,
@@ -142,6 +187,7 @@ export default function App() {
     setActiveTab('HOME');
     setSelectedProduct(null);
     setSearchQuery('');
+    fetchUserOrders(); // Refresh orders when going home/mooving around
   };
 
   const handleLogout = () => {
@@ -961,14 +1007,14 @@ export default function App() {
                   latitudeDelta: 0.005,
                   longitudeDelta: 0.005,
                 }}
-                onPress={(e) => {
+                onPress={(e: any) => {
                   setAddress(prev => ({ ...prev, lat: e.nativeEvent.coordinate.latitude, lng: e.nativeEvent.coordinate.longitude }));
                 }}
               >
                 <Marker
                   draggable
                   coordinate={{ latitude: address.lat, longitude: address.lng }}
-                  onDragEnd={(e) => {
+                  onDragEnd={(e: any) => {
                     setAddress(prev => ({ ...prev, lat: e.nativeEvent.coordinate.latitude, lng: e.nativeEvent.coordinate.longitude }));
                   }}
                   pinColor={THEME.accent}
@@ -1292,18 +1338,46 @@ export default function App() {
         </View>
 
         <ScrollView style={{flex: 1}} contentContainerStyle={{padding: 20}}>
-           <View style={{alignItems: 'center', marginTop: 100}}>
-              <Ionicons name="receipt-outline" size={80} color={THEME.border} />
-              <Text style={{fontSize: 16, color: THEME.textGray, marginTop: 16, textAlign: 'center'}}>
-                {activeOrderTab === 'ALL' ? "Vous n'avez pas encore de commande." : `Aucune commande dans la section "${tabs.find(t => t.key === activeOrderTab)?.label}".`}
-              </Text>
-              <TouchableOpacity 
-                style={[styles.sheinBuyButton, {backgroundColor: THEME.accent, marginTop: 20, width: 'auto', paddingHorizontal: 30, marginLeft: 0}]} 
-                onPress={() => { setCurrentScreen('MAIN'); setActiveTab('HOME'); }}
-              >
-                <Text style={styles.sheinBuyButtonText}>ALLER À LA BOUTIQUE</Text>
-              </TouchableOpacity>
-           </View>
+            {loadingOrders ? (
+              <ActivityIndicator size="large" color={THEME.accent} style={{ marginTop: 40 }} />
+            ) : getFilteredOrders().length === 0 ? (
+               <View style={{alignItems: 'center', marginTop: 100}}>
+                  <Ionicons name="receipt-outline" size={80} color={THEME.border} />
+                  <Text style={{fontSize: 16, color: THEME.textGray, marginTop: 16, textAlign: 'center'}}>
+                    {activeOrderTab === 'ALL' ? "Vous n'avez pas encore de commande." : `Aucune commande dans la section "${tabs.find(t => t.key === activeOrderTab)?.label}".`}
+                  </Text>
+                  <TouchableOpacity 
+                    style={[styles.sheinBuyButton, {backgroundColor: THEME.accent, marginTop: 20, width: 'auto', paddingHorizontal: 30, marginLeft: 0}]} 
+                    onPress={() => { setCurrentScreen('MAIN'); setActiveTab('HOME'); }}
+                  >
+                    <Text style={styles.sheinBuyButtonText}>ALLER À LA BOUTIQUE</Text>
+                  </TouchableOpacity>
+               </View>
+            ) : (
+              getFilteredOrders().map((order) => (
+                <View key={order.id} style={[styles.elevatedCard, { marginBottom: 16, padding: 12 }]}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: THEME.border, paddingBottom: 10, marginBottom: 10 }}>
+                    <Text style={{ fontFamily: 'Poppins-Bold', fontSize: 13 }}>#{order.id.slice(0, 8).toUpperCase()}</Text>
+                    <Text style={{ color: THEME.accent, fontFamily: 'Poppins-Bold', fontSize: 12 }}>{getStatusLabel(order.status)}</Text>
+                  </View>
+                  
+                  {order.order_items?.map((item: any, idx: number) => (
+                    <View key={idx} style={{ flexDirection: 'row', marginBottom: 8 }}>
+                      <Image source={{ uri: item.product?.image_url }} style={{ width: 50, height: 50, borderRadius: 4, backgroundColor: '#f0f0f0' }} />
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={{ fontSize: 12, fontFamily: 'Inter-Medium' }} numberOfLines={1}>{item.product?.name}</Text>
+                        <Text style={{ fontSize: 11, color: THEME.textGray }}>Qté: {item.quantity} • {item.price_cfa?.toLocaleString()} CFA</Text>
+                      </View>
+                    </View>
+                  ))}
+
+                  <View style={{ borderTopWidth: 1, borderTopColor: THEME.border, paddingTop: 10, marginTop: 5, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <Text style={{ fontSize: 11, color: THEME.textGray }}>{new Date(order.created_at).toLocaleDateString()}</Text>
+                     <Text style={{ fontFamily: 'Poppins-Bold', fontSize: 14 }}>Total: {order.total_cfa?.toLocaleString()} CFA</Text>
+                  </View>
+                </View>
+              ))
+            )}
         </ScrollView>
       </View>
     );

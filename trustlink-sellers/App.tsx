@@ -90,7 +90,10 @@ export default function App() {
       .from('vendor_orders')
       .select(`
         *,
-        vendor_order_items (*)
+        vendor_order_items (
+          *,
+          product:products(*)
+        )
       `)
       .eq('seller_id', CURRENT_SELLER_ID)
       .order('created_at', { ascending: false });
@@ -158,7 +161,9 @@ export default function App() {
       <View style={styles.statsRow}>
         <View style={[styles.statCard, { backgroundColor: COLORS.primary }]}>
           <Text style={styles.statLabel}>Ventes Totales</Text>
-          <Text style={styles.statValue}>{(orders.length * 25000).toLocaleString()} CFA</Text>
+          <Text style={styles.statValue}>
+            {orders.reduce((sum, o) => sum + Number(o.total_payout_cfa || 0), 0).toLocaleString()} CFA
+          </Text>
           <Ionicons name="trending-up" size={20} color="rgba(255,255,255,0.6)" style={styles.statIcon} />
         </View>
         <View style={[styles.statCard, { backgroundColor: COLORS.white }]}>
@@ -220,11 +225,15 @@ export default function App() {
               {order.vendor_order_items?.map((item: any) => (
                 <View key={item.id} style={styles.productInfo}>
                   <View style={styles.productImagePlaceholder}>
+                    {item.product?.image_url ? (
+                      <Image source={{ uri: item.product.image_url }} style={{ width: '100%', height: '100%', borderRadius: 18 }} />
+                    ) : (
                       <Ionicons name="shirt" size={30} color={COLORS.lightGray} />
+                    )}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.productName} numberOfLines={1}>Produit #{item.product_id.slice(0, 6)}</Text>
-                    <Text style={styles.productVariants}>Quantité: {item.quantity}</Text>
+                    <Text style={styles.productName} numberOfLines={1}>{item.product?.name || `Produit #${item.product_id.slice(0, 6)}`}</Text>
+                    <Text style={styles.productVariants}>Quantité: {item.quantity} • {item.product?.category}</Text>
                     <Text style={styles.productQty}>{item.price_payout_cfa.toLocaleString()} CFA</Text>
                   </View>
                 </View>
