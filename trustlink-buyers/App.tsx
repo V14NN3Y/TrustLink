@@ -1,6 +1,6 @@
-import { StatusBar } from 'expo-status-bar';
+-----.import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, SafeAreaView, ScrollView, Image, Platform, Dimensions, Alert, Switch, KeyboardAvoidingView, PanResponder, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, SafeAreaView, ScrollView, Image, Platform, Dimensions, Alert, Switch, KeyboardAvoidingView, PanResponder, ActivityIndicator, LayoutAnimation, UIManager, Animated } from 'react-native';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_700Bold } from '@expo-google-fonts/poppins';
 import { Inter_400Regular, Inter_500Medium, Inter_700Bold } from '@expo-google-fonts/inter';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -37,15 +37,123 @@ const CATEGORIES = [
 
 import { supabase } from './supabase';
 
-const ENABLE_NATIVE_MAPS = false; // Désactiver pour éviter les crashs sur Fedora/Web (RNMapsAirModule)
+const ENABLE_NATIVE_MAPS = false; 
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const ProductCardItem = ({ p, idx, wishlist, toggleWishlist, handleProductPress }: any) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, { toValue: 0.96, useNativeDriver: true }).start();
+  };
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, { toValue: 1, friction: 3, tension: 40, useNativeDriver: true }).start();
+  };
+
+  return (
+    <Animated.View style={[styles.gridItem, { transform: [{ scale: scaleAnim }] }]}>
+      <TouchableOpacity 
+        activeOpacity={1} 
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={() => handleProductPress(p)}
+        style={styles.productCard}
+      >
+        <View style={{position: 'relative'}}>
+          {/* Status Badge */}
+          {idx < 2 && (
+            <View style={[styles.tagBadge, { backgroundColor: THEME.accent }]}>
+              <Text style={{color: 'white', fontSize: 9, fontFamily: 'Poppins-Bold'}}>TOP VENTE</Text>
+            </View>
+          )}
+          <Image source={{uri: p.images?.[0] || 'https://via.placeholder.com/600'}} style={styles.productImage} />
+          <TouchableOpacity 
+            style={styles.wishlistIcon} 
+            onPress={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
+          >
+            <Ionicons 
+              name={wishlist.includes(p.id) ? "heart" : "heart-outline"} 
+              size={18} 
+              color={wishlist.includes(p.id) ? THEME.danger : THEME.textGray} 
+            />
+          </TouchableOpacity>
+        </View>
+        <View style={{padding: 10}}>
+          <Text style={styles.productName} numberOfLines={2}>{p.name}</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4}}>
+            <Text style={styles.productPrice}>{Number(p.final_price_cfa || 0).toLocaleString()} CFA</Text>
+            <View style={{backgroundColor: '#FFFBEB', paddingHorizontal: 4, borderRadius: 4}}>
+              <Text style={{fontSize: 10, color: '#D97706', fontFamily: 'Poppins-Bold'}}>★ {p.rating || '5.0'}</Text>
+            </View>
+          </View>
+          <Text style={{fontSize: 10, color: THEME.textGray, marginTop: 2}}>{p.sold || 0} vendus</Text>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
 export default function App() {
   const [products, setProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [userOrders, setUserOrders] = useState<any[]>([]);
-  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [loadingOrders, setLoadingOrders] = useState(true);
+
+  // Auth States
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authName, setAuthName] = useState('');
+  const [authPhone, setAuthPhone] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setIsLoggedIn(true);
+        setCurrentUser(session.user);
+        setCurrentScreen('MAIN');
+      }
+    });
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setIsLoggedIn(true);
+        setCurrentUser(session.user);
+        fetchUserProfile(session.user.id);
+        fetchUserOrders(session.user.id);
+      } else {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+        setUserProfile(null);
+        setUserOrders([]);
+      }
+    });
+
+    async function fetchUserProfile(uid: string) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', uid)
+        .single();
+      
+      if (!error && data) {
+        setUserProfile(data);
+        // Sync address with profile if possible
+        setAddress(prev => ({
+          ...prev,
+          fullName: `${data.first_name} ${data.last_name}`.trim() || prev.fullName,
+          phone: data.phone_number || prev.phone,
+          city: data.city || prev.city
+        }));
+      }
+    }
+
     async function fetchProducts() {
       const { data, error } = await supabase
         .from('products')
@@ -64,7 +172,13 @@ export default function App() {
     fetchUserOrders();
   }, []);
 
-  async function fetchUserOrders() {
+  async function fetchUserOrders(userId?: string) {
+    const targetUserId = userId || currentUser?.id;
+    if (!targetUserId) {
+      setLoadingOrders(false);
+      return;
+    }
+
     setLoadingOrders(true);
     const { data, error } = await supabase
       .from('orders')
@@ -75,7 +189,7 @@ export default function App() {
           product:products(*)
         )
       `)
-      .eq('client_id', '8093db71-155e-4050-8451-9ca79d85f55e') // Current Demo User
+      .eq('client_id', targetUserId)
       .order('created_at', { ascending: false });
 
     if (!error) {
@@ -114,14 +228,71 @@ export default function App() {
     'Inter-Bold': Inter_700Bold,
   });
 
+  // Dynamic Categories Logic
+  const availableCategories = React.useMemo(() => {
+    const rawCats = Array.from(new Set(products.map(p => p.category))).filter(Boolean);
+    const result = [{ id: 'all', name: 'Tout', icon: 'apps-outline' }];
+    
+    rawCats.forEach((catName, index) => {
+      const match = CATEGORIES.find(c => c.name === catName || (catName === 'Mode & Beauté' && c.name === 'Mode'));
+      result.push({
+        id: `dyn-${index}`,
+        name: catName,
+        icon: match ? match.icon : 'pricetag-outline'
+      });
+    });
+    return result;
+  }, [products]);
+
   const [activeTab, setActiveTab] = useState<'HOME' | 'CART' | 'PROFILE'>('HOME');
-  const [currentScreen, setCurrentScreen] = useState<'MAIN' | 'PRODUCT_DETAIL' | 'ADDRESS' | 'INVOICE' | 'PAYMENT_SUCCESS' | 'WISHLIST' | 'RETURN_POLICY' | 'ORDERS' | 'NOTIFICATIONS' | 'SETTINGS' | 'HELP' | 'PRIVACY' | 'MESSAGES'>('MAIN');
+  const [currentScreen, setCurrentScreen] = useState<'MAIN' | 'PRODUCT_DETAIL' | 'ADDRESS' | 'INVOICE' | 'PAYMENT_SUCCESS' | 'WISHLIST' | 'RETURN_POLICY' | 'ORDERS' | 'NOTIFICATIONS' | 'SETTINGS' | 'HELP' | 'PRIVACY' | 'MESSAGES' | 'ONBOARDING' | 'LOGIN' | 'REGISTER'>('ONBOARDING');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [sortBy, setSortBy] = useState<'POPULAR' | 'PRICE_ASC' | 'PRICE_DESC'>('POPULAR');
   const [activeOrderTab, setActiveOrderTab] = useState<'ALL' | 'TO_PAY' | 'PROCESSING' | 'SHIPPED' | 'DISPUTES'>('ALL');
   
-  const [userMessages, setUserMessages] = useState<any[]>([
-    { id: 1, text: "Bonjour, j'ai une question sur ma livraison.", sender: 'user', time: '10:30' },
-    { id: 2, text: "Bonjour ! Comment pouvons-nous vous aider ?", sender: 'admin', time: '10:32' },
-  ]);
+  const [userMessages, setUserMessages] = useState<any[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    fetchMessages();
+
+    // Subscribe to new support messages
+    const channel = supabase
+      .channel('public:support_messages')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'support_messages',
+        filter: `client_id=eq.${currentUser.id}`
+      }, (payload) => {
+        setUserMessages(prev => {
+          if (prev.find(m => m.id === payload.new.id)) return prev;
+          return [...prev, payload.new];
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser]);
+
+  async function fetchMessages() {
+    if (!currentUser) return;
+    setLoadingMessages(true);
+    const { data, error } = await supabase
+      .from('support_messages')
+      .select('*')
+      .eq('client_id', currentUser.id)
+      .order('created_at', { ascending: true });
+    
+    if (!error) {
+      setUserMessages(data || []);
+    }
+    setLoadingMessages(false);
+  }
   const [messageInput, setMessageInput] = useState('');
   
   const [activeCategory, setActiveCategory] = useState('Tout');
@@ -179,27 +350,110 @@ export default function App() {
 
   const SECTIONS = ['All', 'Women', 'Curve', 'Kids', 'Men', 'Home'];
 
+  // Enhanced state setters with LayoutAnimation
+  const changeTab = (tab: any) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setActiveTab(tab);
+  };
+
+  const changeScreen = (screen: any) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCurrentScreen(screen);
+  };
+
+  const changeCategory = (cat: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
+    setActiveCategory(cat);
+  };
+
 
   if (!fontsLoaded) { return null; }
 
   const goHome = () => {
-    setCurrentScreen('MAIN');
-    setActiveTab('HOME');
+    changeScreen('MAIN');
+    changeTab('HOME');
     setSelectedProduct(null);
     setSearchQuery('');
     fetchUserOrders(); // Refresh orders when going home/mooving around
   };
 
-  const handleLogout = () => {
+  const handleLogin = async () => {
+    if (!authEmail || !authPassword) {
+      alert("Veuillez remplir tous les champs");
+      return;
+    }
+    setAuthLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: authEmail,
+      password: authPassword,
+    });
+    setAuthLoading(false);
+    if (error) {
+      alert(error.message);
+    } else {
+      setIsLoggedIn(true);
+      setCurrentUser(data.user);
+      changeScreen('MAIN');
+      fetchUserOrders(data.user?.id);
+    }
+  };
+
+  const handleRegister = async () => {
+    if (!authEmail || !authPassword || !authName || !authPhone) {
+      alert("Veuillez remplir tous les champs");
+      return;
+    }
+    setAuthLoading(true);
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: authEmail,
+      password: authPassword,
+      options: {
+        data: {
+          first_name: authName.split(' ')[0] || '',
+          last_name: authName.split(' ').slice(1).join(' ') || '',
+          phone_number: authPhone,
+        }
+      }
+    });
+
+    if (authError) {
+      setAuthLoading(false);
+      alert(authError.message);
+      return;
+    }
+
+    if (authData.user) {
+      // Small delay to let the trigger run
+      setTimeout(async () => {
+        await supabase.from('profiles').update({
+          first_name: authName.split(' ')[0],
+          last_name: authName.split(' ').slice(1).join(' '),
+          phone_number: authPhone
+        }).eq('id', authData.user?.id);
+        
+        setIsLoggedIn(true);
+        setCurrentUser(authData.user);
+        setAuthLoading(false);
+        changeScreen('MAIN');
+        fetchUserOrders(authData.user?.id);
+      }, 1000);
+    } else {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
     Alert.alert(
       "Déconnexion",
-      "Voulez-vous vraiment vous déconnecter ?",
+      "Êtes-vous sûr de vouloir vous déconnecter ?",
       [
         { text: "Annuler", style: "cancel" },
-        { text: "Se déconnecter", onPress: () => {
-          clearCart();
+        { text: "Déconnexion", onPress: async () => {
+          await supabase.auth.signOut();
+          setIsLoggedIn(false);
+          setCurrentUser(null);
+          setUserOrders([]);
           goHome();
-          alert("Vous avez été déconnecté.");
         }, style: "destructive" }
       ]
     );
@@ -209,7 +463,7 @@ export default function App() {
     setSelectedProduct(product);
     setSelectedColor(product.colors?.[0] || 'Standard');
     setSelectedSize(product.sizes?.[0] || 'Standard');
-    setCurrentScreen('PRODUCT_DETAIL');
+    changeScreen('PRODUCT_DETAIL');
   };
 
   const toggleWishlist = (id: string) => {
@@ -269,6 +523,14 @@ export default function App() {
 
   const handleFinalizePayment = async () => {
     if (cart.length === 0) return;
+    
+    // Auth Check
+    if (!currentUser) {
+      alert("Vous devez être connecté pour finaliser la commande. Créez un compte ou connectez-vous.");
+      changeScreen('ONBOARDING');
+      return;
+    }
+
     setLoadingProducts(true); // Reuse loading state for simplicity or add a new one
     
     const invoice = calculateInvoice();
@@ -277,7 +539,7 @@ export default function App() {
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        client_id: '8093db71-155e-4050-8451-9ca79d85f55e', // Placeholder Client ID
+        client_id: currentUser.id,
         total_cfa: invoice.total,
         status: 'PENDING',
         payment_reference: 'DEMO-' + Math.random().toString(36).substring(7).toUpperCase(),
@@ -431,26 +693,19 @@ export default function App() {
           </View>
         ) : (
           <ScrollView style={styles.mainScroll} showsVerticalScrollIndicator={false}>
-            {/* Updated Categories UI - Pill Shape for better design */}
+            {/* Categories Section - Dynamic & Animated */}
             <View style={{backgroundColor: THEME.white, paddingVertical: 12}}>
               <Text style={{paddingHorizontal: 16, fontSize: 16, fontFamily: 'Poppins-Bold', marginBottom: 12}}>Catégories</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingLeft: 16}}>
-                <TouchableOpacity 
-                    style={[styles.pillCategory, activeCategory === 'Tout' && styles.pillCategoryActive, {flexDirection: 'row', alignItems: 'center'}]} 
-                    onPress={() => setActiveCategory('Tout')}
-                >
-                    <Ionicons name="apps-outline" size={16} color={activeCategory === 'Tout' ? THEME.white : THEME.accent} style={{marginRight: 6}} />
-                    <Text style={activeCategory === 'Tout' ? styles.pillCategoryTextActive : styles.pillCategoryText}>Tout voir</Text>
-                </TouchableOpacity>
-                {CATEGORIES.map(cat => (
+                {availableCategories.map(cat => (
                   <TouchableOpacity 
                     key={cat.id} 
                     style={[styles.pillCategory, activeCategory === cat.name && styles.pillCategoryActive, {flexDirection: 'row', alignItems: 'center'}]} 
-                    onPress={() => setActiveCategory(cat.name)}
+                    onPress={() => changeCategory(cat.name)}
                   >
                     <Ionicons name={cat.icon as any} size={16} color={activeCategory === cat.name ? THEME.white : THEME.accent} style={{marginRight: 6}} />
                     <Text style={activeCategory === cat.name ? styles.pillCategoryTextActive : styles.pillCategoryText}>
-                      {cat.name}
+                      {cat.name === 'Tout' ? 'Tout voir' : cat.name}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -470,56 +725,44 @@ export default function App() {
                </TouchableOpacity>
             </View>
 
-            {/* Section Title */}
+            {/* Section Title & Sort Filters */}
             <View style={{flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 10, alignItems: 'center'}}>
                <Text style={{fontSize: 18, fontFamily: 'Poppins-Bold', color: THEME.text}}>
-                 {activeCategory === 'Tout' ? 'Recommandé pour vous' : `Meilleures ventes: ${activeCategory}`}
+                 {activeCategory === 'Tout' ? 'Recommandé' : activeCategory}
                </Text>
-               <Text style={{color: THEME.primary, fontSize: 13, fontFamily: 'Poppins-Bold'}}>Voir tout &gt;</Text>
+               <TouchableOpacity 
+                 onPress={() => { 
+                   LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                   setSortBy(prev => prev === 'POPULAR' ? 'PRICE_ASC' : prev === 'PRICE_ASC' ? 'PRICE_DESC' : 'POPULAR') 
+                 }}
+               >
+                 <View style={{flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12}}>
+                   <Ionicons name="swap-vertical" size={14} color={THEME.text} style={{marginRight: 4}} />
+                   <Text style={{color: THEME.text, fontSize: 11, fontFamily: 'Poppins-Bold'}}>
+                     {sortBy === 'POPULAR' ? 'Populaires' : sortBy === 'PRICE_ASC' ? 'Moins chers' : 'Plus chers'}
+                   </Text>
+                 </View>
+               </TouchableOpacity>
             </View>
 
-            {/* Masonry-like Grid */}
+            {/* Modern Product Grid */}
             <View style={styles.gridContainer}>
-              {products.filter(p => activeCategory === 'Tout' || p.category === activeCategory || (activeCategory === 'Mode' && (p.category === 'Mode & Beauté'))).map((p, idx) => (
-                <TouchableOpacity key={p.id} style={styles.gridItem} activeOpacity={0.9} onPress={() => handleProductPress(p)}>
-                  <View style={styles.productCard}>
-                    <View style={{position: 'relative'}}>
-                      {/* Badge Exclusif */}
-                      {idx === 0 && <View style={styles.tagBadge}><Text style={{color: 'white', fontSize: 10, fontFamily: 'Poppins-Bold'}}>EXCLUSIF</Text></View>}
-                      <Image source={{uri: p.images?.[0] || 'https://via.placeholder.com/600'}} style={styles.productImage} />
-                      <TouchableOpacity 
-                        style={styles.wishlistIcon} 
-                        onPress={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
-                      >
-                        <Ionicons 
-                          name={wishlist.includes(p.id) ? "heart" : "heart-outline"} 
-                          size={20} 
-                          color={wishlist.includes(p.id) ? THEME.danger : THEME.textGray} 
-                        />
-                      </TouchableOpacity>
-                    </View>
-                    <View style={{padding: 8}}>
-                      <Text style={styles.productName} numberOfLines={2}>{p.name}</Text>
-                      <View style={{flexDirection: 'row', alignItems: 'baseline'}}>
-                        <Text style={styles.productPrice}>{(p.final_price_cfa || 0).toLocaleString('fr-FR')} CFA</Text>
-                        {(p.discount_percent || 0) > 0 && (
-                          <Text style={{fontSize: 10, color: THEME.textGray, textDecorationLine: 'line-through', marginLeft: 6}}>
-                            {(p.base_price_cfa || 0).toLocaleString('fr-FR')} CFA
-                          </Text>
-                        )}
-                      </View>
-                      <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 4}}>
-                         {(p.discount_percent || 0) > 0 && (
-                           <View style={{backgroundColor: THEME.danger, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 2, marginRight: 6}}>
-                             <Text style={{color: 'white', fontSize: 9, fontFamily: 'Poppins-Bold'}}>-{p.discount_percent}%</Text>
-                           </View>
-                         )}
-                        <Text style={{fontSize: 10, color: '#F59E0B'}}>★ {p.rating || 5.0}</Text>
-                        <Text style={{fontSize: 10, color: THEME.textGray, marginLeft: 6}}>{p.sold || '0'} vendus</Text>
-                      </View>
-                    </View>
-                  </View>
-                </TouchableOpacity>
+              {products
+                .filter(p => activeCategory === 'Tout' || p.category === activeCategory)
+                .sort((a, b) => {
+                  if (sortBy === 'PRICE_ASC') return a.final_price_cfa - b.final_price_cfa;
+                  if (sortBy === 'PRICE_DESC') return b.final_price_cfa - a.final_price_cfa;
+                  return (b.rating || 0) - (a.rating || 0);
+                })
+                .map((p, idx) => (
+                <ProductCardItem 
+                  key={p.id} 
+                  p={p} 
+                  idx={idx} 
+                  wishlist={wishlist} 
+                  toggleWishlist={toggleWishlist} 
+                  handleProductPress={handleProductPress} 
+                />
               ))}
             </View>
             <View style={{height: 100}} />
@@ -847,10 +1090,14 @@ export default function App() {
             <Ionicons name="person-circle-outline" size={48} color={THEME.accent} />
           </View>
           <View style={{ flex: 1, marginLeft: 16 }}>
-            <Text style={styles.profileName}>{address.fullName}</Text>
-            <Text style={styles.profilePhone}>{address.phone}</Text>
+            <Text style={styles.profileName}>
+              {userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : 'Acheteur Invité'}
+            </Text>
+            <Text style={styles.profilePhone}>{userProfile?.phone_number || 'Veuillez vous connecter'}</Text>
             <View style={styles.profileBadge}>
-              <Text style={styles.profileBadgeText}>Membre Premium</Text>
+              <Text style={styles.profileBadgeText}>
+                {userProfile?.tier === 'PREMIUM' ? 'Membre Premium' : 'Membre Classique'}
+              </Text>
             </View>
           </View>
           <TouchableOpacity onPress={() => setCurrentScreen('SETTINGS')}>
@@ -1502,37 +1749,22 @@ export default function App() {
   );
 
   const renderMessagesScreen = () => {
-    const handleSendMessage = () => {
+    const handleSendMessage = async () => {
       const trimmedText = messageInput.trim();
-      if (!trimmedText) return;
+      if (!trimmedText || !currentUser) return;
 
-      const newMessage = {
-        id: Date.now(),
-        text: trimmedText,
-        sender: 'user',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      
-      const updatedMessages = [...userMessages, newMessage];
-      setUserMessages(updatedMessages);
-      setMessageInput('');
-      
-      // Auto-reply logic: only if no admin reply in the last 24h
-      const lastAdminMsg = [...userMessages].reverse().find(m => m.sender === 'admin');
-      const now = Date.now();
-      const oneDay = 24 * 60 * 60 * 1000;
-      
-      if (!lastAdminMsg || (now - (lastAdminMsg.timestamp || 0)) > oneDay) {
-        setTimeout(() => {
-          const reply = {
-            id: Date.now() + 1,
-            text: "Merci pour votre message. Un administrateur TrustLink vous répondra très prochainement.",
-            sender: 'admin',
-            timestamp: Date.now(),
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          };
-          setUserMessages(prev => [...prev, reply]);
-        }, 1500);
+      const { error } = await supabase
+        .from('support_messages')
+        .insert({
+          client_id: currentUser.id,
+          text: trimmedText,
+          sender: 'client'
+        });
+
+      if (!error) {
+        setMessageInput('');
+      } else {
+        alert("Erreur lors de l'envoi : " + error.message);
       }
     };
 
@@ -1559,13 +1791,13 @@ export default function App() {
             <View 
               key={msg.id} 
               style={{
-                alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-                backgroundColor: msg.sender === 'user' ? THEME.accent : THEME.white,
+                alignSelf: msg.sender === 'client' ? 'flex-end' : 'flex-start',
+                backgroundColor: msg.sender === 'client' ? THEME.accent : THEME.white,
                 padding: 12,
                 borderRadius: 12,
                 maxWidth: '80%',
                 marginBottom: 12,
-                borderBottomRightRadius: msg.sender === 'user' ? 2 : 12,
+                borderBottomRightRadius: msg.sender === 'client' ? 2 : 12,
                 borderBottomLeftRadius: msg.sender === 'admin' ? 2 : 12,
                 elevation: 1,
                 shadowColor: '#000',
@@ -1574,17 +1806,19 @@ export default function App() {
                 shadowRadius: 1
               }}
             >
-              <Text style={{color: msg.sender === 'user' ? THEME.white : THEME.text, fontSize: 14}}>{msg.text}</Text>
+              <Text style={{color: msg.sender === 'client' ? THEME.white : THEME.text, fontSize: 14}}>{msg.text}</Text>
               <Text style={{
                 fontSize: 10, 
-                color: msg.sender === 'user' ? 'rgba(255,255,255,0.7)' : THEME.textGray, 
+                color: msg.sender === 'client' ? 'rgba(255,255,255,0.7)' : THEME.textGray, 
                 alignSelf: 'flex-end', 
-                marginTop: 4
+                marginTop: 4,
+                fontFamily: 'Inter-Medium'
               }}>
-                {msg.time}
+                {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...'}
               </Text>
             </View>
           ))}
+          {loadingMessages && <ActivityIndicator color={THEME.accent} style={{marginVertical: 10}} />}
         </ScrollView>
 
         <View style={{
@@ -1656,7 +1890,165 @@ export default function App() {
             Nous ne partageons vos données qu'avec les prestataires logistiques nécessaires à la livraison de vos commandes. Nous ne vendons jamais vos données à des tiers.
          </Text>
          <Text style={{fontSize: 12, color: THEME.border, textAlign: 'center'}}>Dernière mise à jour : 15 Avril 2026</Text>
-      </ScrollView>
+       </ScrollView>
+    </View>
+  );
+
+  const renderOnboardingScreen = () => (
+    <View style={{flex: 1, backgroundColor: THEME.primaryDark, justifyContent: 'center', alignItems: 'center', padding: 24}}>
+      <Ionicons name="shield-checkmark" size={80} color={THEME.white} style={{marginBottom: 24}} />
+      <Text style={{fontFamily: 'Poppins-Bold', fontSize: 28, color: THEME.white, textAlign: 'center', marginBottom: 12}}>
+        TrustLink
+      </Text>
+      <Text style={{fontFamily: 'Inter-Regular', fontSize: 15, color: THEME.white, textAlign: 'center', opacity: 0.9, marginBottom: 40}}>
+        Le marché sécurisé avec paiement Escrow pour des achats sans risque au Bénin et au Nigeria.
+      </Text>
+      <TouchableOpacity 
+        style={{backgroundColor: THEME.white, width: '100%', padding: 16, borderRadius: 30, alignItems: 'center', marginBottom: 16}}
+        onPress={() => changeScreen('REGISTER')}
+      >
+        <Text style={{fontFamily: 'Poppins-Bold', color: THEME.primaryDark, fontSize: 16}}>Créer un compte</Text>
+      </TouchableOpacity>
+      <TouchableOpacity 
+        style={{backgroundColor: 'rgba(255,255,255,0.1)', width: '100%', padding: 16, borderRadius: 30, alignItems: 'center'}}
+        onPress={() => changeScreen('LOGIN')}
+      >
+        <Text style={{fontFamily: 'Poppins-Bold', color: THEME.white, fontSize: 16}}>Se connecter</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity onPress={() => { setIsLoggedIn(false); changeScreen('MAIN'); }} style={{marginTop: 30}}>
+        <Text style={{color: THEME.textGray, fontFamily: 'Inter-Medium'}}>Continuer en tant qu'invité</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderLoginScreen = () => (
+    <View style={{flex: 1, backgroundColor: THEME.white, padding: 24, paddingTop: Platform.OS === 'ios' ? 60 : 40}}>
+       <TouchableOpacity onPress={() => changeScreen('ONBOARDING')} style={{marginBottom: 30}}>
+         <Ionicons name="arrow-back" size={28} color={THEME.text} />
+       </TouchableOpacity>
+       <Text style={{fontFamily: 'Poppins-Bold', fontSize: 28, color: THEME.text, marginBottom: 8}}>Bon retour!</Text>
+       <Text style={{fontFamily: 'Inter-Regular', fontSize: 14, color: THEME.textGray, marginBottom: 40}}>Connectez-vous pour continuer vers TrustLink.</Text>
+       
+       <View style={{marginBottom: 20}}>
+         <Text style={{fontFamily: 'Inter-Medium', fontSize: 13, color: THEME.text, marginBottom: 8}}>Adresse Email ou Téléphone</Text>
+         <View style={{borderWidth: 1, borderColor: THEME.border, borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12}}>
+           <Ionicons name="mail-outline" size={20} color={THEME.textGray} />
+           <TextInput 
+             style={{flex: 1, padding: 14, fontFamily: 'Inter-Regular'}} 
+             placeholder="Ex: john@doe.com" 
+             value={authEmail}
+             onChangeText={setAuthEmail}
+             autoCapitalize="none"
+             keyboardType="email-address"
+           />
+         </View>
+       </View>
+       
+       <View style={{marginBottom: 30}}>
+         <Text style={{fontFamily: 'Inter-Medium', fontSize: 13, color: THEME.text, marginBottom: 8}}>Mot de passe</Text>
+         <View style={{borderWidth: 1, borderColor: THEME.border, borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12}}>
+           <Ionicons name="lock-closed-outline" size={20} color={THEME.textGray} />
+           <TextInput 
+             style={{flex: 1, padding: 14, fontFamily: 'Inter-Regular'}} 
+             placeholder="********" 
+             secureTextEntry 
+             value={authPassword}
+             onChangeText={setAuthPassword}
+           />
+         </View>
+         <Text style={{fontFamily: 'Inter-Medium', fontSize: 12, color: THEME.accent, textAlign: 'right', marginTop: 12}}>Mot de passe oublié ?</Text>
+       </View>
+
+       <TouchableOpacity 
+        style={{backgroundColor: THEME.primaryDark, padding: 16, borderRadius: 30, alignItems: 'center', shadowColor: THEME.primaryDark, shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.3, shadowRadius: 8}}
+        onPress={handleLogin}
+        disabled={authLoading}
+       >
+         {authLoading ? (
+           <ActivityIndicator color={THEME.white} />
+         ) : (
+           <Text style={{fontFamily: 'Poppins-Bold', color: THEME.white, fontSize: 16}}>Se connecter</Text>
+         )}
+       </TouchableOpacity>
+    </View>
+  );
+
+  const renderRegisterScreen = () => (
+    <View style={{flex: 1, backgroundColor: THEME.white, padding: 24, paddingTop: Platform.OS === 'ios' ? 60 : 40}}>
+       <TouchableOpacity onPress={() => changeScreen('ONBOARDING')} style={{marginBottom: 30}}>
+         <Ionicons name="arrow-back" size={28} color={THEME.text} />
+       </TouchableOpacity>
+       <Text style={{fontFamily: 'Poppins-Bold', fontSize: 28, color: THEME.text, marginBottom: 8}}>S'inscrire</Text>
+       <Text style={{fontFamily: 'Inter-Regular', fontSize: 14, color: THEME.textGray, marginBottom: 40}}>Rejoignez la communauté TrustLink aujourd'hui.</Text>
+       
+       <View style={{marginBottom: 20}}>
+         <Text style={{fontFamily: 'Inter-Medium', fontSize: 13, color: THEME.text, marginBottom: 8}}>Prénom & Nom</Text>
+         <View style={{borderWidth: 1, borderColor: THEME.border, borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12}}>
+           <Ionicons name="person-outline" size={20} color={THEME.textGray} />
+           <TextInput 
+             style={{flex: 1, padding: 14, fontFamily: 'Inter-Regular'}} 
+             placeholder="John Doe" 
+             value={authName}
+             onChangeText={setAuthName}
+           />
+         </View>
+       </View>
+
+       <View style={{marginBottom: 20}}>
+         <Text style={{fontFamily: 'Inter-Medium', fontSize: 13, color: THEME.text, marginBottom: 8}}>Email</Text>
+         <View style={{borderWidth: 1, borderColor: THEME.border, borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12}}>
+           <Ionicons name="mail-outline" size={20} color={THEME.textGray} />
+           <TextInput 
+             style={{flex: 1, padding: 14, fontFamily: 'Inter-Regular'}} 
+             placeholder="john@doe.com" 
+             value={authEmail}
+             onChangeText={setAuthEmail}
+             autoCapitalize="none"
+             keyboardType="email-address"
+           />
+         </View>
+       </View>
+
+       <View style={{marginBottom: 20}}>
+         <Text style={{fontFamily: 'Inter-Medium', fontSize: 13, color: THEME.text, marginBottom: 8}}>Numéro de Téléphone (Mobile Money)</Text>
+         <View style={{borderWidth: 1, borderColor: THEME.border, borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12}}>
+           <Ionicons name="call-outline" size={20} color={THEME.textGray} />
+           <TextInput 
+             style={{flex: 1, padding: 14, fontFamily: 'Inter-Regular'}} 
+             placeholder="+229 01 23 45 67" 
+             keyboardType="phone-pad" 
+             value={authPhone}
+             onChangeText={setAuthPhone}
+           />
+         </View>
+       </View>
+       
+       <View style={{marginBottom: 30}}>
+         <Text style={{fontFamily: 'Inter-Medium', fontSize: 13, color: THEME.text, marginBottom: 8}}>Créer un Mot de passe</Text>
+         <View style={{borderWidth: 1, borderColor: THEME.border, borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12}}>
+           <Ionicons name="lock-closed-outline" size={20} color={THEME.textGray} />
+           <TextInput 
+             style={{flex: 1, padding: 14, fontFamily: 'Inter-Regular'}} 
+             placeholder="********" 
+             secureTextEntry 
+             value={authPassword}
+             onChangeText={setAuthPassword}
+           />
+         </View>
+       </View>
+
+       <TouchableOpacity 
+        style={{backgroundColor: THEME.accent, padding: 16, borderRadius: 30, alignItems: 'center', shadowColor: THEME.accent, shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.3, shadowRadius: 8}}
+        onPress={handleRegister}
+        disabled={authLoading}
+       >
+         {authLoading ? (
+           <ActivityIndicator color={THEME.white} />
+         ) : (
+           <Text style={{fontFamily: 'Poppins-Bold', color: THEME.white, fontSize: 16}}>S'inscrire</Text>
+         )}
+       </TouchableOpacity>
     </View>
   );
 
@@ -1664,6 +2056,10 @@ export default function App() {
     <SafeAreaView style={styles.container} {...panResponder.panHandlers}>
       <StatusBar style="dark" />
       <View style={styles.content}>
+        {currentScreen === 'ONBOARDING' && renderOnboardingScreen()}
+        {currentScreen === 'LOGIN' && renderLoginScreen()}
+        {currentScreen === 'REGISTER' && renderRegisterScreen()}
+        
         {currentScreen === 'MAIN' && (
           <>
             {activeTab === 'HOME' && renderHomeMain()}
@@ -1686,25 +2082,19 @@ export default function App() {
         {currentScreen === 'MESSAGES' && renderMessagesScreen()}
       </View>
 
-      {/* Main Bottom Navigation (Only visible on MAIN screens) */}
+      {/* Floating Modern Tab Bar */}
       {currentScreen === 'MAIN' && (
         <View style={styles.bottomTabBar}>
-          <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('HOME')}>
-            <Ionicons 
-              name={activeTab === 'HOME' ? "home" : "home-outline"} 
-              size={24} 
-              color={activeTab === 'HOME' ? THEME.accent : THEME.textGray} 
-            />
+          <TouchableOpacity style={styles.tabItem} onPress={() => changeTab('HOME')}>
+            <View style={[styles.tabIconWrapper, activeTab === 'HOME' && styles.tabIconWrapperActive]}>
+              <Ionicons name={activeTab === 'HOME' ? "home" : "home-outline"} size={22} color={activeTab === 'HOME' ? THEME.white : THEME.textGray} />
+            </View>
             <Text style={[styles.tabText, activeTab === 'HOME' && {color: THEME.accent, fontFamily: 'Poppins-Bold'}]}>Boutique</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('CART')}>
-            <View>
-              <Ionicons 
-                name={activeTab === 'CART' ? "cart" : "cart-outline"} 
-                size={24} 
-                color={activeTab === 'CART' ? THEME.accent : THEME.textGray} 
-              />
+          <TouchableOpacity style={styles.tabItem} onPress={() => changeTab('CART')}>
+            <View style={[styles.tabIconWrapper, activeTab === 'CART' && styles.tabIconWrapperActive]}>
+              <Ionicons name={activeTab === 'CART' ? "cart" : "cart-outline"} size={22} color={activeTab === 'CART' ? THEME.white : THEME.textGray} />
               {cart.length > 0 && (
                 <View style={styles.tabBadge}>
                   <Text style={styles.tabBadgeText}>{cart.reduce((s, i) => s + i.qty, 0)}</Text>
@@ -1714,12 +2104,10 @@ export default function App() {
             <Text style={[styles.tabText, activeTab === 'CART' && {color: THEME.accent, fontFamily: 'Poppins-Bold'}]}>Panier</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('PROFILE')}>
-             <Ionicons 
-              name={activeTab === 'PROFILE' ? "person" : "person-outline"} 
-              size={24} 
-              color={activeTab === 'PROFILE' ? THEME.accent : THEME.textGray} 
-            />
+          <TouchableOpacity style={styles.tabItem} onPress={() => changeTab('PROFILE')}>
+             <View style={[styles.tabIconWrapper, activeTab === 'PROFILE' && styles.tabIconWrapperActive]}>
+              <Ionicons name={activeTab === 'PROFILE' ? "person" : "person-outline"} size={22} color={activeTab === 'PROFILE' ? THEME.white : THEME.textGray} />
+             </View>
             <Text style={[styles.tabText, activeTab === 'PROFILE' && {color: THEME.accent, fontFamily: 'Poppins-Bold'}]}>Moi</Text>
           </TouchableOpacity>
         </View>
@@ -1805,8 +2193,15 @@ const styles = StyleSheet.create({
   },
   productCard: {
     backgroundColor: THEME.white,
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.02)',
   },
   productImage: {
     width: '100%',
@@ -2135,25 +2530,42 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bottomTabBar: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 24 : 16,
+    left: 24,
+    right: 24,
     flexDirection: 'row',
-    backgroundColor: THEME.white,
-    borderTopWidth: 1,
-    borderTopColor: THEME.border,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
-    paddingTop: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 36,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabIcon: {
-    fontSize: 22,
+  tabIconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 4,
-    opacity: 0.4,
   },
-  tabIconActive: {
-    opacity: 1,
+  tabIconWrapperActive: {
+    backgroundColor: THEME.accent,
+    shadowColor: THEME.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   tabText: {
     fontSize: 10,
@@ -2161,17 +2573,17 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
   },
   tabTextActive: {
-    color: THEME.text,
+    color: THEME.accent,
     fontFamily: 'Poppins-Bold',
   },
   tabBadge: {
     position: 'absolute',
-    top: -4,
-    right: -8,
+    top: -2,
+    right: -6,
     backgroundColor: THEME.danger,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,

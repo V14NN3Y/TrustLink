@@ -151,3 +151,51 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER on_order_item_created
   AFTER INSERT ON public.order_items
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_order_item();
+
+-- Support Messages (Chat between Clients and Admin)
+CREATE TABLE public.support_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  sender TEXT NOT NULL, -- 'client' or 'admin'
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  read BOOLEAN DEFAULT FALSE
+);
+
+-- AUTOMATION: Auto-create profile on signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, first_name, last_name, role)
+  VALUES (NEW.id, '', '', 'CLIENT');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Note: The following trigger should ideally be applied if auth.users is accessible.
+-- CREATE TRIGGER on_auth_user_created
+--   AFTER INSERT ON auth.users
+--   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Enable Realtime
+-- ALTER PUBLICATION supabase_realtime ADD TABLE vendor_messages;
+-- ALTER PUBLICATION supabase_realtime ADD TABLE support_messages;
+
+-- ==============================================
+-- STORAGE CONFIGURATION
+-- ==============================================
+-- Note: These run against the 'storage' schema
+insert into storage.buckets (id, name, public) values ('trustlink-media', 'trustlink-media', true);
+
+-- Enable RLS on storage.objects
+alter table storage.objects enable row level security;
+
+-- Allow public read access to the 'trustlink-media' bucket
+create policy "Public Access"
+on storage.objects for select
+using ( bucket_id = 'trustlink-media' );
+
+-- Allow authenticated users to upload files
+create policy "Auth Upload"
+on storage.objects for insert
+with check ( bucket_id = 'trustlink-media' and auth.role() = 'authenticated' );

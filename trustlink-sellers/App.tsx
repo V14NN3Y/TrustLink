@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, Image, ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { decode } from 'base64-arraybuffer';
 import { supabase } from './supabase';
 
 // TrustLink Brand Colors
@@ -32,8 +34,29 @@ export default function App() {
     category: 'Mode',
     base_price_cfa: '',
     discount_percent: '0',
-    image_url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30'
+    tempImageUri: null as string | null,
+    tempImageBase64: null as string | null,
+    image_url: ''
   });
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.6,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0].base64) {
+      setNewProduct({
+        ...newProduct,
+        tempImageUri: result.assets[0].uri,
+        tempImageBase64: result.assets[0].base64,
+        image_url: '' // Reset the fallback URL
+      });
+    }
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -119,8 +142,38 @@ export default function App() {
       alert('Veuillez remplir les champs obligatoires');
       return;
     }
+    
+    if (!newProduct.tempImageBase64 && !newProduct.image_url) {
+      alert('Veuillez ajouter une image.');
+      return;
+    }
 
     setIsSubmitting(true);
+    
+    let finalImageUrl = newProduct.image_url;
+
+    // Upload to Supabase Storage if local image is selected
+    if (newProduct.tempImageBase64) {
+      const fileName = `${CURRENT_SELLER_ID}/${Date.now()}.png`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('trustlink-media')
+        .upload(fileName, decode(newProduct.tempImageBase64), {
+          contentType: 'image/png'
+        });
+
+      if (uploadError) {
+        alert("Erreur lors de l'upload de l'image : " + uploadError.message);
+        setIsSubmitting(false);
+        return;
+      }
+      
+      const { data: publicUrlData } = supabase.storage
+        .from('trustlink-media')
+        .getPublicUrl(fileName);
+        
+      finalImageUrl = publicUrlData.publicUrl;
+    }
+
     const basePrice = parseFloat(newProduct.base_price_cfa);
     const discount = parseFloat(newProduct.discount_percent || '0');
     const finalPrice = basePrice * (1 - discount / 100);
@@ -134,7 +187,7 @@ export default function App() {
         base_price_cfa: basePrice,
         discount_percent: discount,
         final_price_cfa: finalPrice,
-        image_url: newProduct.image_url,
+        image_url: finalImageUrl,
         is_active: true
       }]);
 
@@ -147,7 +200,9 @@ export default function App() {
         category: 'Mode',
         base_price_cfa: '',
         discount_percent: '0',
-        image_url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30'
+        tempImageUri: null,
+        tempImageBase64: null,
+        image_url: ''
       });
       fetchCatalog();
       setActiveTab('catalog');
@@ -332,12 +387,29 @@ export default function App() {
           </View>
         </View>
 
-        <Text style={styles.inputLabel}>URL de l'Image</Text>
+        <Text style={styles.inputLabel}>Image du Produit</Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 15, marginTop: 5}}>
+          <TouchableOpacity 
+            style={{ backgroundColor: COLORS.lightGray, padding: 12, borderRadius: 10, flex: 1, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
+            onPress={pickImage}
+          >
+            <Ionicons name="image-outline" size={20} color={COLORS.dark} style={{marginRight: 8}} />
+            <Text style={{fontWeight: '600', color: COLORS.dark}}>Choisir une Image</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {newProduct.tempImageUri && (
+          <View style={{marginTop: 15, alignItems: 'center'}}>
+            <Image source={{uri: newProduct.tempImageUri}} style={{width: 150, height: 150, borderRadius: 12, borderWidth: 1, borderColor: COLORS.lightGray}} />
+          </View>
+        )}
+        
+        <Text style={[styles.inputLabel, {marginTop: 20}]}>Ou coller l'URL directement</Text>
         <TextInput 
           style={styles.input} 
           placeholder="https://..." 
           value={newProduct.image_url}
-          onChangeText={(val) => setNewProduct({...newProduct, image_url: val})}
+          onChangeText={(val) => setNewProduct({...newProduct, image_url: val, tempImageBase64: null, tempImageUri: null})}
         />
 
         <TouchableOpacity 
