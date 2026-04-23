@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useExchangeRate, persistRate } from '@/hooks/useExchangeRate';
+import { StorageManager } from '@/lib/storage';
+import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { formatXOF, formatNGN } from '@/components/base/DataTransformer';
 
 const HUBS_CONFIG = [
@@ -14,17 +15,24 @@ export default function SystemPreferences() {
   const [ngnXofRate, setNgnXofRate] = useState(String(rate));
   const [hubs, setHubs] = useState({ LOS: true, ABJ: true, COT: true, PNV: false });
   const [saved, setSaved] = useState(false);
+  const [showConfirmReset, setShowConfirmReset] = useState(false);
 
   const rateNum = parseFloat(ngnXofRate);
   const rateValid = !isNaN(rateNum) && rateNum > 0;
 
   function handleSave() {
-    if (rateValid) { setRate(rateNum); persistRate(rateNum); }
+    if (rateValid) { 
+      setRate(rateNum); 
+    }
     setSaved(true); setTimeout(() => setSaved(false), 3000);
   }
 
+  function handleReset() {
+    StorageManager.reset();
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-10">
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
         <div className="p-5 border-b" style={{ background: 'linear-gradient(to right, rgba(18,92,141,0.05), rgba(255,106,0,0.05))', borderColor: 'rgba(18,92,141,0.2)' }}>
           <h3 className="font-semibold text-slate-800 text-base mb-1" style={{ fontFamily: 'Poppins, sans-serif' }}>Taux de change NGN / XOF</h3>
@@ -33,7 +41,7 @@ export default function SystemPreferences() {
         <div className="p-5">
           <div className="mb-4">
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">1 ₦ = X FCFA</label>
-            <input type="number" step="0.001" min="0" value={ngnXofRate} onChange={e => setNgnXofRate(e.target.value)} className={`w-full px-3 py-2.5 border-2 rounded-xl text-sm outline-none ${rateValid ? 'border-trustblue' : 'border-red-300'}`} />
+            <input type="number" step="0.001" min="0" value={ngnXofRate} onChange={e => setNgnXofRate(e.target.value)} className={`w-full px-3 py-2.5 border-2 rounded-xl text-sm outline-none transition-all ${rateValid ? 'border-slate-100 focus:border-trustblue' : 'border-red-300'}`} />
             {!rateValid && ngnXofRate && <p className="text-xs text-red-500 mt-1"><i className="ri-error-warning-line mr-1" />Taux invalide</p>}
           </div>
           {rateValid && (
@@ -61,7 +69,10 @@ export default function SystemPreferences() {
                   <p className="text-xs text-slate-500">{hub.country} · {hub.code}</p>
                 </div>
               </div>
-              <button onClick={() => setHubs(prev => ({ ...prev, [hub.code]: !prev[hub.code] }))} className={`relative rounded-full cursor-pointer w-10 h-5 transition-colors ${hubs[hub.code] ? 'bg-trustblue' : 'bg-slate-200'}`}>
+              <button 
+                onClick={() => setHubs(prev => ({ ...prev, [hub.code]: !prev[hub.code] }))} 
+                className={`relative rounded-full cursor-pointer w-10 h-5 transition-colors ${hubs[hub.code] ? 'bg-trustblue' : 'bg-slate-200'}`}
+              >
                 <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${hubs[hub.code] ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </button>
             </div>
@@ -74,9 +85,54 @@ export default function SystemPreferences() {
           <i className="ri-checkbox-circle-line" />Paramètres système sauvegardés
         </div>
       )}
-      <button onClick={handleSave} disabled={!rateValid} className={`w-full py-2.5 rounded-xl font-semibold text-sm ${rateValid ? 'bg-trustblue text-white cursor-pointer' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}>
+      <button 
+        onClick={handleSave} 
+        disabled={!rateValid} 
+        className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${rateValid ? 'bg-trustblue text-white cursor-pointer shadow-md hover:shadow-lg active:scale-[0.98]' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+      >
         Sauvegarder les paramètres système
       </button>
+
+      {/* ZONE DE DANGER - DEV ONLY */}
+      <div className="mt-12 pt-8 border-t border-slate-100">
+        <div className="bg-red-50/50 border border-red-100 rounded-2xl p-6">
+          <div className="flex items-start gap-4 mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center flex-shrink-0">
+              <i className="ri-error-warning-fill text-red-600 text-xl" />
+            </div>
+            <div>
+              <h4 className="font-bold text-red-800 text-base" style={{ fontFamily: 'Poppins, sans-serif' }}>Zone de maintenance (Dev Only)</h4>
+              <p className="text-sm text-red-600/80 leading-relaxed mt-1">
+                La réinitialisation supprimera toutes les données stockées dans votre navigateur (taux, commandes modifiées, produits approuvés) et rechargera les données de test initiales.
+              </p>
+            </div>
+          </div>
+
+          {!showConfirmReset ? (
+            <button 
+              onClick={() => setShowConfirmReset(true)} 
+              className="w-full py-3 border-2 border-red-200 text-red-600 rounded-xl font-bold text-sm hover:bg-red-50 transition-colors cursor-pointer"
+            >
+              Réinitialiser toutes les données
+            </button>
+          ) : (
+            <div className="flex gap-3 animate-fade-in">
+              <button 
+                onClick={() => setShowConfirmReset(false)} 
+                className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-semibold text-sm cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={handleReset} 
+                className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-200 cursor-pointer active:scale-95 transition-all"
+              >
+                CONFIRMER LA SUPPRESSION
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

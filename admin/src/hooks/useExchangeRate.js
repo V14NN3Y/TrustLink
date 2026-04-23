@@ -1,27 +1,15 @@
 import { useState, useEffect } from 'react';
+import { StorageManager } from '@/lib/storage';
 
-const STORAGE_KEY = 'trustlink_ngn_xof_rate';
-const DEFAULT_RATE = 1.832;
-
-function getStoredRate() {
-  try {
-    const v = localStorage.getItem(STORAGE_KEY);
-    if (v) {
-      const parsed = parseFloat(v);
-      if (!isNaN(parsed) && parsed > 0) return parsed;
-    }
-  } catch {}
-  return DEFAULT_RATE;
-}
+const STORAGE_KEYS = StorageManager.getKeys();
 
 export function useExchangeRate() {
-  const [rate, setRateState] = useState(() => getStoredRate());
+  const [data, setData] = useState(() => StorageManager.getExchangeRate() || { rate: 1.832, lastUpdated: new Date().toISOString() });
 
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === STORAGE_KEY && e.newValue) {
-        const parsed = parseFloat(e.newValue);
-        if (!isNaN(parsed) && parsed > 0) setRateState(parsed);
+      if (e.key === STORAGE_KEYS.EXCHANGE_RATE && e.newValue) {
+        setData(JSON.parse(e.newValue));
       }
     };
     window.addEventListener('storage', handler);
@@ -29,18 +17,17 @@ export function useExchangeRate() {
   }, []);
 
   function setRate(newRate) {
-    localStorage.setItem(STORAGE_KEY, String(newRate));
-    setRateState(newRate);
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: STORAGE_KEY,
-      newValue: String(newRate),
-      storageArea: localStorage,
-    }));
+    StorageManager.setExchangeRate(newRate);
+    setData({
+      rate: newRate,
+      lastUpdated: new Date().toISOString()
+    });
   }
 
-  return { rate, setRate, DEFAULT_RATE };
-}
-
-export function persistRate(rate) {
-  localStorage.setItem(STORAGE_KEY, String(rate));
+  return { 
+    rate: data.rate, 
+    lastUpdated: data.lastUpdated,
+    setRate, 
+    DEFAULT_RATE: 1.832 
+  };
 }

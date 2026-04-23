@@ -27,20 +27,33 @@ const NOTIF_ICONS = {
 export default function TopHeader() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { rate } = useExchangeRate();
+  const { rate, setRate } = useExchangeRate();
   const [showNotifs, setShowNotifs] = useState(false);
+  const [showRateEdit, setShowRateEdit] = useState(false);
+  const [tempRate, setTempRate] = useState(rate);
   const [notifications, setNotifications] = useState(NOTIFICATIONS);
   const notifRef = useRef(null);
+  const rateRef = useRef(null);
   const title = PAGE_TITLES[location.pathname] || 'TrustLink Admin';
   const unread = notifications.filter(n => !n.read).length;
 
   useEffect(() => {
     function handleClick(e) {
       if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifs(false);
+      if (rateRef.current && !rateRef.current.contains(e.target)) setShowRateEdit(false);
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  useEffect(() => {
+    setTempRate(rate);
+  }, [rate]);
+
+  function handleRateSave() {
+    setRate(parseFloat(tempRate));
+    setShowRateEdit(false);
+  }
 
   return (
     <header className="glass-header sticky top-0 z-20 w-full px-6 py-3 flex items-center justify-between">
@@ -52,10 +65,48 @@ export default function TopHeader() {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2">
-          <span className="live-dot" />
-          <span className="text-xs text-slate-500" style={{ fontFamily: 'Inter, sans-serif' }}>NGN/XOF</span>
-          <span className="font-bold text-trustblue text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>{rate.toFixed(4)}</span>
+        <div className="relative" ref={rateRef}>
+          <button 
+            onClick={() => setShowRateEdit(v => !v)}
+            className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 hover:bg-blue-100/50 transition-colors cursor-pointer group"
+          >
+            <span className="live-dot" />
+            <span className="text-xs text-slate-500" style={{ fontFamily: 'Inter, sans-serif' }}>NGN/XOF</span>
+            <span className="font-bold text-trustblue text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>{rate.toFixed(4)}</span>
+            <i className="ri-edit-line text-slate-400 group-hover:text-trustblue ml-1 transition-colors" />
+          </button>
+
+          {showRateEdit && (
+            <div className="absolute top-12 left-0 w-64 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 p-4 animate-fade-in">
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Modifier le taux live</h4>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">TAUX 1 ₦ = ... FCFA</label>
+                  <input 
+                    type="number" 
+                    step="0.0001"
+                    value={tempRate} 
+                    onChange={e => setTempRate(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:border-trustblue focus:ring-1 focus:ring-trustblue"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setShowRateEdit(false)}
+                    className="flex-1 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer"
+                  >
+                    Annuler
+                  </button>
+                  <button 
+                    onClick={handleRateSave}
+                    className="flex-1 py-2 text-xs font-semibold bg-trustblue text-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  >
+                    Appliquer
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="relative" ref={notifRef}>

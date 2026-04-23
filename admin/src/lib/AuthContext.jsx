@@ -1,14 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { StorageManager } from '@/lib/storage';
 
 const AuthContext = createContext();
-
-const mockUser = {
-  id: 'admin-001',
-  email: 'admin@trustlink.bj',
-  name: 'Admin Principal',
-  role: 'admin',
-};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -20,33 +13,69 @@ export const AuthProvider = ({ children }) => {
   const [appPublicSettings, setAppPublicSettings] = useState(null);
 
   useEffect(() => {
-    // Simulate a short loading delay then auto-authenticate with mock user
-    const timer = setTimeout(() => {
-      setUser(mockUser);
+    // Check for existing session in storage
+    const storedUser = StorageManager.getAdminUser();
+    if (storedUser) {
+      setUser(storedUser);
       setIsAuthenticated(true);
+    }
+    
+    // Simulate loading delay for "premium" feel
+    const timer = setTimeout(() => {
       setIsLoadingPublicSettings(false);
       setIsLoadingAuth(false);
       setAuthChecked(true);
       setAppPublicSettings({ id: 'trustlink-admin', public_settings: {} });
-    }, 300);
+    }, 500);
+    
     return () => clearTimeout(timer);
   }, []);
 
+  const login = async (email, password) => {
+    // Mock login logic
+    const mockUser = {
+      id: 'admin-001',
+      email: email,
+      name: email.split('@')[0],
+      role: 'admin',
+    };
+    StorageManager.setAdminUser(mockUser);
+    setUser(mockUser);
+    setIsAuthenticated(true);
+    return true;
+  };
+
+  const register = async (userData) => {
+    const mockUser = {
+      id: `admin-${Math.floor(Math.random() * 1000)}`,
+      ...userData,
+      role: 'admin',
+    };
+    StorageManager.setAdminUser(mockUser);
+    setUser(mockUser);
+    setIsAuthenticated(true);
+    return true;
+  };
+
   const logout = (shouldRedirect = true) => {
+    StorageManager.setAdminUser(null);
     setUser(null);
     setIsAuthenticated(false);
     if (shouldRedirect) {
-      base44.auth.logout(window.location.href);
+      window.location.href = '/login';
     }
   };
 
   const navigateToLogin = () => {
-    console.log('[mock] navigateToLogin called');
+    window.location.href = '/login';
   };
 
   const checkUserAuth = async () => {
-    setUser(mockUser);
-    setIsAuthenticated(true);
+    const storedUser = StorageManager.getAdminUser();
+    if (storedUser) {
+      setUser(storedUser);
+      setIsAuthenticated(true);
+    }
     setIsLoadingAuth(false);
     setAuthChecked(true);
   };
@@ -65,6 +94,8 @@ export const AuthProvider = ({ children }) => {
       authError,
       appPublicSettings,
       authChecked,
+      login,
+      register,
       logout,
       navigateToLogin,
       checkUserAuth,
