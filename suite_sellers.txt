@@ -1,0 +1,169 @@
+╔══════════════════════════════════════════════════════════════════════════════════╗
+║              CONTINUATION PROMPT — TRUSTLINK SELLER HUB                        ║
+║                    Phase 2 : Évolutions & Améliorations                        ║
+╚══════════════════════════════════════════════════════════════════════════════════╝
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ CONTEXTE — CE QUI EXISTE DÉJÀ (NE PAS RÉGÉNÉRER)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Le projet TrustLink Seller Hub est déjà généré et fonctionnel.
+Il contient les pages suivantes, toutes opérationnelles :
+  → / (Dashboard)
+  → /orders (Commandes + OrderDetailModal + QRBordereau)
+  → /catalog (Catalogue + EditProductModal)
+  → /catalog/new (Formulaire ajout produit 3 étapes)
+  → /wallet (Wallet + WithdrawalModal)
+  → /support (KYC + Messaging + FAQ)
+  → /settings (Identité + Boutique + Banque + Sécurité)
+Stack en place : React 19 + TypeScript + Tailwind CSS v3 + Remix Icon CDN
+Palette : #0E3A4F / #125C8D / #10B981 / #FF6A00 / #F9FAFB
+Règles absolues toujours actives : voir Master Prompt v1.0 (sections 8 à 12)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PHASE 2 — NOUVELLES FONCTIONNALITÉS À IMPLÉMENTER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+──────────────────────────────────────────────────────────────────────────────────
+ F1 — PAGE DE CONNEXION (/login)
+──────────────────────────────────────────────────────────────────────────────────
+Fichiers à créer :
+  src/pages/login/page.tsx
+  → Ajouter la route /login dans src/router/config.tsx
+  → Route / (dashboard) doit rediriger vers /login si !isLoggedIn
+  → Après connexion réussie → navigate("/")
+Layout :
+  → Plein écran bg-[#F9FAFB]
+  → Colonne gauche (lg:w-1/2) : formulaire centré
+  → Colonne droite (lg:w-1/2) : panneau décoratif bg-[#0E3A4F]
+    → Logo TrustLink (cercle vert + texte blanc)
+    → Titre : "Gérez vos ventes Nigeria → Bénin"
+    → 3 bullet points avec icônes ri-check-line text-[#10B981]
+    → Image background readdy.ai (map Afrique de l'Ouest, style minimaliste)
+Formulaire :
+  → Input email (name="email", placeholder="adebayo@trustlink.ng")
+  → Input password (name="password", type="password", toggle visibilité ri-eye-line)
+  → Checkbox "Se souvenir de moi"
+  → Bouton CTA "Se connecter" bg-[#125C8D] w-full rounded-lg
+  → Lien "Mot de passe oublié ?" text-[#125C8D] (pas de navigation, juste UI)
+  → Lien "Créer un compte vendeur" → navigate("/register") (page à créer en F2)
+State :
+  const [isLoggedIn, setIsLoggedIn] = useState(() =>
+    localStorage.getItem("tl_auth") === "true"
+  );
+  → Connexion simulée : email contient "@" && password.length >= 6
+  → handleLogin() : localStorage.setItem("tl_auth", "true") + navigate("/")
+  → Déconnexion (bouton sidebar profil) : localStorage.removeItem("tl_auth") + navigate("/login")
+Validation visuelle :
+  → Erreur si tentative avec champs invalides : border-red-400 + message text-red-500 text-xs
+  → Loading state : spinner ri-loader-4-line animate-spin pendant 800ms simulé
+──────────────────────────────────────────────────────────────────────────────────
+ F2 — PAGE D'INSCRIPTION (/register)
+──────────────────────────────────────────────────────────────────────────────────
+Fichiers à créer :
+  src/pages/register/page.tsx
+  → Ajouter la route /register dans src/router/config.tsx
+  → Même layout 2 colonnes que /login
+Formulaire en 2 étapes (stepper identique au AddProductForm) :
+  Step 1 — Infos personnelles :
+    → Prénom + Nom (grid-cols-2)
+    → Email professionnel
+    → Numéro de téléphone (+234 prefix fixe)
+    → Mot de passe + Confirmation (avec indicateur de force : Faible/Moyen/Fort)
+      Indicateur : barre 3 segments colorés (rouge/orange/vert)
+      Logique : length<6=Faible | length<10=Moyen | length>=10+/[A-Z]/+/[0-9]/=Fort
+  Step 2 — Infos boutique :
+    → Nom de la boutique
+    → Catégorie principale (select : Mode & Textile | Électronique | Alimentation |
+                            Cosmétiques | Maison & Déco | Sport | Autre)
+    → Hub de rattachement (select : Lagos Hub | Abuja Hub | Port Harcourt Hub)
+    → Numéro BVN (11 chiffres, masqué après saisie)
+    → Case à cocher "J'accepte les CGU TrustLink" (obligatoire)
+    → Bouton "Créer mon compte" → simulate 1s loading → navigate("/login")
+      + message succès : toast vert "Compte créé ! Vérifiez votre email."
+──────────────────────────────────────────────────────────────────────────────────
+ F3 — AMÉLIORATION WALLET : Graphique 30 jours
+──────────────────────────────────────────────────────────────────────────────────
+Fichier à modifier : src/pages/wallet/page.tsx
+Nouveau composant  : src/pages/wallet/components/WalletChart.tsx
+Ajouter sous les 3 cartes KPI, avant le bandeau des étapes :
+  → Titre "Évolution des flux — 30 derniers jours" (Poppins bold)
+  → Toggle : [Entrées] [Sorties] [Net] — même pattern tabs bg-gray-100
+Données mock locales (hardcodées dans WalletChart.tsx) :
+  30 points de données, simulation réaliste :
+  → Entrées (releases) : valeurs entre 0 et 800k NGN par jour
+  → Sorties (withdrawals) : pics 2-3 fois par mois
+  → Net = entrées - sorties
+Rendu CSS pur (PAS de recharts/chart.js) :
+  → Même technique que RevenueChart existant
+  → Barres verticales proportionnelles sur height:"80px"
+  → Axe X : labels "1 Avr" ... "21 Avr" (afficher 1 sur 5 pour lisibilité)
+  → Couleurs :
+    Entrées → bg-[#10B981]/80 | hover bg-[#10B981]
+    Sorties → bg-[#FF6A00]/80 | hover bg-[#FF6A00]
+    Net positif → bg-[#125C8D]/80 | Net négatif → bg-red-400/80
+  → Tooltip au hover : montant formaté ₦X,XXX,XXX
+──────────────────────────────────────────────────────────────────────────────────
+ F4 — AMÉLIORATION ORDERS : Actions de statut fonctionnelles
+──────────────────────────────────────────────────────────────────────────────────
+Fichier à modifier : src/pages/orders/page.tsx + OrderDetailModal.tsx
+Rendre le bouton contextuel (nextActionLabel) RÉELLEMENT fonctionnel :
+  → Clic sur le bouton d'action → met à jour order.status dans le state local
+  → useState<Order[]> copie des mockOrders au mount (pour permettre la mutation)
+  → Après update : fermer la modale + toast 2s "Statut mis à jour ✓" bg-[#10B981]
+  → Le badge de statut dans la table se met à jour en temps réel
+  → Les compteurs des onglets (tabs) se recalculent dynamiquement
+Logique de transition :
+  new → ready → hub_received → in_transit → delivered → completed
+  (transition uniquement dans ce sens, jamais en arrière)
+Confirmation avant action :
+  → Pour "Marquer Livrée" et "Marquer Terminée" : afficher mini-confirmation
+    inline dans la modal footer : "Confirmer ?" [Oui] [Annuler]
+    boutons : [Oui] bg-[#10B981] | [Annuler] bg-gray-100
+  → Pour les autres statuts : action directe sans confirmation
+──────────────────────────────────────────────────────────────────────────────────
+ F5 — AMÉLIORATION CATALOG : Suppression produit + confirmation
+──────────────────────────────────────────────────────────────────────────────────
+Fichier à modifier : src/pages/catalog/page.tsx + EditProductModal.tsx
+Dans EditProductModal, ajouter en bas du footer :
+  → Bouton "Supprimer ce produit" text-red-500 border border-red-200
+    → Clic → affiche une confirmation inline dans la modale :
+      "Cette action est irréversible. Supprimer ?"
+      [Confirmer la suppression] bg-red-500 text-white | [Annuler] bg-gray-100
+    → Confirmation → onDelete(product.id) → ferme modale + toast 3s
+      "Produit supprimé" bg-[#FF6A00]
+Dans catalog/page.tsx :
+  → useState<Product[]> initialisé depuis mockProducts (pour permettre mutation)
+  → handleDelete(id) : setProducts(prev => prev.filter(p => p.id !== id))
+  → Les stats (total, actifs, stock) se recalculent automatiquement
+Aussi dans ProductCard (vue grid) :
+  → Ajouter bouton "Dupliquer" au hover, à côté de "Modifier"
+    → Icône ri-file-copy-line
+    → Duplique le produit avec id="copy-"+Date.now() + nom="Copie de "+name
+    → Toast 2s "Produit dupliqué ✓"
+──────────────────────────────────────────────────────────────────────────────────
+ F6 — COMPOSANT GLOBAL : NotificationPanel
+──────────────────────────────────────────────────────────────────────────────────
+Nouveau fichier : src/components/feature/NotificationPanel.tsx
+Modifier        : src/components/feature/Header.tsx
+Le bouton cloche (ri-notification-3-line) dans le Header ouvre un panel :
+  → Pas une modale plein écran — un dropdown positionné :
+    position: absolute top-full right-0 w-80
+    bg-white border border-gray-100 rounded-xl z-50 mt-2
+Contenu (5 notifications hardcodées) :
+  1. [#10B981] "Commande TL-004799 livrée — Fonds débloqués ₦278,500" — Il y a 2h
+  2. [#FF6A00] "TL-004901 : délai de dépôt dépassé — Action requise" — Il y a 5h
+  3. [#125C8D] "Nouveau message de Lagos Hub (ticket TL-004821)" — Hier
+  4. [#10B981] "KYC NIN vérifié avec succès" — Il y a 3 jours
+  5. [#6B7280]  "Taux de change mis à jour : 1 NGN = 4.02 FCFA" — Il y a 5 jours
+Structure d'une notification :
+  → Icône colorée (ri-*) dans cercle 8×8 bg-color/10 flex-shrink-0
+  → Texte principal text-xs text-gray-800 font-medium (2 lignes max)
+  → Timestamp text-[10px] text-gray-400
+  → Point bleu (non lue) : w-2 h-2 rounded-full bg-[#125C8D] flex-shrink-0
+    (notifications 1, 2, 3 non lues → badge "3" sur la cloche)
+Header du panel :
+  → "Notifications" (Poppins bold text-sm) + "Tout marquer comme lu" (text-[#125C8D] text-xs)
+  → Clic "Tout marquer" → retire tous les points bleus + badge cloche passe à 0
+Fermeture :
+  → Clic en dehors du panel → ferme (useEffect + ref sur le panel)
+  → Touche Escape → ferme
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ORDRE DE GÉNÉRATION — PHASE 2
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

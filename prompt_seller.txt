@@ -1,0 +1,629 @@
+```
+╔══════════════════════════════════════════════════════════════════════════════════╗
+║                    MASTER PROMPT — TRUSTLINK SELLER HUB                        ║
+║              Génération complète d'une application SaaS React                  ║
+╚══════════════════════════════════════════════════════════════════════════════════╝
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SECTION 1 — RÔLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Tu es un Expert Développeur Full-Stack Senior spécialisé en React 19 + TypeScript,
+et UI/UX Designer de dashboards SaaS B2B de niveau production.
+Tu génères du code propre, typé strictement, sans erreurs de compilation,
+structuré en composants réutilisables ≤ 500 lignes chacun.
+Tu respectes à la lettre chaque contrainte technique et visuelle fournie.
+Tu ne fais aucune supposition : si une valeur est donnée, tu l'utilises exactement.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SECTION 2 — CONTEXTE & OBJECTIF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APPLICATION : TrustLink Seller Hub
+TYPE : Dashboard SaaS B2B — Single Page Application
+PUBLIC : Vendeurs nigérians expédiant des produits vers le Bénin
+         via un réseau de Hubs logistiques physiques (Lagos, Abuja, Port Harcourt)
+CONCEPT MÉTIER :
+- Le vendeur liste ses produits en NGN (Naira nigérian)
+- Les acheteurs béninois paient en FCFA (Franc CFA)
+- TrustLink convertit, sécurise les fonds via un système Escrow
+- Les colis transitent par des Hubs physiques avant livraison finale
+- Les fonds NGN sont libérés au vendeur après confirmation de livraison
+- Commission TrustLink : 8% prélevée sur chaque vente
+- Taux de change affiché : 1 NGN = 4.00 FCFA
+- Taux de calcul produits : 1 NGN = 0.522 FCFA (inverse technique)
+VENDEUR PAR DÉFAUT (données mock) :
+- Nom : Adebayo Fashions
+- Hub : Lagos Hub
+- KYC : verified
+- Solde disponible : ₦1,245,000
+- Fonds en Escrow : ₦890,200
+- Email : adebayo@trustlink.ng
+- Note : 4.8/5 — 892 ventes totales
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SECTION 3 — STACK TECHNIQUE IMPOSÉE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FRAMEWORK    : React 19 (strict mode TypeScript)
+BUILD        : Vite — __BASE_PATH__ injecté via define (NE PAS hard-coder)
+ROUTING      : React Router DOM v6
+               → BrowserRouter basename={__BASE_PATH__}
+               → config dans src/router/config.tsx UNIQUEMENT
+               → src/router/index.ts = INTOUCHABLE
+               → element: <Component /> JAMAIS lazy()
+               → export default routes (pas d'export nommé)
+STYLING      : Tailwind CSS v3
+               → tailwind.config.ts : theme.extend vide
+               → couleurs custom via syntaxe arbitraire : bg-[#125C8D]
+               → transparences via slash : bg-[#125C8D]/20
+               → JAMAIS bg-opacity-X (déprécié v3)
+ICÔNES       : Remix Icon UNIQUEMENT via CDN dans index.html
+               → classes ri-* directement dans className
+               → JAMAIS d'import npm d'icônes
+FONTS        : Google Fonts CDN dans index.html
+               → Poppins 400/500/600/700 (titres, valeurs KPI)
+               → Inter 300/400/500/600/700 (corps, inputs, tableaux)
+STATE        : useState React local UNIQUEMENT
+               → ZÉRO Redux / Zustand / Context API global
+               → import {useState, useEffect, useRef} from "react"
+               → JAMAIS React.useState()
+DONNÉES      : Mocks statiques dans src/mocks/*.ts
+               → export const uniquement — JAMAIS export default
+               → JAMAIS de fonctions dans les mocks
+               → JAMAIS d'imports dans les mocks
+               → Exception : calculateFCFA() autorisée dans products.ts
+RÈGLES FICHIERS :
+→ Chaque fichier ≤ 500 lignes (subdiviser si dépassement)
+→ Imports same-dir : ./ComponentName
+→ Imports cross-dir : @/mocks/orders (@ = src/)
+→ JAMAIS ../ ou ../../
+→ Fichiers nommés en anglais, sans espaces
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SECTION 4 — DESIGN SYSTEM VISUEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+── 4.1 PALETTE DE COULEURS (EXACTE, SANS DÉROGATION) ──────────────────────────
+  #0E3A4F  → Brand Dark    : sidebar bg, gradient wallet dark, boutons hover
+  #125C8D  → Brand Primary : CTA buttons, liens actifs, badges, accents
+  #10B981  → Success Green : fonds débloqués, livré, online dot, KYC vérifié
+  #FF6A00  → Warning Orange: alertes critiques, badge count, montants sortants
+  #F9FAFB  → Page BG       : background global + thead tables
+  #FFFFFF  → Card BG       : cartes, modales, inputs, panels
+  #F3F4F6  → Border        : bords cartes (gray-100), séparateurs tableaux
+  #111827  → Text Primary  : titres, valeurs (gray-900)
+  #6B7280  → Text Secondary: labels, sous-titres (gray-500)
+  #9CA3AF  → Text Muted    : placeholders, métadonnées (gray-400)
+  #D97706  → Amber Warning : statut "En révision", escrow pending (amber-600)
+  #EF4444  → Danger        : erreurs form, déconnexion (red-400)
+  GRADIENT WALLET : linear-gradient(135deg, #0E3A4F 0%, #125C8D 100%)
+  TRANSPARENCES   : /5 /8 /10 /15 /20 /30 selon contexte
+  INTERDIT        : bleu ou violet hors palette | TOUTE ombre shadow-*
+── 4.2 TYPOGRAPHIE ─────────────────────────────────────────────────────────────
+  Poppins bold (700) → Titres de section via style={{ fontFamily:"'Poppins',sans-serif" }}
+  Poppins bold (700) → Valeur Wallet (text-3xl)
+  Inter bold (700)   → Valeurs KPI (text-2xl)
+  Inter semibold(600)→ Boutons CTA (text-sm)
+  Inter medium (500) → Corps tableaux (text-xs)
+  Inter regular(400) → Inputs via style={{ fontFamily:"'Inter',sans-serif" }}
+  Mono bold (700)    → IDs commandes (font-mono text-xs)
+  Inter semibold(600)→ Labels métadonnées (text-[10px] uppercase tracking-widest)
+  Inter bold (700)   → Badges (text-[10px])
+── 4.3 BORDER-RADIUS ───────────────────────────────────────────────────────────
+  rounded-2xl → Modales (16px)
+  rounded-xl  → Cartes dashboard, logo sidebar (12px)
+  rounded-lg  → Boutons CTA, inputs, icônes containers (8px)
+  rounded-full→ Badges pills, avatars, dots
+── 4.4 OMBRES ──────────────────────────────────────────────────────────────────
+  RÈGLE ABSOLUE : ZÉRO shadow-* sur les composants
+  Profondeur obtenue UNIQUEMENT par :
+    → border border-gray-100 sur cartes blanches (#FFF sur fond #F9FAFB)
+    → bg-black/30 pour overlay des modales
+  Exception unique : shadow-sm sur l'élément actif d'un tab switcher
+── 4.5 VIBE GÉNÉRAL ────────────────────────────────────────────────────────────
+  Minimalisme professionnel B2B — propre, aéré, sans surcharge visuelle
+  Sidebar sombre (#0E3A4F) crée un contraste fort avec le contenu blanc/gris
+  Densité d'information élevée mais hiérarchisée (tableaux compacts, badges précis)
+  Animations discrètes : transitions 200ms, opacité hover, pulse dot "En ligne"
+  Aucun élément décoratif superflu — chaque pixel a une fonction
+── 4.6 IMAGES ──────────────────────────────────────────────────────────────────
+  Source    : https://readdy.ai/api/search-image?query={prompt}&width={w}&height={h}&seq={id}&orientation={type}
+  Règles    : URL string littérale FIXE — JAMAIS de template literal ${...}
+  Orientation : squarish (carré) | landscape (paysage) | portrait
+  Ratio     : width/height doit correspondre au ratio du conteneur d'affichage
+  Prompts   : anglais, minimum 150 caractères, fond blanc simple pour produits,
+              inclure : "clean white background, professional studio lighting,
+              minimalist product photography"
+  Chaque image : seq= unique (jamais réutiliser)
+  Toujours   : object-cover object-top sur <img>
+  Toujours   : conteneur avec w-X h-X explicites + overflow-hidden
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SECTION 5 — STRUCTURE DES COMPOSANTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+── 5.1 LAYOUT GLOBAL (DashboardLayout) ─────────────────────────────────────────
+  ┌──────────────────────────────────────────────────────────────┐
+  │ SIDEBAR  fixed left-0 w-64 h-screen z-30 bg-[#0E3A4F]       │
+  │  ┌─ Logo : rounded-xl bg-[#10B981] + "TrustLink / Seller Hub"│
+  │  ├─ Nav  : flex-1 px-3 py-4 space-y-1                        │
+  │  │   Item actif : bg-white/15 text-white                      │
+  │  │   Icône active : bg-[#10B981]/20 text-[#10B981]            │
+  │  │   AUCUNE bordure gauche sur item actif                      │
+  │  └─ Profil : border-t border-white/10 → navigate("/settings") │
+  ├──────────────────────────────────────────────────────────────┤
+  │ HEADER   fixed top-0 left-64 right-0 h-16 z-20              │
+  │          bg-white/95 backdrop-blur-sm border-b border-gray-100│
+  │  [Titre page + sous-titre] [Search rounded-full] [Actions]   │
+  │  Actions : [NGN=4FCFA badge vert] [Notifs z-50] [dot pulse]  │
+  ├──────────────────────────────────────────────────────────────┤
+  │ MAIN     ml-64 pt-16 min-h-screen bg-[#F9FAFB]              │
+  │          <div className="p-6">[Page Content]</div>           │
+  └──────────────────────────────────────────────────────────────┘
+  Résolution titre de page (Header) :
+  → Trier les routes par longueur DESC avant find()
+  → Cela assure que "/catalog/new" matche avant "/catalog"
+── 5.2 NAVIGATION (Sidebar — 5 items) ──────────────────────────────────────────
+  / → ri-dashboard-3-line  "Dashboard"
+  /orders → ri-shopping-bag-3-line "Commandes" [badge 34 #FF6A00]
+  /catalog → ri-store-2-line "Catalogue"
+  /wallet → ri-wallet-3-line "Wallet"
+  /support → ri-customer-service-2-line "Support & KYC"
+  Logique isActive :
+    path="/" → location.pathname === "/" (exact)
+    autres   → location.pathname.startsWith(path) (prefix)
+── 5.3 PAGE / — DASHBOARD ──────────────────────────────────────────────────────
+  Grille 1 : grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6
+    StatsCard ×4 (props: icon, iconBg, iconColor, badge, badgeColor, badgeBg, label, value)
+    → Ventes ₦4,820,500 | Commandes 34 | Solde ₦1,245,000 | Escrow ₦890,200
+  Grille 2 : grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4
+    lg:col-span-2 → RevenueChart
+      State: currency "NGN"|"FCFA" | 7 barres CSS height%
+      Container bars: height:"120px" | heightPct=(rev/maxRev)*100
+      Dernier mois [6] : bg-[#125C8D] plein | autres : bg-[#125C8D]/20
+      Tooltip : absolute -top-7 opacity-0 group-hover:opacity-100 pointer-events-none
+    col-span-1 → WalletWidget
+      Gradient 135deg | State: hidden boolean → "
+-
+-
+-
+-
+-
+-
+-
+- "
+      2 cercles déco bg-white/5 absolute (haut-droite + bas-gauche)
+      CTA Retirer (blanc) + Historique (bg-white/15 border-white/20)
+  Grille 3 : grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4
+    LogisticsAlerts → 3 types: critical/warning/info avec config dédiée
+    TopProducts → 3 produits rank+image+nom+rev
+    ExchangeRate → simulateur : NGN×4×1.075=FCFA live, stats 98.2%/1.8%
+  Full width : RecentOrders
+    6 lignes hardcodées localement (pas depuis mocks/orders.ts)
+    Actions col : opacity-0 group-hover:opacity-100 (œil + QR → navigate /orders)
+── 5.4 PAGE /orders ────────────────────────────────────────────────────────────
+  States : activeStatus | search | selectedOrder | detailOrder | showQR
+  Filtre : (status match) && (id|product|buyer includes search)
+  Onglets : 7 tabs (all + 6 statuts) avec compteur individuel
+  Résumé  : badge "X à expédier" (new|ready) + "X en transit"
+  Table   : 8 colonnes dans l'ordre strict :
+    Commande(mono) | Produit(img7+nom160px) | Acheteur(nom+ville) |
+    Montant(NGN bold+FCFA muted) | Statut(badge) | Hub | Date | Actions(QR btn)
+  Clic ligne → setDetailOrder(order) → OrderDetailModal
+  Clic QR    → e.stopPropagation() + setShowQR(order) → QRBordereau
+  OrderDetailModal (max-w-2xl max-h-[90vh] overflow-y-auto) :
+    Section 1 : Header (titre Poppins + date·acheteur + StatusBadge + ×)
+    Section 2 : Tracker 6 étapes
+      Cercles w-10 h-10 | Lignes connecteurs absolute top-5 h-px
+      Passé/actuel : border-[#125C8D] bg-[#125C8D] text-white
+      Futur : border-gray-200 bg-white text-gray-300
+      currentIdx = statusOrder.indexOf(order.status)
+    Section 3 : grid-cols-2
+      Card acheteur : nom + tel fictif + ville + deadline text-[#FF6A00]
+      Card QR : MiniQR 7×7 (algo hash déterministe) + code + dl button
+    Section 4 : Table articles + tfoot NGN(#125C8D) + FCFA(gray-500)
+    Footer   : bg-gray-50 rounded-b-2xl
+      Si completed → badge vert "Commande terminée"
+      Sinon → bouton contextuel nextActionLabel[status] + bouton Imprimer
+  MiniQR algorithm :
+    grid[r][c] = (r*7 + c + code.charCodeAt(r % code.length)) % 3 !== 2
+    Cellule noire si true (w-5 h-5 rounded-sm bg-gray-900), blanche sinon
+  nextActionLabel map :
+    new          → "Marquer Prête à déposer"
+    ready        → "Confirmer dépôt au Hub"
+    hub_received → "En transit"
+    in_transit   → "Marquer Livrée"
+    delivered    → "Marquer Terminée"
+── 5.5 PAGE /catalog ───────────────────────────────────────────────────────────
+  Stats dynamiques : total | actifs | stock (.reduce) | ventes (.reduce)
+  Filtres : statuts + search + toggle grid(xl:cols-4) / liste(7cols)
+  ProductCard (vue grid) :
+    Image aspect-square overflow-hidden
+    Badge statut absolu top-2 left-2
+    Bouton Modifier absolu bottom-2 right-2 opacity-0 group-hover:opacity-100
+    Conteneur parent : className="group relative"
+  EditProductModal :
+    State form = {...product} (copie isolée)
+    Recalcul FCFA live : calculateFCFA(ngn) = round(ngn * 0.522 * 1.08)
+    Variantes : swatches div style={{backgroundColor:color_hex}} w-4 h-4 rounded-full
+    Bouton × variante (rouge) + Bouton "Ajouter variante"
+  /catalog/new — AddProductForm (3 steps) :
+    Step 1 : nom + catégorie + description
+    Step 2 : prix NGN + FCFA auto + variantes
+    Step 3 : image URL + statut + confirmation
+    Progression : 3 cercles numérotés + lignes connecteurs
+      Passé  : bg-[#10B981] + icône check
+      Actuel : bg-[#125C8D]
+      Futur  : bg-gray-100 text-gray-400
+── 5.6 PAGE /wallet ────────────────────────────────────────────────────────────
+  Grille 3 cards :
+    Col 1 (gradient #0E3A4F→#125C8D) : solde dispo + bouton "Demander retrait"
+    Col 2 : escrow + warning amber box
+    Col 3 : résumé financier (totalIn/.reduce + totalOut/.reduce + compte principal)
+  Bandeau bg-[#0E3A4F] : 4 étapes numérotées (cercles bg-[#10B981])
+  Filtre transactions (4 boutons) : all | release | escrow | withdrawal
+    Actif : bg-white text-gray-800 shadow-sm (dans bg-gray-50)
+  Couleurs montants :
+    release    → text-[#10B981] "+"  | withdrawal → text-[#FF6A00] "-"
+    escrow     → text-amber-600 ""   | adjustment → text-gray-500 ""
+  WithdrawalModal :
+    Boutons rapides : [25%] [50%] [Max] → amount = (pct * availableBalance)
+    Validation : isValid = amount > 0 && amount ≤ availableBalance
+    Succès : setSubmitted(true) + setTimeout(onClose, 2000)
+── 5.7 PAGE /support ───────────────────────────────────────────────────────────
+  Bannière top : vert si kyc_status==="verified" | amber sinon
+  Grid lg:grid-cols-5 :
+    lg:col-span-2 :
+      KycSection — 4 docs avec statuts (verified/pending/rejected/not_started)
+        Config statut : icon + color + bg + label par type
+        Bouton "Téléverser" si not_started ou rejected
+      FAQ (7 questions) — HTML natif <details>/<summary>
+        Flèche : ri-arrow-down-s-line group-open:rotate-180 transition-transform
+        Classe "group" sur <details>
+    lg:col-span-3 :
+      MessagingSection
+        State : selectedTicket | newMessage | messages[]
+        Bulles vendeur (droite) : bg-[#125C8D] text-white rounded-2xl rounded-br-sm
+        Bulles Hub (gauche) : bg-gray-100 text-gray-700 rounded-2xl rounded-bl-sm
+        Envoi : Enter (e.key==="Enter" && !e.shiftKey) → handleSend()
+        Scroll : useRef + scrollIntoView({behavior:"smooth"}) à chaque nouveau msg
+── 5.8 PAGE /settings ──────────────────────────────────────────────────────────
+  Header : avatar 16×16 rounded-2xl + badge "Boutique Vérifiée" bg-green-50
+  Toast  : setSaved(true) + setTimeout(()=>setSaved(false), 3000)
+  4 onglets (bg-gray-100, actif bg-white text-[#125C8D] shadow-sm) :
+    Identité : 8 champs grid-cols-2 + select Hub (5 options)
+    Boutique : select type activité + textarea 500chars + compteur + 3 stats cards
+    Banque   : select banque (8 options) + numéro + titulaire + BVN badge vérifié
+    Sécurité :
+      Mot de passe : 3 inputs (actuel/nouveau/confirmer)
+        disabled si !current || !next || next!==confirm
+        Erreur rouge si next && confirm && next!==confirm
+      2FA : toggle CSS pur — sr-only peer + div peer-checked:bg-[#10B981] +
+            div absolute peer-checked:translate-x-5
+      Sessions : 2 lignes (Chrome/Windows + Safari/iPhone) + bouton Déconnecter
+  Helper field() : factorisation de la création d'inputs (label + input typé)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SECTION 6 — LOGIQUE D'INTERACTION & ANIMATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TRANSITIONS GLOBALES :
+  → transition-all duration-200 sur tous les hover interactifs
+  → transition-colors sur boutons et liens de navigation
+  → transition-transform sur flèche FAQ et toggle 2FA
+ANIMATIONS SPÉCIFIQUES :
+  → animate-pulse    : dot vert "En ligne" dans le Header
+  → duration-500     : montée des barres du graphique (RevenueChart)
+  → opacity-0 → opacity-100 : tooltips barres graphique au hover
+  → opacity-0 → opacity-100 : bouton Modifier sur ProductCard (group-hover)
+  → opacity-0 → opacity-100 : actions (œil + QR) sur lignes RecentOrders (group-hover)
+  → rotate-180       : flèche accordéon FAQ (group-open:rotate-180)
+  → translate-x-5    : curseur toggle 2FA (peer-checked:translate-x-5)
+MODALES — pattern d'ouverture/fermeture :
+  → State : const [modal, setModal] = useState<Type | null>(null)
+  → Ouverture : setModal(item)
+  → Fermeture : setModal(null) via bouton × ou onClose() prop
+  → Overlay : fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4
+  → Fermeture auto (WithdrawalModal succès) : setTimeout(onClose, 2000)
+FORMULAIRES — pattern de state :
+  → const [form, setForm] = useState<Interface>({...initialValues})
+  → onChange : setForm({...form, [key]: value})
+  → Copie isolée pour modales d'édition : useState<Product>({...product})
+  → Recalcul FCFA live : calculateFCFA(ngn) = Math.round(ngn * 0.522 * 1.08)
+STOPGATION pattern (bouton dans <tr> cliquable) :
+  → <tr onClick={() => setDetailOrder(order)}>
+  →   <button onClick={(e) => { e.stopPropagation(); setShowQR(order); }}>
+TOAST pattern :
+  → const [saved, setSaved] = useState(false)
+  → handleSave() : setSaved(true) + setTimeout(()=>setSaved(false), 3000)
+  → Rendu conditionnel : {saved && <div className="...toast...">Enregistré !</div>}
+TABS pattern :
+  → const [activeTab, setActiveTab] = useState<TabType>("default")
+  → Conteneur : bg-gray-100 p-1 rounded-xl
+  → Item actif : bg-white text-[#125C8D] shadow-sm
+  → Item inactif : text-gray-500 hover:text-gray-700
+TOGGLE visibilité (WalletWidget) :
+  → const [hidden, setHidden] = useState(false)
+  → {hidden ? "
+-
+-
+-
+-
+-
+-
+-
+- " : `₦${value.toLocaleString()}`}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SECTION 7 — DONNÉES MOCK (VALEURS EXACTES À UTILISER)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SELLER  : Adebayo Fashions | Lagos Hub | verified | avail=₦1,245,000 | escrow=₦890,200
+REVENUE : Oct280k Nov420k Déc680k Jan520k Fév750k Mar920k Avr1250k (dernier=plein)
+ALERTS  : critical TL-0885 "retard 2j" | warning TL-0882 "bordereau manquant" |
+          info TL-0879 "stock insuffisant"
+TOP3    : Agbada Premium Brodé 142v ₦12M | Tissu Ankara 98v ₦3M | Nike Air Max 54v ₦6M
+ORDERS (8 commandes) :
+  TL-004901  iPhone 15 Pro Max      Kofi Mensah     Cotonou        new          Lagos
+  TL-004899  Samsung Galaxy A54 ×2  Aminata Diallo  Porto-Novo     ready        Lagos
+  TL-004887  Écouteurs JBL ×3       Chidi Okonkwo   Cotonou        hub_received Lagos
+  TL-004856  Power Bank Anker ×2    Fatou Traoré    Parakou        in_transit   Abuja
+  TL-004821  Xiaomi Mi Band 8       Segun Adeyemi   Abomey-Calavi  delivered    Lagos
+  TL-004799  Aspirateur Rowenta     Blessing Nwosu  Cotonou        completed    Lagos
+  TL-004780  Machine Nespresso      Ibrahim Sow     Cotonou        completed    Abuja
+  TL-004760  Samsung Tab A8         Amara Coulibaly Porto-Novo     completed    Lagos
+PRODUCTS (6) :
+  prod-001  iPhone 15 Pro Max 256GB   ₦1,850,000  active   8u  4 variants
+  prod-002  Samsung Galaxy A54 128GB  ₦395,000    active  24u  4 variants
+  prod-003  JBL Tune 520BT            ₦42,500     active  45u  4 colors
+  prod-004  Anker Power Bank 20000mAh ₦28,000     active  62u  2 colors
+  prod-005  Xiaomi Mi Band 8          ₦35,000     active  33u  3 colors
+  prod-006  Disque SSD Samsung T7     ₦95,000     pending 18u  3 variants
+  COMMISSION_RATE = 0.08
+  EXCHANGE_RATE   = 0.522
+  calculateFCFA   = (ngn) => Math.round(ngn * 0.522 * 1.08)
+WALLET (8 transactions) :
+  release    ₦1,890,000  completed  TL-004756  "Fonds débloqués — iPhone 15 Pro Max"
+  escrow     ₦395,000    pending    TL-004901  "Fonds mis en Escrow"
+  withdrawal ₦2,500,000  completed  —          "Retrait vers GTBank ****4821"
+  release    ₦615,000    completed  TL-004780  "Fonds débloqués — Nespresso"
+  escrow     ₦807,000    pending    TL-004899  "Fonds mis en Escrow"
+  release    ₦278,500    completed  TL-004799  "Fonds débloqués — Rowenta"
+  withdrawal ₦1,200,000  completed  —          "Retrait vers UBA ****7203"
+  adjustment ₦15,000     completed  TL-004712  "Ajustement frais de change"
+  Banques : GTBank ****4821 (primary) | UBA ****7203
+SUPPORT :
+  ticket-001  "TL-004821 Retard dépôt"   in_progress  unread:2  (3 messages)
+  ticket-002  "Délai Parakou"             resolved     unread:0  (2 messages)
+  KYC : BVN verified 2024-03-15 | NIN verified 2024-03-15 |
+        CAC pending  2026-04-10  | Adresse not_started
+FAQ (7 questions) :
+  1. Quand les fonds Escrow sont libérés (24-48h, médiation 5j)
+  2. Délai livraison Bénin (Cotonou 5-6j, Parakou 7-9j, cut-off 14h)
+  3. Déposer colis au Hub (QR bordereau, téléphone accepté)
+  4. Documents KYC acceptés (BVN+NIN / CAC+BVN, < 6 mois)
+  5. Vendre plusieurs catégories (oui, révision 24h/produit)
+  6. Acheteur refuse livraison (frais retour sa charge, médiation si justifié)
+  7. Calcul commission (8% NGN, couvre logistique+assurance+Escrow)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SECTION 8 — RÈGLES ANTI-ERREURS (TOUTES OBLIGATOIRES)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+JSX :
+  ✗ React.Fragment          →  ✓ <>
+  ✗ window.location.href    →  ✓ useNavigate()
+  ✗ require()               →  ✓ import ES module
+  ✗ bg-opacity-X            →  ✓ bg-color/X
+  ✗ shadow-md/lg            →  ✓ border + fond différencié
+  ✗ < > texte brut          →  ✓ &lt; &gt;
+  ✗ apostrophe brute attr   →  ✓ &apos; ou {"string"}
+TAILWIND :
+  ✗ @apply border-border       →  ✓ border border-gray-200
+  ✗ couleurs dans theme.extend →  ✓ syntaxe arbitraire []
+  ✗ float layout               →  ✓ flex ou grid
+COMPOSANTS :
+  ✓ whitespace-nowrap sur TOUS les boutons
+  ✓ cursor-pointer sur TOUS les éléments cliquables
+  ✓ object-cover object-top sur TOUTES les <img>
+  ✓ w-X h-X explicites sur TOUS les conteneurs images + overflow-hidden
+  ✓ flex-shrink-0 sur éléments de taille fixe dans flex rows
+  ✓ e.stopPropagation() sur boutons enfants dans <tr onClick>
+  ✓ import nommé : import {useState} from "react"
+MOCKS :
+  ✓ export const — JAMAIS export default
+  ✓ Pas de fonctions ni d'imports (sauf calculateFCFA dans products.ts)
+  ✓ "as const" sur les types union
+IMAGES :
+  ✓ URL string littérale fixe — JAMAIS template literal ${...}
+  ✓ seq= unique par image (jamais réutiliser)
+  ✓ Prompts anglais > 150 chars avec fond blanc + studio lighting
+ROUTING :
+  ✓ src/router/index.ts = INTOUCHABLE
+  ✓ element: <Component /> — JAMAIS lazy()
+  ✓ export default routes dans config.tsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SECTION 9 — RÈGLES GLOBALES COMPLÉMENTAIRES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ✅ Toggle masquage solde (WalletWidget) :
+const [hidden, setHidden] = useState(false);
+{hidden ? "
+-
+-
+-
+-
+-
+-
+-
+- " : `₦${value.toLocaleString()}`}
+// ✅ Dimensions explicites sur conteneurs images
+<div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
+  <img src="..." alt="..." className="w-full h-full object-cover object-top" />
+</div>
+// ✅ e.stopPropagation() sur boutons enfants dans <tr> cliquable
+<tr onClick={() => setDetailOrder(order)}>
+  <td>
+    <button onClick={(e) => { e.stopPropagation(); setShowQR(order); }}>QR</button>
+  </td>
+</tr>
+// ✅ Import nommé des hooks React (JAMAIS React.useState)
+import { useState, useEffect, useRef, useCallback } from "react";
+// ✅ Alias @ = src/ pour tous les imports cross-directory
+import { mockOrders } from "@/mocks/orders";
+import DashboardLayout from "@/components/feature/DashboardLayout";
+// ✅ Textarea : limite 500 chars obligatoire
+<textarea
+  onChange={(e) => {
+    if (e.target.value.length <= 500)
+      setForm({ ...form, description: e.target.value });
+  }}
+/>
+<p className="text-gray-400 text-[10px] text-right mt-1">
+  {form.description.length}/500
+</p>
+// ✅ Pattern toast
+const handleSave = () => {
+  setSaved(true);
+  setTimeout(() => setSaved(false), 3000);
+};
+// ✅ Entités HTML pour caractères spéciaux dans JSX
+<p>Si montant &gt; 0 et &lt; plafond</p>
+<p>Votre solde n&apos;est pas disponible</p>
+// ou : {"C'est bon"}
+// ✅ URLs images — string littérale fixe, JAMAIS template literal
+// ❌ INTERDIT :
+const url = `https://readdy.ai/api/search-image?query=${prompt}&seq=${id}`;
+// ✅ CORRECT :
+src="https://readdy.ai/api/search-image?query=iPhone 15 Pro Max clean white background professional studio lighting minimalist product photography titanium finish premium smartphone&width=300&height=300&seq=product-iphone-1&orientation=squarish"
+// ✅ Orientation images — correspondance ratio
+// Conteneur carré    → orientation=squarish
+// Conteneur paysage  → orientation=landscape
+// Conteneur portrait → orientation=portrait
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SECTION 10 — INDEX.HTML & TAILWIND CONFIG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+index.html (structure obligatoire) :
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrustLink Seller Hub — Gérez vos ventes Nigeria-Bénin</title>
+  <meta name="description"
+    content="Dashboard vendeur TrustLink pour gérer commandes, catalogue, wallet
+             et KYC. Livraison cross-border Nigeria vers Bénin via Hubs logistiques." />
+  <meta name="keywords"
+    content="TrustLink, vendeur Nigeria, livraison Bénin, e-commerce cross-border" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css"
+    rel="stylesheet"
+  />
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
+tailwind.config.ts (règles) :
+  → NE JAMAIS définir de couleurs dans theme.extend.colors
+  → NE JAMAIS modifier le champ content
+  → Toutes couleurs custom = syntaxe arbitraire [] dans JSX
+    → bg-[#0E3A4F]  text-[#FF6A00]  border-[#10B981]/30
+  → Transparences = slash : bg-[#125C8D]/10  bg-white/15
+  → NE JAMAIS ajouter de plugins
+  → NE JAMAIS modifier devDependencies dans package.json
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SECTION 11 — ORDRE DE GÉNÉRATION DES FICHIERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Génère les fichiers DANS CET ORDRE EXACT :
+ 01. project_plan.md
+ 02. src/mocks/seller.ts
+ 03. src/mocks/orders.ts
+ 04. src/mocks/products.ts
+ 05. src/mocks/wallet.ts
+ 06. src/mocks/support.ts
+ 07. src/components/feature/Sidebar.tsx
+ 08. src/components/feature/Header.tsx
+ 09. src/components/feature/DashboardLayout.tsx
+ 10. src/pages/home/components/StatsCard.tsx
+ 11. src/pages/home/components/RevenueChart.tsx
+ 12. src/pages/home/components/WalletWidget.tsx
+ 13. src/pages/home/components/LogisticsAlerts.tsx
+ 14. src/pages/home/components/TopProducts.tsx
+ 15. src/pages/home/components/ExchangeRate.tsx
+ 16. src/pages/home/components/RecentOrders.tsx
+ 17. src/pages/home/page.tsx
+ 18. src/pages/orders/components/OrderStatusBadge.tsx
+ 19. src/pages/orders/components/OrderDetailModal.tsx
+ 20. src/pages/orders/components/QRBordereau.tsx
+ 21. src/pages/orders/page.tsx
+ 22. src/pages/catalog/components/ProductCard.tsx
+ 23. src/pages/catalog/components/AddProductForm.tsx
+ 24. src/pages/catalog/components/EditProductModal.tsx
+ 25. src/pages/catalog/page.tsx
+ 26. src/pages/catalog/new/page.tsx
+ 27. src/pages/wallet/components/WithdrawalModal.tsx
+ 28. src/pages/wallet/page.tsx
+ 29. src/pages/support/components/KycSection.tsx
+ 30. src/pages/support/components/MessagingSection.tsx
+ 31. src/pages/support/page.tsx
+ 32. src/pages/settings/page.tsx
+ 33. index.html  ← ajouter Poppins+Inter+RemixIcon CDN
+ 34. src/router/config.tsx  ← TOUJOURS EN DERNIER
+Après chaque fichier : confirme "✓ [nom fichier] généré" avant de passer au suivant.
+Si un fichier dépasse 500 lignes, subdivise en sous-composants avant de continuer.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SECTION 12 — CHECKLIST FINALE AVANT LIVRAISON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Architecture
+  ✅ Tous les fichiers dans src/ uniquement
+  ✅ Mocks dans src/mocks/ — export const, pas de default, pas de fonctions
+  ✅ Composants partagés dans src/components/feature/
+  ✅ Composants de page dans src/pages/[page]/components/
+  ✅ Aucun fichier > 500 lignes
+  ✅ Imports cross-directory via @ (jamais ../)
+Routing
+  ✅ src/router/config.tsx seul fichier modifié
+  ✅ src/router/index.ts intact (NE PAS TOUCHER)
+  ✅ element: <Component /> (jamais lazy())
+  ✅ export default routes (pas d'export nommé)
+  ✅ BrowserRouter basename={__BASE_PATH__} dans App.tsx
+  ✅ AppRoutes importé depuis "./router" (jamais redéfini)
+Design System
+  ✅ Palette respectée (#0E3A4F/#125C8D/#10B981/#FF6A00/#F9FAFB)
+  ✅ Zéro shadow-* (sauf shadow-sm sur tabs actifs)
+  ✅ Cartes : bg-white rounded-xl border border-gray-100
+  ✅ Modales : rounded-2xl max-w-2xl max-h-[90vh] overflow-y-auto
+  ✅ Gradient wallet : linear-gradient(135deg, #0E3A4F 0%, #125C8D 100%)
+  ✅ Poppins via style inline sur titres section
+  ✅ Inter via style inline sur inputs
+Composants
+  ✅ whitespace-nowrap sur tous les boutons
+  ✅ cursor-pointer sur tous les éléments cliquables
+  ✅ object-cover object-top sur toutes les images
+  ✅ Dimensions explicites (w-X h-X) sur tous les conteneurs images
+  ✅ flex-shrink-0 sur les éléments de taille fixe dans flex
+  ✅ e.stopPropagation() sur boutons enfants dans <tr onClick>
+  ✅ animate-pulse sur le dot "En ligne" dans Header
+  ✅ group + group-hover sur ProductCard pour bouton Modifier
+  ✅ group-open:rotate-180 sur flèche FAQ <details>
+State & Logique
+  ✅ useState local uniquement (pas Redux/Zustand/Context)
+  ✅ import {useState} from "react" (jamais React.useState)
+  ✅ Filtre orders : double condition status + search 3 champs
+  ✅ FCFA recalculé live dans EditProductModal et ExchangeRate
+  ✅ Toast 3s dans SettingsPage (setSaved + setTimeout)
+  ✅ Toggle 2FA CSS pur (sr-only peer + peer-checked)
+  ✅ WithdrawalModal : boutons 25%/50%/Max + auto-close 2s
+  ✅ MessagingSection : Enter=send + useRef scroll auto
+Images & Médias
+  ✅ URLs images : string littérales fixes (jamais template literal)
+  ✅ Prompts anglais > 150 caractères avec fond blanc + studio lighting
+  ✅ orientation=squarish pour conteneurs carrés
+  ✅ seq= unique par image (jamais réutiliser le même seq)
+TypeScript
+  ✅ Types explicites sur toutes les interfaces (Order, Product, Transaction...)
+  ✅ "as const" sur les types union dans les mocks
+  ✅ Partial<Record<...>> pour les mappings partiels
+  ✅ Pas de any implicite
+  ✅ Props interfaces définies pour chaque composant
+JSX Sécurité
+  ✅ <> au lieu de React.Fragment
+  ✅ &gt; &lt; &amp; &apos; pour caractères spéciaux en texte
+  ✅ Apostrophes : &apos; ou {"string JS"}
+  ✅ useNavigate() jamais window.location.href
+  ✅ import ES modules jamais require()
+═══════════════════════════════════════════════════════════════════════════════════
+ FIN DU MASTER PROMPT — TRUSTLINK SELLER HUB (v1.0 complète)
+═══════════════════════════════════════════════════════════════════════════════════

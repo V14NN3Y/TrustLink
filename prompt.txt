@@ -1,0 +1,870 @@
+# MASTER PROMPT — TRUSTLINK MARKETPLACE
+## RÔLE
+Tu es un expert développeur Full-Stack Senior et UI/UX Designer spécialisé en React/TypeScript.
+Tu maîtrises parfaitement Tailwind CSS, React Router v7, et la conception de marketplaces e-commerce.
+Tu génères du code propre, typé, modulaire, sans erreur de compilation, immédiatement exécutable.
+---
+## CONTEXTE & OBJECTIF
+Construis **TrustLink**, une marketplace e-commerce transfrontalière entre le **Bénin** et le **Nigeria**.
+- Les **acheteurs** sont béninois, ils paient en **Franc CFA (XOF / FCFA)**
+- Les **vendeurs** sont nigérians
+- Le modèle de confiance repose sur un système **Escrow** :
+  Acheteur paie → Plateforme sécurise les fonds → Vendeur livre au Hub TrustLink → Acheteur reçoit → Vendeur est payé
+- Livraison express **2 à 7 jours**
+- Aucun backend réel : toutes les données sont **mockées** (localStorage pour persistance)
+---
+## STACK TECHNIQUE IMPOSÉE
+| Couche       | Technologie             | Version  |
+|--------------|-------------------------|----------|
+| Framework    | React                   | 19.x     |
+| Langage      | TypeScript              | 5.x      |
+| Bundler      | Vite                    | 6.x      |
+| Styles       | Tailwind CSS            | 3.x      |
+| Routing      | React Router DOM        | v7       |
+| Icônes       | Remix Icon 4.5          | CDN      |
+| Icônes       | Font Awesome 6.4        | CDN      |
+| Fonts        | Google Fonts (Poppins + Inter) | CDN |
+### Règles techniques absolues :
+- `BrowserRouter` avec `basename={__BASE_PATH__}` dans `App.tsx` (__BASE_PATH__ injecté par Vite define)
+- `AppRoutes` importé depuis `src/router/index.ts` — JAMAIS redéfini dans App.tsx
+- `element` dans RouteObject = JSX `<Component />`, jamais `lazy()` direct
+- Imports cross-dossier : `@/` (alias src/) — imports même dossier : `./`
+- Jamais de `window.location.href` pour naviguer — utiliser uniquement `useNavigate` / `<Link>`
+- Jamais de `require()` — ES modules uniquement
+- Jamais de `React.Fragment` — utiliser `<></>`
+- Fichiers maximum : **500 lignes**
+- Mock data dans `src/mocks/*.ts` : export nommé uniquement, pas de default export, pas de fonctions, pas de données dynamiques
+- Icônes : classes CSS directement (`<i className="ri-home-line"></i>`) — jamais d'import npm
+- Images : URL Stable Diffusion `https://readdy.ai/api/search-image?query={prompt 150+ chars}&width={w}&height={h}&seq={unique_id}&orientation={landscape|portrait|squarish}` — URL hardcodée, jamais de template literals
+---
+## DESIGN SYSTEM
+### Palette de couleurs (STRICTE)
+
+brand.primary = #125C8D → CTA secondaires, search button, borders focus, liens actifs
+brand.dark = #0E3A4F → Footer background, hero overlay, texte logo
+brand.light = #E1F0F9 → Fonds sections réassurance, bouton “Ajouter” par défaut
+brand.orange = #FF6A00 → CTA principal, badges promo, accents, hover icons
+neutral.dark = #111827 → Corps de texte principal
+neutral.mid = #6B7280 → Sous-titres, métadonnées, prix barrés
+white = #FFFFFF → Fond page, cards
+section.bg = #F8FAFC → Fond image dans les cards produit
+
+**INTERDIT** : Aucune couleur bleue autre que #125C8D. Violet totalement prohibé.
+**Fond page** : blanc pur ou couleurs RGB toutes > 240 (très clair, très peu saturé). Jamais gris.
+### Typographie
+
+Font principale : Poppins → Titres, labels, boutons, navigation (weights: 400/500/600/700/800)
+Font secondaire : Inter → Corps de texte, descriptions, métadonnées (weights: 300/400/500/600)
+
+
+**Échelle typographique :**
+- Hero H1       : text-3xl md:text-5xl, Poppins Bold 700, blanc
+- H2 sections   : text-xl md:text-2xl, Poppins SemiBold 600
+- Card title    : text-sm, Inter Medium 500
+- Prix principal: text-base font-bold, Poppins, color #125C8D
+- Prix barré    : text-xs line-through, Inter, color #6B7280
+- Badge/label   : text-xs font-bold uppercase, Poppins
+- Corps courant : text-sm, Inter Regular 400
+### Arrondis
+
+Cards produit → rounded-xl (12px)
+Boutons principaux → rounded-full (pill)
+Boutons secondaires → rounded-lg (8px)
+Badges promo → rounded-full (pill)
+Search bar → rounded-full (pill)
+Icônes header → rounded-full (cercle)
+Icônes réassurance → rounded-xl (12px)
+
+
+### Ombres
+ZERO shadow (shadow-* prohibé). Relief obtenu par :
+- `border border-gray-100` sur les cards
+- `hover:-translate-y-1` pour l'effet de survol
+- Exception : `shadow-sm` uniquement sur le header au scroll
+### Animations
+- Cards : `hover:-translate-y-1 transition-all duration-300`
+- Images cards : `group-hover:scale-105 transition-transform duration-500`
+- Hero slides : `opacity-0/100 transition-opacity duration-700`
+- Bouton "Ajouter" : feedback `bg-green-100 text-green-700` pendant 1500ms puis reset
+- Badge support flottant : `animate-bounce`
+- Header : `transition-all duration-300` → `shadow-sm` quand `window.scrollY > 10`
+---
+## STRUCTURE DES DOSSIERS
+
+src/
+├── components/
+│ ├── feature/
+│ │ ├── Header.tsx
+│ │ ├── Footer.tsx
+│ │ └── FloatingSupportButton.tsx
+│ └── base/ (boutons, inputs réutilisables)
+├── hooks/
+│ ├── useCart.ts
+│ └── useWishlist.ts
+├── mocks/
+│ ├── products.ts
+│ ├── orders.ts
+│ └── cart.ts
+├── pages/
+│ ├── home/
+│ │ ├── page.tsx
+│ │ └── components/
+│ │ ├── HeroBanner.tsx
+│ │ ├── CategoryBar.tsx
+│ │ ├── ProductCard.tsx
+│ │ ├── ProductGrid.tsx
+│ │ └── TrustBanner.tsx
+│ ├── product/page.tsx
+│ ├── cart/page.tsx
+│ ├── checkout/page.tsx
+│ ├── account/
+│ │ ├── page.tsx
+│ │ └── components/OrderCard.tsx
+│ ├── wishlist/page.tsx
+│ ├── faq/page.tsx
+│ ├── help/page.tsx
+│ ├── support/page.tsx
+│ ├── legal/page.tsx
+│ └── returns/page.tsx
+├── router/
+│ ├── config.tsx (RouteObject[] — à modifier)
+│ └── index.ts (READ-ONLY — ne jamais modifier)
+└── App.tsx
+
+
+---
+## ROUTING COMPLET
+```typescript
+// src/router/config.tsx
+import { RouteObject } from 'react-router-dom';
+import Home from '@/pages/home/page';
+import ProductPage from '@/pages/product/page';
+import Cart from '@/pages/cart/page';
+import Checkout from '@/pages/checkout/page';
+import Account from '@/pages/account/page';
+import Wishlist from '@/pages/wishlist/page';
+import FAQ from '@/pages/faq/page';
+import Help from '@/pages/help/page';
+import Support from '@/pages/support/page';
+import Legal from '@/pages/legal/page';
+import Returns from '@/pages/returns/page';
+import NotFound from '@/pages/NotFound';
+const routes: RouteObject[] = [
+  { path: '/',                element: <Home /> },
+  { path: '/product/:id',     element: <ProductPage /> },
+  { path: '/cart',            element: <Cart /> },
+  { path: '/checkout',        element: <Checkout /> },
+  { path: '/account',         element: <Account /> },
+  { path: '/wishlist',        element: <Wishlist /> },
+  { path: '/faq',             element: <FAQ /> },
+  { path: '/help',            element: <Help /> },
+  { path: '/support',         element: <Support /> },
+  { path: '/legal',           element: <Legal /> },
+  { path: '/policy/returns',  element: <Returns /> },
+  { path: '*',                element: <NotFound /> },
+];
+export default routes;
+
+MODÈLES DE DONNÉES TYPESCRIPT
+
+// src/mocks/products.ts
+export interface ProductVariant {
+  sizes: string[];
+  colors: { name: string; hex: string }[];
+}
+export interface Product {
+  id: string;
+  name: string;
+  category: 'mode' | 'beaute' | 'hightech' | 'auto' | 'maison' | 'sport';
+  price: number;
+  originalPrice?: number;
+  discount?: number;
+  images: string[];        // min 1, max 4
+  rating: number;          // 4.4 – 4.9
+  sales: number;
+  variants: ProductVariant;
+  description: string;
+  seller: string;
+  inStock: boolean;
+  isNew?: boolean;
+  isFeatured?: boolean;
+  wishlisted?: boolean;
+}
+export const CATEGORIES = [
+  { id: 'mode',    label: 'Mode',     icon: 'ri-t-shirt-line' },
+  { id: 'beaute',  label: 'Beauté',   icon: 'ri-sparkling-line' },
+  { id: 'hightech',label: 'High-Tech',icon: 'ri-smartphone-line' },
+  { id: 'auto',    label: 'Auto',     icon: 'ri-car-line' },
+  { id: 'maison',  label: 'Maison',   icon: 'ri-home-4-line' },
+  { id: 'sport',   label: 'Sport',    icon: 'ri-run-line' },
+];
+export const PRODUCTS: Product[] = [ /* 8+ produits réalistes par catégorie */ ];
+// src/mocks/orders.ts
+export interface Order {
+  id: string;              // 'TL-20260114-001'
+  status: 'pending' | 'processing' | 'shipped' | 'delivered';
+  items: {
+    productId: string;
+    name: string;
+    image: string;
+    price: number;
+    quantity: number;
+  }[];
+  total: number;
+  address: { name: string; city: string; district: string; phone: string; };
+  trackingNumber?: string; // 'TL-XXXXXXXX'
+  createdAt: string;       // ISO date
+}
+export const ORDERS: Order[] = [ /* 4+ commandes mock avec statuts variés */ ];
+// src/hooks/useCart.ts
+interface CartItem {
+  productId: string;
+  name: string;
+  image: string;
+  price: number;
+  quantity: number;
+  selectedSize?: string;
+  selectedColor?: string;
+}
+// localStorage key : "trustlink_cart"
+// Expose : items, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice
+// src/hooks/useWishlist.ts
+// localStorage key : "trustlink_wishlist"
+// État : string[] (product IDs)
+// Expose : items, toggle(id), isWishlisted(id)
+
+COMPOSANTS — SPÉCIFICATIONS DÉTAILLÉES (suite)
+Header (src/components/feature/Header.tsx)
+
+Position  : fixed top-0 left-0 right-0 z-50
+Fond      : bg-white dès le début
+Scroll    : window.scrollY > 10 → ajouter shadow-sm via useState
+Height    : h-16 mobile / h-20 desktop
+Layout desktop (md+) :
+  [Logo TrustLink] | [Search bar flex-1 max-w-xl] | [Icônes panier + compte]
+Layout mobile :
+  Ligne 1 : [Logo] | [Panier + Compte + Hamburger]
+  Ligne 2 : [Search bar pleine largeur]
+Logo :
+  Trust en Poppins bold #0E3A4F + Link en #FF6A00
+  <Link to="/"> — wrappé dans <h1> sur la homepage uniquement
+Search bar :
+  form onSubmit → navigate('/?search=' + encodeURIComponent(query))
+  rounded-full, border, icône loupe, bouton submit bg-[#125C8D]
+<br>
+Icône panier :
+  <Link to="/cart"> + ri-shopping-cart-line
+  Pastille rouge : badge absolu top-0 right-0 bg-[#FF6A00] text-white
+  totalItems depuis useCart()
+<br>
+Icône compte :
+  <Link to="/account"> + ri-user-3-line
+<br>
+Menu hamburger mobile :
+  useState menuOpen → drawer ou menu déroulant avec les liens principaux
+
+Footer (src/components/feature/Footer.tsx)
+
+Barre réassurance (au-dessus du footer sombre) :
+  bg-[#125C8D] text-white py-3
+  flex 4 colonnes centré
+  Items : Paiement Escrow / Livraison 2-7j / Retours faciles / Support 24/7
+Footer principal :
+  bg-[#0E3A4F] text-white py-12
+Structure 4 colonnes :
+  Col 1 — Marque :
+    Logo TrustLink (Link en #FF6A00)
+    Description courte marketplace transfrontalière
+    Logos paiement : MTN MoMo + Moov Money + Wave (text badges)
+  <br>
+  Col 2 — Marketplace :
+    Liens : /faq / /help / /support / /policy/returns
+  <br>
+  Col 3 — Informations :
+    Liens : /legal?tab=mentions / /legal?tab=confidentialite
+            /legal?tab=cgu / /legal?tab=escrow
+  <br>
+  Col 4 — Contact :
+    WhatsApp : +229 XX XX XX XX
+    Email    : support@trustlink.bj
+    Heures   : Lun–Sam 8h–20h
+Barre copyright :
+  border-t border-white/10 mt-8 pt-4
+  "© 2026 TrustLink. Tous droits réservés." + flag 🇧🇯 + 🇳🇬
+
+FloatingSupportButton (src/components/feature/FloatingSupportButton.tsx)
+
+Position  : fixed bottom-6 right-6 z-50
+Défaut    : bouton rond bg-[#125C8D] + icône ri-customer-service-2-line blanc
+            + label "Support TrustLink" pill à gauche
+            + animate-bounce sur le label
+useState showLabel : true par défaut → bouton × pour cacher le label
+Clic principal → <Link to="/support">
+
+PAGES — SPÉCIFICATIONS FONCTIONNELLES COMPLÈTES
+/ — Accueil (src/pages/home/page.tsx)
+
+Logique de filtrage (côté client) :
+  const [searchParams] = useSearchParams()
+  const search   = searchParams.get('search') || ''
+  const category = searchParams.get('category') || ''
+  const sort     = useState('popular') // 'popular' | 'price_asc' | 'price_desc'
+  filteredProducts = PRODUCTS
+    .filter(p => category ? p.category === category : true)
+    .filter(p => search ? p.name.toLowerCase().includes(search.toLowerCase()) : true)
+    .sort(...)
+Structure de la page :
+  <CategoryBar />
+  <HeroBanner />     (si pas de search/category actif)
+  <TrustBanner />
+  <ProductGrid />
+
+HeroBanner (src/pages/home/components/HeroBanner.tsx)
+
+3 slides, autoplay toutes les 5s (setInterval, clearInterval au unmount)
+Transition : opacity-0 → opacity-100 duration-700
+Structure de chaque slide :
+  Image de fond pleine largeur (h-[480px] md:h-[560px])
+  Overlay : bg-gradient-to-r from-[#0E3A4F]/85 via-[#0E3A4F]/60 to-transparent
+  Contenu positionné absolute inset-0 flex items-center :
+    max-w-[1200px] mx-auto px-6
+    max-w-lg pour le contenu texte
+  <br>
+  Contenu texte :
+    <span> badge orange rounded-full px-3 py-1 bg-[#FF6A00] text-white text-xs font-bold uppercase
+    <h1> ou <h2> text-3xl md:text-5xl Poppins font-bold text-white whitespace-pre-line
+    <p> text-sm md:text-base text-white/80 Inter
+    2 boutons côte à côte :
+      Bouton 1 : bg-[#FF6A00] text-white rounded-full px-6 py-3 (CTA principal)
+      Bouton 2 : bg-white/10 border border-white text-white rounded-full px-6 py-3 (ghost)
+Dots de navigation :
+  Dot actif  : w-6 h-2 bg-[#FF6A00] rounded-full
+  Dot inactif: w-2 h-2 bg-white/50 rounded-full
+  transition-all duration-300
+Flèches prev/next :
+  bg-white/20 hover:bg-white/40 rounded-full w-10 h-10
+  absolute left-4/right-4, vertically centered
+<br>
+Contenu des 3 slides :
+  Slide 1 : "Mode Nigeria\nLivraison Cotonou" — image mode africaine
+  Slide 2 : "High-Tech au\nMeilleur Prix" — image smartphones/gadgets
+  Slide 3 : "Beauté &\nBien-Être" — image cosmétiques
+
+CategoryBar (src/pages/home/components/CategoryBar.tsx)
+
+Position : sticky top-16 md:top-20 z-40 bg-white border-b border-gray-100
+Layout : flex gap-2 overflow-x-auto py-3 max-w-[1200px] mx-auto px-4 md:px-6
+         + pill "Tout" en premier
+Pill actif   : bg-[#125C8D] text-white
+Pill inactif : bg-white text-[#111827] border border-gray-200
+Clic catégorie :
+  if (active === id) → navigate('/')       // déselectionner
+  else               → navigate('/?category=' + id)
+Icône + label dans chaque pill
+
+ProductCard (src/pages/home/components/ProductCard.tsx)
+
+Conteneur : <Link to={`/product/${product.id}`} className="group ...">
+  Structure flex-col, border border-gray-100, rounded-xl, bg-white
+  hover:-translate-y-1 transition-all duration-300, cursor-pointer
+Zone image (relative) :
+  bg-[#F8FAFC] h-52 overflow-hidden rounded-t-xl
+  <img> object-cover object-top w-full h-full
+       group-hover:scale-105 transition-transform duration-500
+  Badge promo (si discount) : absolute top-2 left-2
+    bg-[#FF6A00] text-white text-xs font-bold rounded-full px-2 py-0.5
+    "-{discount}%"
+  Badge isNew (si isNew) : absolute top-2 left-2
+    bg-[#125C8D] text-white text-xs font-bold rounded-full px-2 py-0.5
+    "Nouveau"
+  Bouton wishlist : absolute top-2 right-2
+    onClick={e => { e.preventDefault(); toggle(product.id) }}
+    ri-heart-fill text-[#FF6A00] si wishlisted
+    ri-heart-line text-[#6B7280] si non wishlisted
+    rounded-full w-8 h-8 bg-white flex items-center justify-center
+Zone info (p-3) :
+  Seller : text-xs text-[#6B7280] Inter
+  Name   : text-sm font-medium text-[#111827] Inter, 2 lignes max (line-clamp-2)
+  Étoiles : 5 icônes Remix (ri-star-fill/half/line) text-amber-400 text-xs
+            + "(X ventes)" en text-xs text-[#6B7280]
+  Prix :
+    Prix actuel : text-base font-bold text-[#125C8D] Poppins (formatPrice())
+    Prix barré   : text-xs line-through text-[#6B7280] Inter (si originalPrice)
+  Bouton "Ajouter au panier" :
+    Toujours visible (pas au hover)
+    État normal  : bg-[#E1F0F9] text-[#125C8D] font-medium rounded-full w-full py-2
+    Hover        : bg-[#125C8D] text-white
+    État "Ajouté": bg-green-100 text-green-700 "✓ Ajouté !" pendant 1500ms
+    onClick      : e.preventDefault() + addItem({...}) + setState feedback
+
+ProductGrid (src/pages/home/components/ProductGrid.tsx)
+
+Props : products: Product[]
+Header section :
+  <h2> "Nos Produits" ou titre selon contexte
+  Sélecteur de tri (select dropdown) :
+    options : "Populaires" | "Prix croissant" | "Prix décroissant"
+Grille :
+  grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4
+État vide (aucun produit filtré) :
+  Illustration + message "Aucun produit trouvé" + bouton reset
+
+TrustBanner (src/pages/home/components/TrustBanner.tsx)
+
+bg-[#E1F0F9] py-8
+max-w-[1200px] mx-auto px-4 md:px-6
+4 colonnes (grid-cols-2 md:grid-cols-4) :
+  Item 1 : ri-shield-check-line — "Escrow Sécurisé" — "Vos fonds protégés jusqu'à réception"
+  Item 2 : ri-truck-line         — "Livraison Express" — "2 à 7 jours vers Cotonou"
+  Item 3 : ri-arrow-go-back-line — "Retours Faciles"  — "30 jours pour retourner"
+  Item 4 : ri-customer-service-2-line — "Support 7j/7" — "Lun-Dim 8h-20h"
+Chaque item :
+  Icône dans bg-[#125C8D]/10 rounded-xl w-12 h-12 flex items-center justify-center
+  Titre text-sm font-semibold Poppins text-[#111827]
+  Description text-xs Inter text-[#6B7280]
+
+/product/:id (src/pages/product/page.tsx)
+
+Récupération :
+  const { id } = useParams()
+  const product = PRODUCTS.find(p => p.id === id)
+  if (!product) → useEffect(() => navigate('/'), [])
+Layout : max-w-[1200px] mx-auto px-4 md:px-6 pt-24 pb-12
+  Breadcrumb : Accueil > {category} > {nom produit}
+<br>
+  Grille 2 colonnes (md:grid-cols-2 gap-8) :
+<br>
+    Colonne gauche — Galerie :
+      Image principale : w-full h-96 object-cover object-top rounded-xl bg-[#F8FAFC]
+      Thumbnails (si images.length > 1) :
+        flex gap-2 mt-3
+        Thumbnail : w-20 h-20 rounded-lg object-cover object-top cursor-pointer
+        Thumbnail active : ring-2 ring-[#125C8D]
+      useState selectedImage → index dans product.images
+    <br>
+    Colonne droite — Infos :
+      Seller : text-sm text-[#6B7280] + icône ri-store-2-line + badge "✓ Vérifié" vert
+      H1     : text-2xl font-bold Poppins text-[#111827] (nom produit)
+      Étoiles + "(X ventes)" + "(X avis)"
+      Prix   : text-2xl font-bold text-[#125C8D] + prix barré si originalPrice
+      Badge discount orange si discount
+    <br>
+      Séparateur hr border-gray-100
+    <br>
+      Sélecteur taille (si sizes.length > 0) :
+        Label "Taille :"
+        Pills : border, rounded-full, px-3 py-1
+        Actif : border-[#125C8D] bg-[#E1F0F9] text-[#125C8D]
+      <br>
+      Sélecteur couleur (si colors.length > 0) :
+        Label "Couleur :"
+        Swatches : cercles w-7 h-7 avec la couleur hex
+        Actif    : ring-2 ring-offset-1 ring-[#125C8D]
+      <br>
+      Quantité :
+        [−] [n] [+] avec min=1, max=99
+        Style : boutons rounded-lg border, valeur text-center w-12
+      <br>
+      2 boutons :
+        "Ajouter au panier" :
+          bg-[#E1F0F9] → hover:bg-[#125C8D] hover:text-white
+          rounded-full px-6 py-3, ri-shopping-cart-add-line
+          Feedback vert 1500ms
+        "Acheter maintenant" :
+          bg-[#FF6A00] text-white rounded-full px-6 py-3
+          onClick → addItem + navigate('/cart')
+        <br>
+      Encadré Escrow :
+        bg-[#E1F0F9] rounded-xl p-4 mt-4
+        ri-shield-check-line text-[#125C8D] + titre "Paiement Escrow TrustLink"
+        Description 4 étapes en ligne :
+          1. Vous payez → 2. Vendeur notifié → 3. Hub TrustLink → 4. Vous recevez
+        <br>
+      Description produit : text-sm Inter text-[#6B7280] mt-4
+Section "Produits similaires" :
+  Filtre PRODUCTS par même catégorie, exclure produit courant, max 4
+  <h2> "Vous aimerez aussi"
+  Grille 4 colonnes de ProductCards
+---
+### `/cart` (`src/pages/cart/page.tsx`)
+Si panier vide :
+  Illustration centré + "Votre panier est vide"
+  <Link to="/"> bouton "Continuer mes achats" bg-[#FF6A00] rounded-full
+Layout (items dans panier) :
+  max-w-[1200px] mx-auto px-4 md:px-6 pt-24 pb-12
+  <h1> "Mon Panier" + "(X articles)"
+<br>
+  Grille : grid-cols-1 lg:grid-cols-3 gap-8
+<br>
+    Colonne gauche (lg:col-span-2) — Liste articles :
+      Chaque CartItem :
+        bg-white border border-gray-100 rounded-xl p-4 flex gap-4
+        Image : w-24 h-24 rounded-lg object-cover object-top bg-[#F8FAFC]
+        Infos : nom, variante sélectionnée (si applicable), prix unitaire
+        Contrôles quantité : [−] [n] [+]
+          updateQuantity(id, qty)
+          Si qty < 1 → removeItem(id)
+        Bouton poubelle : ri-delete-bin-line text-red-400 hover:text-red-600
+        Sous-total ligne : prix × quantité formaté
+      <br>
+    Colonne droite — Récapitulatif :
+      bg-white border border-gray-100 rounded-xl p-6 sticky top-24
+    <br>
+      Sous-total   : totalPrice formaté
+      Frais livraison : 2 500 FCFA (fixe)
+      Total        : totalPrice + 2500
+    <br>
+      Encadré Escrow mini (même style que fiche produit)
+    <br>
+      <Link to="/checkout"> bouton "Passer la commande"
+        bg-[#FF6A00] text-white rounded-full w-full py-3 text-center font-bold
+---
+### `/checkout` (`src/pages/checkout/page.tsx`)
+Stepper visuel en haut :
+  Étape 1 "Adresse" → Étape 2 "Paiement" → Étape 3 "Confirmation"
+  Actif : cercle bg-[#125C8D] blanc — Passé : cercle bg-green-500 — À venir : cercle bg-gray-200
+useState currentStep : 1 | 2 | 3
+const [orderData, setOrderData] = useState<{address, method, orderId}>()
+ÉTAPE 1 — Adresse de livraison :
+  Champs (formulaire) :
+    Prénom + Nom (2 cols)
+    Ville (select : Cotonou / Porto-Novo / Parakou / Abomey-Calavi / Bohicon)
+    Quartier (text input)
+    Téléphone (format +229 XX XX XX XX)
+  Bouton "Continuer vers le paiement" bg-[#FF6A00] rounded-full
+  Validation : champs requis avant passage étape 2
+ÉTAPE 2 — Paiement Escrow :
+  Récapitulatif commande (articles + total) — compact
+<br>
+  Explication Escrow en 4 étapes visuelles :
+    Vous payez → TrustLink sécurise → Vendeur livre au Hub → Vous recevez & validez
+  <br>
+  Méthodes de paiement (radio) :
+    MTN MoMo  : icône + "Mobile Money MTN"
+    Moov Money: icône + "Mobile Money Moov"
+    Wave      : icône + "Wave"
+    Border [#125C8D] sur l'option sélectionnée
+  <br>
+  Boutons : "← Retour" ghost + "Confirmer et payer" bg-[#FF6A00]
+<br>
+  onClick "Confirmer et payer" :
+    clearCart()
+    setOrderData({ orderId: 'TL-' + Date.now(), trackingNumber: generateTracking() })
+    setCurrentStep(3)
+ÉTAPE 3 — Confirmation :
+  Icône ri-checkbox-circle-fill text-green-500 text-6xl animé (scale-in)
+  "Commande confirmée !"
+  N° commande : orderId
+  N° suivi    : trackingNumber (format 'TL-' + 8 chars aléatoires uppercase)
+  Délai livraison estimé : "2 à 7 jours ouvrables"
+<br>
+  2 boutons :
+    "Voir mes commandes" → /account
+    "Continuer mes achats" → /
+  <br>
+generateTracking() :
+  'TL-' + Math.random().toString(36).substring(2, 10).toUpperCase()
+---
+### `/account` (`src/pages/account/page.tsx`)
+Layout : min-h-screen
+Bandeau profil :
+  bg-[#0E3A4F] text-white py-8
+  max-w-[1200px] mx-auto px-4 md:px-6
+  Avatar initiales dans cercle coloré (w-16 h-16 bg-[#125C8D])
+  Nom fictif "Kouassi Mensah" + badge "Premium" bg-[#FF6A00] rounded-full
+  3 stats :
+    "12 commandes" / "247 500 FCFA dépensés" / "4.8★ acheteur"
+Corps principal :
+  max-w-[1200px] mx-auto px-4 md:px-6 py-8
+  flex gap-8 (sidebar 280px | contenu flex-1)
+<br>
+  SIDEBAR (gauche) :
+    nav liste verticale 4 onglets
+    Onglet actif : bg-[#E1F0F9] text-[#125C8D] font-semibold rounded-lg
+  <br>
+    Onglets :
+    1. ri-shopping-bag-line "Mes Commandes"
+    2. ri-user-3-line "Mon Profil"
+    3. ri-map-pin-line "Mes Adresses"
+    4. ri-settings-3-line "Paramètres"
+  <br>
+  CONTENU (droite) — selon onglet actif :
+<br>
+  Onglet 1 — Mes Commandes :
+    Filtres pills : Tout / En traitement / Expédiée / Livrée
+    Liste de <OrderCard /> depuis ORDERS mock
+    Filtre par status actif
+  <br>
+  Onglet 2 — Mon Profil :
+    Grille 2 colonnes de champs éditables :
+      Prénom / Nom / Email / Téléphone / Ville / Pays
+    Mode édition via useState isEditing
+    Bouton "Modifier" → "Sauvegarder"
+    Feedback "✓ Profil sauvegardé !" (1500ms) après save
+  <br>
+  Onglet 3 — Mes Adresses :
+    Cards adresses sauvegardées (2 adresses mock)
+    Bouton "+ Ajouter une adresse"
+    Card adresse : nom, rue, ville, téléphone + boutons Modifier/Supprimer
+  <br>
+  Onglet 4 — Paramètres :
+    Section Notifications :
+      Toggle "Commandes par SMS" — useState, bg-[#125C8D] si actif
+      Toggle "Promotions par email"
+      Toggle "Alertes livraison"
+    Section Sécurité :
+      Toggle "Authentification 2 facteurs"
+      Bouton "Changer mot de passe" (ghost)
+    Zone danger :
+      bg-red-50 border border-red-200 rounded-xl p-4
+      Bouton "Supprimer mon compte" text-red-600 border-red-200
+### OrderCard (`src/pages/account/components/OrderCard.tsx`)
+Props : order: Order
+bg-white border border-gray-100 rounded-xl p-4
+Header : N° commande (bold) + date (text-xs text-[#6B7280]) + badge statut
+Statut badge colors :
+  pending    → bg-amber-100 text-amber-700   "En attente"
+  processing → bg-[#E1F0F9] text-[#125C8D]   "En traitement"
+  shipped    → bg-orange-100 text-orange-700  "Expédiée"
+  delivered  → bg-green-100 text-green-700    "Livrée"
+Articles : flex gap-2, max 3 images (w-12 h-12 rounded-lg) + "+N" si plus
+Numéro de suivi si trackingNumber
+Total commande : text-sm font-bold text-[#125C8D]
+Si status === 'shipped' :
+  Bouton "Confirmer réception"
+  bg-[#E1F0F9] hover:bg-[#125C8D] hover:text-white rounded-full
+  onClick → alerte/modal "Réception confirmée !" (simulé)
+---
+### `/wishlist` (`src/pages/wishlist/page.tsx`)
+Titre : "Ma liste de souhaits (X articles)"
+Grille 4 colonnes de ProductCards
+Données : PRODUCTS.filter(p => wishlist.items.includes(p.id))
+Si vide : illustration + message + <Link to="/">
+---
+### `/faq` (`src/pages/faq/page.tsx`)
+Hero : bg-[#0E3A4F] text-white py-12, titre + description
+max-w-[1200px] mx-auto px-4 py-8
+4 catégories FAQ :
+  Livraison (5 questions)
+  Paiement Escrow (5 questions)
+  Retours & Remboursements (4 questions)
+  Mon Compte (4 questions)
+Accordéon par catégorie :
+  useState openIndex (null | string)
+  Header : fond subtle, question en font-medium, icône ri-add-line / ri-subtract-line
+  Body : max-h-0 → max-h-96 overflow-hidden transition-all duration-300
+         text-sm text-[#6B7280] Inter, p-4
+---
+### `/help` (`src/pages/help/page.tsx`)
+Hero search :
+  bg-[#E1F0F9] py-12
+  Titre "Comment pouvons-nous vous aider ?"
+  Barre de recherche pill pleine largeur (max-w-xl) avec icône loupe
+Catégories pills : Tout / Livraison / Paiement / Compte / Retours
+  → filtre les 14 items FAQ affichés
+14 items FAQ avec accordéon (même pattern que /faq)
+Section "Autres moyens de contact" :
+  3 cards (grid-cols-3) :
+    WhatsApp : ri-whatsapp-line bg-green-100 + "+229 97 XX XX XX"
+    Email    : ri-mail-line bg-[#E1F0F9] + "support@trustlink.bj"
+    Chat live: ri-chat-3-line bg-[#E1F0F9] + "Disponible 8h-20h"
+  Chaque card : rounded-xl border, hover:-translate-y-1
+---
+### `/support` (`src/pages/support/page.tsx`)
+Layout chat :
+  max-w-[768px] mx-auto px-4 pt-24 pb-4
+  flex flex-col h-[calc(100vh-80px)]
+Header chat :
+  bg-[#0E3A4F] rounded-t-xl p-4
+  Avatar agent "Aminata" (initiales AA, bg-[#125C8D])
+  "Aminata — Support TrustLink" + point vert "En ligne"
+Zone messages :
+  flex-1 overflow-y-auto p-4 bg-white border-x border-gray-100
+  Auto-scroll vers le bas à chaque nouveau message (useRef + useEffect)
+<br>
+  Messages initiaux (mock) :
+    [bot] "Bonjour ! Je suis Aminata, votre assistante TrustLink. Comment puis-je vous aider ?"
+    [bot] "Vous pouvez me poser des questions sur vos commandes, livraisons, retours ou paiements."
+  <br>
+  Bulle bot   : bg-[#E1F0F9] text-[#111827] rounded-tr-xl rounded-b-xl max-w-[70%] self-start
+  Bulle user  : bg-[#125C8D] text-white rounded-tl-xl rounded-b-xl max-w-[70%] self-end
+<br>
+  Après message user (800ms delay) :
+    Réponses auto selon mots-clés dans le message :
+      "livraison" → "Nos livraisons prennent 2 à 7 jours ouvrables..."
+      "remboursement" / "retour" → "Vous pouvez retourner un article sous 30 jours..."
+      "paiement" / "escrow" → "Notre système Escrow sécurise votre paiement..."
+      "commande" → "Pour suivre votre commande, rendez-vous dans Mes Commandes..."
+      default → "Je comprends votre question. Un agent va vous répondre dans les plus brefs délais."
+Input zone :
+  border-t border-gray-100 bg-white rounded-b-xl p-3
+  flex gap-2
+  Input text placeholder "Écrivez votre message..."
+  Bouton envoi : bg-[#125C8D] text-white rounded-full px-4 py-2 ri-send-plane-line
+  onSubmit / onKeyDown Enter → envoyer message
+---
+### `/legal` (`src/pages/legal/page.tsx`)
+Header : bg-[#0E3A4F] text-white p) :
+
+### `/legal` (`src/pages/legal/page.tsx`)
+Header : bg-[#0E3A4F] text-white py-10
+4 onglets : Mentions légales / Confidentialité / CGU / Protection Escrow
+  URL param : ?tab=mentions|confidentialite|cgu|escrow
+  const [searchParams] = useSearchParams()
+  Onglet actif : border-b-2 border-[#125C8D] text-[#125C8D] font-semibold
+Contenu :
+  max-w-[860px] mx-auto px-4 py-8
+  Chaque onglet : longue page prose avec h2/h3/p/ul
+  min 4 sections par onglet, contenu juridique réaliste
+  Classes prose : text-sm text-[#6B7280] leading-relaxed
+---
+### `/policy/returns` (`src/pages/returns/page.tsx`)
+Hero : bg-[#0E3A4F] text-white py-10
+Section 1 — Processus en 5 étapes visuelles (stepper horizontal) :
+  1. Signaler → 2. Renvoyer au Hub → 3. Vérification → 4. Remboursement/Échange → 5. Clôture
+Section 2 — Motifs acceptés/refusés :
+  2 colonnes : ✅ Acceptés (liste verte) | ❌ Refusés (liste rouge)
+Section 3 — FAQ retours (6 questions accordéon)
+Section 4 — CTA contact :
+  "Besoin d'aide pour un retour ?" → <Link to="/support">
+---
+## V. MODÈLES DE DONNÉES MOCK (complets)
+### Interface `Product`
+```typescript
+{
+  id: string
+  name: string
+  category: 'mode' | 'beaute' | 'hightech' | 'auto' | 'maison' | 'sport'
+  price: number              // en XOF entier (ex: 28500)
+  originalPrice?: number     // si en promo
+  discount?: number          // % affiché dans le badge orange
+  images: string[]           // min 1 URL, max 4 (galerie fiche produit)
+  rating: number             // float entre 4.4 et 4.9
+  sales: number              // critère tri "Populaire"
+  variants: {
+    sizes: string[]          // vide [] si non applicable
+    colors: { name: string; hex: string }[]
+  }
+  description: string        // 1-2 phrases
+  seller: string             // nom de la boutique Nigeria
+  inStock: boolean
+  isNew?: boolean
+  isFeatured?: boolean
+  wishlisted?: boolean
+}
+
+Interface CartItem (dans useCart.ts)
+
+{
+  productId: string
+  name: string
+  image: string              // images[0] du produit
+  price: number
+  quantity: number
+  selectedSize?: string
+  selectedColor?: string
+}
+
+Interface Order (dans orders.ts)
+
+{
+  id: string                 // format: 'TL-20260114-001'
+  status: 'pending' | 'processing' | 'shipped' | 'delivered'
+  items: {
+    productId: string
+    name: string
+    image: string
+    price: number
+    quantity: number
+  }[]
+  total: number              // en XOF
+  address: {
+    name: string
+    city: string
+    district: string
+    phone: string
+  }
+  trackingNumber?: string    // format: 'TL-XXXXXXXX'
+  createdAt: string          // ISO date string
+}
+
+VI. UTILITAIRES (src/utils/format.ts)
+
+export const formatPrice = (price: number): string =>
+  new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
+// Résultat : "28 500 FCFA"
+export const renderStars = (rating: number): string[] => {
+  const full  = Math.floor(rating);
+  const half  = rating % 1 >= 0.3 ? 1 : 0;
+  const empty = 5 - full - half;
+  return [
+    ...Array(full).fill('ri-star-fill'),
+    ...Array(half).fill('ri-star-half-line'),
+    ...Array(empty).fill('ri-star-line'),
+  ];
+};
+export const generateTracking = (): string =>
+  'TL-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+VII. SEO — index.html
+
+<title>TrustLink - Marketplace Bénin-Nigeria | Paiement FCFA, Livraison Sécurisée</title>
+<meta name="description" content="TrustLink, la marketplace transfrontalière entre le Bénin et le Nigeria. Achetez en FCFA avec paiement Escrow sécurisé, livraison express 2 à 7 jours vers Cotonou." />
+<meta name="keywords" content="marketplace Bénin Nigeria, achat FCFA, livraison transfrontalière, escrow paiement sécurisé" />
+<meta name="geo.region" content="BJ" />
+<meta name="geo.placename" content="Cotonou" />
+
+Balises sémantiques :
+
+    <header> → Header.tsx
+
+    <main> → Contenu de chaque page
+
+    <nav> → CategoryBar, menus
+
+    <footer> → Footer.tsx
+
+    <section> → Chaque bloc thématique
+
+    <article> → Cards produits, OrderCards
+
+H1 par page :
+Page	H1
+/	Logo TrustLink
+/product/:id	Nom du produit
+/cart	“Mon Panier”
+/checkout	“Finaliser ma commande”
+Autres	Titre principal de la page
+VIII. ROADMAP TECHNIQUE — PHASES
+Phase	Statut	Contenu
+Phase 1	✅ DONE	Header, Footer, Accueil, données mock, routing de base
+Phase 2	✅ DONE	Fiche produit, Panier, useCart, useWishlist
+Phase 3	✅ DONE	Checkout 3 étapes, Confirmation, Account, Wishlist, FAQ, Support
+Phase 4	✅ DONE	FloatingSupportButton, Help/Legal/Returns, routing complet
+Phase 5	🔜 NEXT	Connexion Supabase (Auth + BDD), remplacement mocks
+Phase 6	🔜 FUTURE	Paiement Mobile Money (MTN MoMo, Moov), Escrow réel
+Phase 7	🔜 FUTURE	Page de Connexion/Inscription
+IX. CONVENTIONS FINALES
+
+❌ Pas de alert()              → feedbacks inline ou modals
+❌ Pas de shadow-*             → sauf shadow-sm sur header au scroll
+❌ Pas de couleur bleue autre que #125C8D. Violet totalement prohibé.
+❌ Pas de float layout
+❌ Pas de window.location.href → useNavigate / <Link>
+❌ Pas de require()            → ES modules uniquement
+❌ Pas de React.Fragment       → <></>
+❌ Pas de template literals pour les URLs d'images → URL hardcodée complète
+❌ Pas de default export dans les mocks
+❌ Fichiers > 500 lignes       → découper en sous-composants
+✅ Prix toujours via formatPrice() avec Intl.NumberFormat fr-FR
+✅ Images via readdy.ai/api/search-image (URL hardcodée, seq unique)
+✅ Navigation uniquement via <Link> ou useNavigate()
+✅ Mock data : src/mocks/*.ts, export nommé, pas de fonctions dynamiques
+✅ Imports cross-dossier : @/ — même dossier : ./
+✅ BrowserRouter avec basename={__BASE_PATH__}
+✅ AppRoutes importé de src/router/index.ts uniquement
+
+X. PROMPT DE RECONSTRUCTION COMPLET
+
+“Crée une marketplace e-commerce transfrontalière appelée TrustLink, ciblant les acheteurs béninois achetant chez des vendeurs nigérians. Stack : React 19 + TypeScript + Tailwind CSS 3 + Vite, routing React Router v7. Design system strict : #125C8D (primary), #FF6A00 (orange/CTA), #0E3A4F (dark), #E1F0F9 (light), #111827 (texte), pas de bleu/violet autre. Fonts : Poppins (titres/boutons) + Inter (corps) via Google Fonts CDN. Icônes : Remix Icon + Font Awesome via CDN. Zéro shadow. Arrondis pill pour boutons, rounded-xl pour cards. Header fixed blanc, logo TrustLink (Link en orange #FF6A00), search bar pill avec bouton #125C8D, pastille panier dynamique via useCart. Barre catégories sticky 6 pills, filtre ?category=. Hero carousel 3 slides autoplay 5s, overlay gradient gauche→transparent, badge orange, H1 whitespace-pre-line, 2 boutons pill. Grille produits 4 colonnes, cards image h-52 object-top, badge promo absolu, cœur wishlist absolu, bouton Ajouter toujours visible (E1F0F9→#125C8D hover), feedback vert 1.5s. Section réassurance fond #E1F0F9 4 colonnes. Footer #0E3A4F, barre réassurance #125C8D au-dessus, 4 colonnes liens, logos MoMo/Wave. Bouton flottant support bottom-6 right-6 animate-bounce. Pages : Accueil / Fiche produit (galerie+variantes+section Escrow+similaires) / Panier (+/- quantité, total FCFA, livraison 2500 FCFA fixe) / Checkout 3 étapes (Adresse→Escrow+MoMo/Wave→Confirmation avec tracking TL-XXXXXXXX) / Account (sidebar 4 onglets : commandes filtrables+profil éditable+adresses+paramètres toggles) / Wishlist / FAQ accordéon / Help (recherche+14 FAQ+3 canaux contact) / Support (chat simulé agent Aminata, réponse bot 800ms) / Legal (4 onglets ?tab=) / Returns (stepper 5 étapes + accordéon). Persistance panier et wishlist via localStorage clés trustlink_cart et trustlink_wishlist. Prix via Intl.NumberFormat fr-FR + FCFA. Toutes données mockées dans src/mocks/ (export nommé, pas de default, pas de fonctions). Imports @/ cross-dossiers, ./ same-dossier. Fichiers max 500 lignes. BrowserRouter avec basename={BASE_PATH}. AppRoutes importé de src/router/index.ts uniquement.”
+          
