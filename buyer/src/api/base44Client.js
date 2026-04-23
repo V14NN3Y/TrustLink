@@ -1,14 +1,8 @@
-import { createClient } from '@base44/sdk';
-import { appParams } from '@/lib/app-params';
-
-const { appId, token, functionsVersion, appBaseUrl } = appParams;
-
-//Create a client with authentication required
-export const base44 = createClient({
-  appId,
-  token,
-  functionsVersion,
-  serverUrl: '',
-  requiresAuth: false,
-  appBaseUrl
-});
+// Mock base44 client since we are removing the SDK dependency
+export const base44 = {
+  auth: {
+    me: async () => ({ id: 1, name: 'Buyer User', role: 'buyer', email: 'buyer@trustlink.com' }),
+    logout: (url) => { if(url) window.location.href = url; },
+    redirectToLogin: (url) => { if(url) window.location.href = url; }
+  }
+};
