@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
-import { formatPrice, generateTracking } from '@/utils/format';
+import { formatPrice, generateTracking, convertToNGN } from '@/utils/format';
+import { generateOrderId, addOrder, getAuthUserId } from '@/lib/storage';
 
 const CITIES = ['Cotonou', 'Porto-Novo', 'Parakou', 'Abomey-Calavi', 'Bohicon'];
 const PAYMENT_METHODS = [
@@ -28,8 +29,53 @@ export default function Checkout() {
   };
 
   const handleConfirm = () => {
-    const orderId = 'TL-' + Date.now();
+    // Generate unified order ID: TL-2026-XXXXX
+    const orderId = generateOrderId();
     const trackingNumber = generateTracking();
+    const now = new Date().toISOString();
+    const totalXof = totalPrice + DELIVERY;
+    const totalNgn = convertToNGN(totalXof);
+    const buyerName = `${address.firstName} ${address.lastName}`.trim();
+
+    // Build shared-format order for Seller Hub + Admin
+    const sharedOrder = {
+      id: orderId,
+      product_id: items.length === 1 ? items[0].productId : items.map((i) => i.productId).join(','),
+      product_name: items.length === 1 ? items[0].name : `${items.length} articles`,
+      seller_id: items[0]?._seller_id || 'seller-001',
+      buyer_id: getAuthUserId(),
+      buyer_name: buyerName || 'Acheteur TrustLink',
+      buyer_city: address.city,
+      quantity: items.reduce((sum, i) => sum + i.quantity, 0),
+      amount_xof: totalXof,
+      amount_ngn: totalNgn,
+      status: 'new',
+      hub: 'Lagos Hub',
+      payment_method: payMethod,
+      created_at: now,
+      updated_at: now,
+      // Keep buyer-specific details
+      items: items.map((i) => ({
+        productId: i.productId,
+        name: i.name,
+        image: i.image,
+        price: i.price,
+        quantity: i.quantity,
+      })),
+      total: totalXof,
+      address: {
+        name: buyerName,
+        city: address.city,
+        district: address.district,
+        phone: address.phone,
+      },
+      trackingNumber,
+      createdAt: now,
+    };
+
+    // Write to shared localStorage (tl_orders)
+    addOrder(sharedOrder);
+
     clearCart();
     setOrderData({ orderId, trackingNumber });
     setStep(3);

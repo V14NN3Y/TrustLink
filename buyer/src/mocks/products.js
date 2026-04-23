@@ -1,3 +1,5 @@
+import { getActiveSharedProducts, getExchangeRate, ngnToXof } from '@/lib/storage';
+
 export const CATEGORIES = [
   { id: 'mode', label: 'Mode', icon: 'ri-t-shirt-line' },
   { id: 'beaute', label: 'Beauté', icon: 'ri-sparkling-line' },
@@ -7,7 +9,8 @@ export const CATEGORIES = [
   { id: 'sport', label: 'Sport', icon: 'ri-run-line' },
 ];
 
-export const PRODUCTS = [
+// ─── Fallback mock products (used when localStorage is empty) ──────
+const FALLBACK_PRODUCTS = [
   {
     id: 'p001',
     name: 'Robe Ankara Élégante Femme',
@@ -357,3 +360,55 @@ export const PRODUCTS = [
     isFeatured: true,
   },
 ];
+
+/**
+ * Normalize a shared-format product (from Seller Hub / localStorage) 
+ * into the format expected by the Marketplace UI components.
+ */
+function normalizeSharedProduct(sp) {
+  const rate = getExchangeRate();
+  const priceXof = sp.price_xof || Math.round((sp.price_ngn || 0) * rate);
+
+  return {
+    id: sp.id,
+    name: sp.name,
+    category: (sp.category || '').toLowerCase().replace('-', ''),
+    price: priceXof,
+    originalPrice: sp.original_price_xof || null,
+    discount: sp.discount || null,
+    images: sp.image ? [sp.image] : (sp.images || []),
+    rating: sp.rating ?? 4.5,
+    sales: sp.sales ?? 0,
+    variants: sp.variants || { sizes: [], colors: [] },
+    description: sp.description || '',
+    seller: sp.seller_name || 'Vendeur TrustLink',
+    inStock: (sp.stock_total ?? 1) > 0,
+    isFeatured: sp.is_featured || false,
+    isNew: sp.is_new || false,
+    // Keep shared fields for order creation
+    _price_ngn: sp.price_ngn,
+    _price_xof: priceXof,
+    _seller_id: sp.seller_id,
+    _product_id: sp.id,
+  };
+}
+
+/**
+ * Get all products for the Marketplace.
+ * Priority: localStorage (shared tl_products) → fallback mock data.
+ * Only shows active products from shared storage.
+ */
+export function getProducts() {
+  const shared = getActiveSharedProducts();
+  if (shared && shared.length > 0) {
+    return shared.map(normalizeSharedProduct);
+  }
+  return FALLBACK_PRODUCTS;
+}
+
+/**
+ * PRODUCTS — backward-compatible static export.
+ * Pages that import { PRODUCTS } will still work.
+ * For reactivity, use getProducts() at render time instead.
+ */
+export const PRODUCTS = getProducts();

@@ -67,7 +67,7 @@ export default function ProductPage() {
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
                     className="w-20 h-20 rounded-lg overflow-hidden"
-                    style={{ ring: idx === selectedImage ? '2px solid #125C8D' : 'none', outline: idx === selectedImage ? '2px solid #125C8D' : '2px solid transparent' }}
+                    style={{ boxShadow: idx === selectedImage ? '0 0 0 2px #125C8D' : 'none', outline: idx === selectedImage ? '2px solid #125C8D' : '2px solid transparent' }}
                   >
                     <img src={img} alt="" className="w-full h-full object-cover object-top" />
                   </button>

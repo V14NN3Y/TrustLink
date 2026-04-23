@@ -1,6 +1,9 @@
-export const ORDERS = [
+import { getSharedOrders } from '@/lib/storage';
+
+// ─── Fallback mock orders (shown when localStorage is empty) ───────
+const FALLBACK_ORDERS = [
   {
-    id: 'TL-20260114-001',
+    id: 'TL-2026-00001',
     status: 'delivered',
     items: [
       {
@@ -29,7 +32,7 @@ export const ORDERS = [
     createdAt: '2026-01-14T10:30:00Z',
   },
   {
-    id: 'TL-20260201-002',
+    id: 'TL-2026-00002',
     status: 'shipped',
     items: [
       {
@@ -51,7 +54,7 @@ export const ORDERS = [
     createdAt: '2026-02-01T14:15:00Z',
   },
   {
-    id: 'TL-20260310-003',
+    id: 'TL-2026-00003',
     status: 'processing',
     items: [
       {
@@ -80,7 +83,7 @@ export const ORDERS = [
     createdAt: '2026-03-10T09:00:00Z',
   },
   {
-    id: 'TL-20260415-004',
+    id: 'TL-2026-00004',
     status: 'pending',
     items: [
       {
@@ -102,3 +105,15 @@ export const ORDERS = [
     createdAt: '2026-04-15T16:45:00Z',
   },
 ];
+
+/**
+ * Get orders — reads from shared localStorage first, falls back to mock data.
+ */
+export function getOrders() {
+  const shared = getSharedOrders();
+  if (shared && shared.length > 0) return shared;
+  return FALLBACK_ORDERS;
+}
+
+/** Backward-compatible static export */
+export const ORDERS = getOrders();
