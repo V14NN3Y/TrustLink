@@ -7,17 +7,18 @@ const ITEMS = [
 
 export default function TrustBanner() {
   return (
-    <div style={{ backgroundColor: '#F1F8FD' }} className="py-6">
+    <div className="bg-white border-b border-gray-100 py-5">
       <div className="max-w-[1200px] mx-auto px-4 md:px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {ITEMS.map((item) => (
-            <div key={item.title} className="flex items-start gap-3 p-4 rounded-xl" style={{ backgroundColor: '#125C8D' }}>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}>
-                <i className={`${item.icon} text-lg text-white`}></i>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {ITEMS.map((item, idx) => (
+            <div key={item.title} className="flex items-start gap-3">
+              {idx > 0 && <div className="hidden md:block w-px self-stretch" style={{ backgroundColor: '#E5E7EB' }}></div>}
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#EBF4FB' }}>
+                <i className={`${item.icon} text-lg`} style={{ color: '#125C8D' }}></i>
               </div>
               <div>
-                <p className="text-sm font-poppins font-semibold text-white mb-0.5">{item.title}</p>
-                <p className="text-xs font-inter leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>{item.desc}</p>
+                <p className="text-sm font-poppins font-semibold mb-0.5" style={{ color: '#111827' }}>{item.title}</p>
+                <p className="text-xs font-inter leading-relaxed" style={{ color: '#9CA3AF' }}>{item.desc}</p>
               </div>
             </div>
           ))}
