@@ -35,17 +35,17 @@ export default function Header() {
           </Link>
 
           <form onSubmit={handleSearch} className="flex-1 max-w-xl">
-            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+            <div className="flex items-center border border-gray-200 rounded-full overflow-hidden">
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Rechercher un produit, une marque..."
-                className="flex-1 px-4 py-2.5 text-sm outline-none font-inter"
+                className="flex-1 px-5 py-2.5 text-sm outline-none font-inter"
                 style={{ color: '#111827' }}
               />
-              <button type="submit" className="px-4 py-2.5 text-white flex items-center justify-center" style={{ backgroundColor: '#125C8D', minWidth: '44px' }}>
-                <i className="ri-search-line text-base"></i>
+              <button type="submit" className="px-4 py-2.5 text-white flex items-center justify-center rounded-full m-1" style={{ backgroundColor: '#125C8D', minWidth: '36px' }}>
+                <i className="ri-search-line text-sm"></i>
               </button>
             </div>
           </form>
@@ -95,13 +95,13 @@ export default function Header() {
           </div>
           <div className="pb-2">
             <form onSubmit={handleSearch}>
-              <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher..." className="flex-1 px-3 py-2 text-sm outline-none font-inter" />
-                <button type="submit" className="px-3 py-2 text-white" style={{ backgroundColor: '#125C8D' }}>
-                  <i className="ri-search-line text-sm"></i>
-                </button>
-              </div>
-            </form>
+            <div className="flex items-center border border-gray-200 rounded-full overflow-hidden">
+              <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher..." className="flex-1 px-4 py-2 text-sm outline-none font-inter" />
+              <button type="submit" className="px-3 py-1.5 text-white rounded-full m-1" style={{ backgroundColor: '#125C8D' }}>
+                <i className="ri-search-line text-sm"></i>
+              </button>
+            </div>
+          </form>
           </div>
         </div>
       </div>

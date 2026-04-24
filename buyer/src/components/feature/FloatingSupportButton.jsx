@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
 
 const INITIAL_MESSAGES = [
-  { role: 'bot', text: 'Bonjour ! 👋 Bienvenue sur le support TrustLink. Je suis là pour vous aider avec vos commandes, paiements Escrow ou toute autre question.', time: '00:48' },
+  { role: 'bot', text: 'Bonjour ! 👋 Bienvenue sur le support TrustLink. Je suis là pour vous aider avec vos commandes, paiements Escrow ou toute autre question.', time: '07:53' },
 ];
 
 const QUICK_REPLIES = ['Où est ma commande ?', 'Problème avec un produit'];
@@ -10,7 +9,7 @@ const QUICK_REPLIES = ['Où est ma commande ?', 'Problème avec un produit'];
 const getAutoReply = (msg) => {
   const m = msg.toLowerCase();
   if (m.includes('commande') || m.includes('suivi')) return 'Pour suivre votre commande, rendez-vous dans Mon Compte → Mes Commandes. La livraison prend 2 à 7 jours ouvrables.';
-  if (m.includes('remboursement') || m.includes('retour') || m.includes('escrow')) return 'Notre système Escrow sécurise votre argent. Vous avez 48h après livraison pour ouvrir un litige. Remboursement sous 3-5 jours.';
+  if (m.includes('remboursement') || m.includes('retour') || m.includes('escrow')) return 'Notre système Escrow sécurise votre argent. Vous avez 48h après livraison pour ouvrir un litige.';
   return 'Je vais vous mettre en contact avec notre équipe. En attendant, consultez notre Centre d\'aide.';
 };
 
@@ -39,13 +38,13 @@ export default function FloatingSupportButton() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {open && (
         <div className="mb-3 w-80 bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #E5E7EB', boxShadow: '0 20px 60px rgba(0,0,0,0.18)' }}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: '#0E3A4F' }}>
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: '#FF6A00' }}>
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold relative" style={{ backgroundColor: '#FF6A00' }}>
                 <i className="ri-shield-check-line text-base"></i>
               </div>
               <div>
@@ -97,7 +96,7 @@ export default function FloatingSupportButton() {
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style={{ backgroundColor: '#125C8D' }}>
                   <i className="ri-shield-check-line text-xs"></i>
                 </div>
-                <div className="px-3 py-2 rounded-tr-xl rounded-b-xl flex gap-1" style={{ backgroundColor: '#fff', border: '1px solid #E5E7EB' }}>
+                <div className="px-3 py-2 flex gap-1" style={{ backgroundColor: '#fff', border: '1px solid #E5E7EB', borderRadius: '0 12px 12px 12px' }}>
                   {[0, 1, 2].map((i) => (
                     <span key={i} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: '#125C8D', animationDelay: `${i * 0.15}s` }}></span>
                   ))}
@@ -109,7 +108,7 @@ export default function FloatingSupportButton() {
 
           {/* Quick replies */}
           {messages.length <= 2 && (
-            <div className="px-3 py-2 border-t border-gray-100 flex flex-wrap gap-1.5">
+            <div className="px-3 py-2 border-t border-gray-100 flex flex-wrap gap-1.5 bg-white">
               {QUICK_REPLIES.map((r) => (
                 <button key={r} onClick={() => sendMessage(r)}
                   className="text-xs font-inter px-2.5 py-1 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors" style={{ color: '#374151' }}>
@@ -126,7 +125,7 @@ export default function FloatingSupportButton() {
               placeholder="Écrivez votre message..."
               className="flex-1 text-xs font-inter border border-gray-200 rounded-full px-3 py-2 outline-none" />
             <button onClick={() => sendMessage()}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0 transition-opacity hover:opacity-80"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0"
               style={{ backgroundColor: '#125C8D' }}>
               <i className="ri-send-plane-fill text-sm"></i>
             </button>
@@ -134,13 +133,16 @@ export default function FloatingSupportButton() {
         </div>
       )}
 
+      {/* Trigger button — round circle with headset icon */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2.5 px-4 py-3 text-white font-poppins font-semibold rounded-full text-sm transition-transform hover:scale-105"
+        className="w-14 h-14 rounded-full flex items-center justify-center text-white transition-transform hover:scale-105"
         style={{ backgroundColor: '#0E3A4F', boxShadow: '0 4px 20px rgba(14,58,79,0.4)' }}
       >
-        <i className={`${open ? 'ri-close-line' : 'ri-customer-service-2-line'} text-base`}></i>
-        {!open && 'Support TrustLink'}
+        {open
+          ? <i className="ri-close-line text-xl"></i>
+          : <i className="ri-customer-service-2-line text-xl"></i>
+        }
       </button>
     </div>
   );

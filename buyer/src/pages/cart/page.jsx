@@ -9,26 +9,33 @@ export default function Cart() {
 
   if (items.length === 0) {
     return (
-      <div className="pt-24 pb-12 flex flex-col items-center justify-center min-h-[60vh] px-4">
-        <div className="text-7xl mb-5">🛒</div>
-        <h1 className="text-2xl font-poppins font-bold mb-3" style={{ color: '#111827' }}>Votre panier est vide</h1>
-        <p className="text-sm font-inter mb-8" style={{ color: '#6B7280' }}>Ajoutez des produits pour commencer vos achats.</p>
-        <Link to="/" className="px-8 py-3 text-white font-poppins font-semibold rounded-full transition-opacity hover:opacity-90" style={{ backgroundColor: '#FF6A00' }}>
-          Continuer mes achats
-        </Link>
+      <div className="pt-24 pb-12 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
+        <div className="max-w-[1200px] mx-auto px-4 md:px-6">
+          <h1 className="text-2xl font-poppins font-bold mb-12" style={{ color: '#111827' }}>Mon Panier</h1>
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center mb-5" style={{ backgroundColor: '#E1F0F9' }}>
+              <i className="ri-shopping-cart-line text-3xl" style={{ color: '#125C8D' }}></i>
+            </div>
+            <h2 className="text-lg font-poppins font-semibold mb-2" style={{ color: '#111827' }}>Votre panier est vide</h2>
+            <p className="text-sm font-inter mb-8" style={{ color: '#9CA3AF' }}>Découvrez nos produits et ajoutez-en à votre panier</p>
+            <Link to="/" className="flex items-center gap-2 px-6 py-3 text-white font-poppins font-semibold rounded-full transition-opacity hover:opacity-90" style={{ backgroundColor: '#0E3A4F' }}>
+              <i className="ri-store-2-line text-sm"></i>
+              Continuer mes achats
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="pt-24 pb-12">
+    <div className="pt-24 pb-12 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       <div className="max-w-[1200px] mx-auto px-4 md:px-6">
         <h1 className="text-2xl font-poppins font-bold mb-6" style={{ color: '#111827' }}>
           Mon Panier <span className="text-base font-inter font-normal" style={{ color: '#6B7280' }}>({items.length} articles)</span>
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Items */}
           <div className="lg:col-span-2 space-y-4">
             {items.map((item) => (
               <article key={item.productId} className="bg-white border border-gray-100 rounded-xl p-4 flex gap-4">
@@ -48,7 +55,7 @@ export default function Cart() {
                     </div>
                     <div className="flex items-center gap-4">
                       <span className="text-sm font-poppins font-bold" style={{ color: '#111827' }}>{formatPrice(item.price * item.quantity)}</span>
-                      <button onClick={() => removeItem(item.productId)} className="transition-colors" style={{ color: '#F87171' }} onMouseEnter={(e) => e.currentTarget.style.color='#DC2626'} onMouseLeave={(e) => e.currentTarget.style.color='#F87171'}>
+                      <button onClick={() => removeItem(item.productId)} className="transition-colors" style={{ color: '#F87171' }}>
                         <i className="ri-delete-bin-line text-lg"></i>
                       </button>
                     </div>
@@ -58,7 +65,6 @@ export default function Cart() {
             ))}
           </div>
 
-          {/* Summary */}
           <div className="lg:col-span-1">
             <div className="bg-white border border-gray-100 rounded-xl p-6 sticky top-24">
               <h2 className="text-base font-poppins font-semibold mb-4" style={{ color: '#111827' }}>Récapitulatif</h2>
@@ -77,8 +83,6 @@ export default function Cart() {
                   <span style={{ color: '#125C8D' }}>{formatPrice(totalPrice + DELIVERY_FEE)}</span>
                 </div>
               </div>
-
-              {/* Escrow mini */}
               <div className="rounded-xl p-3 mb-4" style={{ backgroundColor: '#E1F0F9' }}>
                 <div className="flex items-center gap-2">
                   <i className="ri-shield-check-line text-sm" style={{ color: '#125C8D' }}></i>
@@ -86,7 +90,6 @@ export default function Cart() {
                 </div>
                 <p className="text-xs font-inter mt-1" style={{ color: '#6B7280' }}>Vos fonds sont protégés jusqu'à la réception de votre commande.</p>
               </div>
-
               <Link to="/checkout" className="block text-center text-white font-poppins font-bold py-3 rounded-full transition-opacity hover:opacity-90" style={{ backgroundColor: '#FF6A00' }}>
                 Passer la commande
               </Link>

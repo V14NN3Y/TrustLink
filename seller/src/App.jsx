@@ -1,0 +1,45 @@
+import { BrowserRouter as Router } from "react-router-dom";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClientInstance } from "@/lib/query-client";
+import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider, useAuth } from "@/lib/AuthContext";
+import UserNotRegisteredError from "@/components/UserNotRegisteredError";
+import AppRoutes from "@/router/index.jsx";
+
+const AuthenticatedApp = () => {
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+
+  if (isLoadingPublicSettings || isLoadingAuth) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[#F9FAFB]">
+        <div className="w-8 h-8 border-4 border-[#125C8D]/20 border-t-[#125C8D] rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (authError) {
+    if (authError.type === "user_not_registered") {
+      return <UserNotRegisteredError />;
+    } else if (authError.type === "auth_required") {
+      navigateToLogin();
+      return null;
+    }
+  }
+
+  return <AppRoutes />;
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <QueryClientProvider client={queryClientInstance}>
+        <Router>
+          <AuthenticatedApp />
+        </Router>
+        <Toaster />
+      </QueryClientProvider>
+    </AuthProvider>
+  );
+}
+
+export default App;
