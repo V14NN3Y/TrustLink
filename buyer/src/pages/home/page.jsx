@@ -1,6 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PRODUCTS } from '@/mocks/products';
+import { getCatalogApproved } from '@/lib/sharedStorage';
+import { sharedProductToProduct } from '@/utils/productAdapter';
 import HeroBanner from './components/HeroBanner';
 import CategoryBar from './components/CategoryBar';
 import TrustBanner from './components/TrustBanner';
@@ -10,18 +12,38 @@ export default function Home() {
   const [searchParams] = useSearchParams();
   const [sort, setSort] = useState('popular');
 
+  // Produits approuvés par l'Admin (tl_catalog_approved) + écoute live
+  const [approvedProducts, setApprovedProducts] = useState(() =>
+    getCatalogApproved().map(sharedProductToProduct)
+  );
+
+  useEffect(() => {
+    const refresh = () => {
+      setApprovedProducts(getCatalogApproved().map(sharedProductToProduct));
+    };
+    window.addEventListener('tl_storage_update', refresh);
+    return () => window.removeEventListener('tl_storage_update', refresh);
+  }, []);
+
   const search = searchParams.get('search') || '';
   const category = searchParams.get('category') || '';
 
+  // Merger : approuvés en premier (nouveaux arrivages), mocks en fallback
+  const allProducts = useMemo(() => {
+    const approvedIds = new Set(approvedProducts.map((p) => p.id));
+    const mockFallback = PRODUCTS.filter((p) => !approvedIds.has(p.id));
+    return [...approvedProducts, ...mockFallback];
+  }, [approvedProducts]);
+
   const filtered = useMemo(() => {
-    let result = [...PRODUCTS];
+    let result = [...allProducts];
     if (category) result = result.filter((p) => p.category === category);
     if (search) result = result.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
     if (sort === 'price_asc') result.sort((a, b) => a.price - b.price);
     else if (sort === 'price_desc') result.sort((a, b) => b.price - a.price);
-    else result.sort((a, b) => b.sales - a.sales);
+    else result.sort((a, b) => (b.sales || 0) - (a.sales || 0));
     return result;
-  }, [category, search, sort]);
+  }, [allProducts, category, search, sort]);
 
   const showHero = !search && !category;
 

@@ -1,9 +1,6 @@
-import { getSharedOrders } from '@/lib/storage';
-
-// ─── Fallback mock orders (shown when localStorage is empty) ───────
-const FALLBACK_ORDERS = [
+export const ORDERS = [
   {
-    id: 'TL-2026-00001',
+    id: 'TL-2026-0847',
     status: 'delivered',
     items: [
       {
@@ -28,11 +25,11 @@ const FALLBACK_ORDERS = [
       district: 'Cadjehoun',
       phone: '+229 97 12 34 56',
     },
-    trackingNumber: 'TL-ABK9XZ4R',
+    trackingNumber: 'TL-A3F9K2M1',
     createdAt: '2026-01-14T10:30:00Z',
   },
   {
-    id: 'TL-2026-00002',
+    id: 'TL-2026-0856',
     status: 'shipped',
     items: [
       {
@@ -50,11 +47,11 @@ const FALLBACK_ORDERS = [
       district: 'Akpakpa',
       phone: '+229 97 12 34 56',
     },
-    trackingNumber: 'TL-MNP7WQ2L',
+    trackingNumber: 'TL-B7X1P4Q9',
     createdAt: '2026-02-01T14:15:00Z',
   },
   {
-    id: 'TL-2026-00003',
+    id: 'TL-2026-0862',
     status: 'processing',
     items: [
       {
@@ -79,11 +76,11 @@ const FALLBACK_ORDERS = [
       district: 'Ouando',
       phone: '+229 97 12 34 56',
     },
-    trackingNumber: null,
+    trackingNumber: 'TL-C2N8R5W6',
     createdAt: '2026-03-10T09:00:00Z',
   },
   {
-    id: 'TL-2026-00004',
+    id: 'TL-2026-0871',
     status: 'pending',
     items: [
       {
@@ -105,15 +102,3 @@ const FALLBACK_ORDERS = [
     createdAt: '2026-04-15T16:45:00Z',
   },
 ];
-
-/**
- * Get orders — reads from shared localStorage first, falls back to mock data.
- */
-export function getOrders() {
-  const shared = getSharedOrders();
-  if (shared && shared.length > 0) return shared;
-  return FALLBACK_ORDERS;
-}
-
-/** Backward-compatible static export */
-export const ORDERS = getOrders();

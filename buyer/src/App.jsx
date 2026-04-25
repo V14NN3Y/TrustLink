@@ -1,4 +1,6 @@
 import { Toaster } from "@/components/ui/toaster"
+import { useEffect } from 'react';
+import { initializeMarketplaceMockData } from '@/lib/sharedStorage';
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router } from 'react-router-dom';
@@ -7,6 +9,9 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AppRoutes from './router/index';
 
 const AuthenticatedApp = () => {
+  useEffect(() => {
+    initializeMarketplaceMockData();
+  }, []);
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
   if (isLoadingPublicSettings || isLoadingAuth) {

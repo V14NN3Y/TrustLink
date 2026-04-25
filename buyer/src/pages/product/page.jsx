@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { PRODUCTS } from '@/mocks/products';
+import { getCatalogApproved } from '@/lib/sharedStorage';
+import { sharedProductToProduct } from '@/utils/productAdapter';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import { formatPrice, renderStars } from '@/utils/format';
@@ -12,21 +14,35 @@ export default function ProductPage() {
   const { addItem } = useCart();
   const { toggle, isWishlisted } = useWishlist();
 
-  const product = PRODUCTS.find((p) => p.id === id);
-
-  useEffect(() => {
-    if (!product) navigate('/');
-  }, [product, navigate]);
-
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
+  // All hooks must be called unconditionally before any early return
+  const product = useMemo(() => {
+    const fromMocks = PRODUCTS.find((p) => p.id === id);
+    if (fromMocks) return fromMocks;
+    const approved = getCatalogApproved();
+    const fromApproved = approved.find((p) => p.id === id);
+    if (fromApproved) return sharedProductToProduct(fromApproved);
+    return undefined;
+  }, [id]);
+
+  const allProducts = useMemo(() => {
+    const approved = getCatalogApproved().map(sharedProductToProduct);
+    const approvedIds = new Set(approved.map((p) => p.id));
+    return [...approved, ...PRODUCTS.filter((p) => !approvedIds.has(p.id))];
+  }, []);
+
+  useEffect(() => {
+    if (!product) navigate('/');
+  }, [product, navigate]);
+
   if (!product) return null;
 
-  const similar = PRODUCTS.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const similar = allProducts.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
   const stars = renderStars(product.rating);
 
   const handleAdd = () => {
@@ -67,7 +83,7 @@ export default function ProductPage() {
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
                     className="w-20 h-20 rounded-lg overflow-hidden"
-                    style={{ boxShadow: idx === selectedImage ? '0 0 0 2px #125C8D' : 'none', outline: idx === selectedImage ? '2px solid #125C8D' : '2px solid transparent' }}
+                    style={{ outline: idx === selectedImage ? '2px solid #125C8D' : '2px solid transparent' }}
                   >
                     <img src={img} alt="" className="w-full h-full object-cover object-top" />
                   </button>

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ORDERS } from '@/mocks/orders';
 import { PRODUCTS } from '@/mocks/products';
 import { useWishlist } from '@/hooks/useWishlist';
+import { getSharedOrders, mapSharedStatusToMarketplace } from '@/lib/sharedStorage';
 import { formatPrice } from '@/utils/format';
 
 const STATUS_CONFIG = {
