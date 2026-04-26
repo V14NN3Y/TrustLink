@@ -1,19 +1,20 @@
+export const NGN_TO_XOF_RATE = 0.4132; // 1 NGN = 0.4132 FCFA
+export const XOF_TO_NGN_RATE = 2.42;   // 1 FCFA = 2.42 NGN
+
 export function formatNGN(n) {
-  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(n);
+  return `₦${Number(n).toLocaleString('en-NG')}`;
 }
 
 export function formatXOF(n) {
-  return new Intl.NumberFormat('fr-BJ', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(n);
+  return `FCFA ${Number(n).toLocaleString('fr-FR')}`;
 }
 
-const DEFAULT_RATE = 1.832;
-
-export function convertNGNtoXOF(ngn, rate = DEFAULT_RATE) {
+export function convertNGNtoXOF(ngn, rate = NGN_TO_XOF_RATE) {
   return Math.round(ngn * rate);
 }
 
-export function convertXOFtoNGN(xof, rate = DEFAULT_RATE) {
-  return Math.round(xof / rate);
+export function convertXOFtoNGN(xof, rate = XOF_TO_NGN_RATE) {
+  return Math.round(xof * rate);
 }
 
 export function formatMillions(n) {

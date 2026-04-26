@@ -4,7 +4,7 @@ import StatusBadge from '@/components/base/StatusBadge';
 import { formatXOF, formatNGN, formatDate } from '@/components/base/DataTransformer';
 
 const ITEMS_PER_PAGE = 8;
-const ALL_STATUSES = ['PENDING', 'FUNDED', 'IN_TRANSIT', 'CUSTOMS', 'DELIVERED', 'DISPUTED'];
+const ALL_STATUSES = ['PENDING', 'FUNDED', 'IN_TRANSIT', 'CUSTOMS', 'DELIVERED', 'DISPUTED', 'pending_admin', 'validated', 'dispatched_to_seller'];
 
 export default function OrdersTable({ orders, onSelect, onUpdate }) {
   const [search, setSearch] = useState('');
@@ -91,7 +91,10 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
             ) : paginated.map(order => (
               <tr key={order.id} className={`border-b border-slate-50 hover:bg-slate-50 transition-colors ${flashId === order.id ? 'bg-emerald-50' : ''}`}>
                 <td className="px-4 py-3">
-                  <p className="text-sm font-semibold text-slate-800" style={{ fontFamily: 'Inter, sans-serif' }}>{order.ref}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-semibold text-slate-800 font-mono" style={{ fontFamily: 'Inter, sans-serif' }}>{order.ref}</p>
+                    {order._fromShared && <i className="ri-global-line text-xs" style={{ color: '#10B981' }} title="Marketplace" />}
+                  </div>
                   {order.voyage_id && <p className="text-xs text-slate-400">{order.voyage_id}</p>}
                 </td>
                 <td className="px-4 py-3 max-w-xs">

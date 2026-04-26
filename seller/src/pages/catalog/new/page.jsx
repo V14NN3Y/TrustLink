@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import { submitProductToCatalog, getSharedRate } from "@/lib/sharedStorage";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
+import { hexToColorName } from "@/lib/utils";
 
 const PLATFORM_FEE = 0.05;
 const EXCHANGE_FEE = 0.025;
@@ -46,12 +47,19 @@ export default function NewProductPage() {
   const addVariant = () => {
     setForm((prev) => ({
       ...prev,
-      variants: [...prev.variants, { size: "", color: "", color_hex: "#888888", stock: 0 }],
+      variants: [...prev.variants, { size: "", color: hexToColorName("#888888"), color_hex: "#888888", stock: 0 }],
     }));
   };
 
   const handleVariantChange = (idx, key, value) => {
-    const updated = form.variants.map((v, i) => (i === idx ? { ...v, [key]: value } : v));
+    const updated = form.variants.map((v, i) => {
+      if (i !== idx) return v;
+      const newV = { ...v, [key]: value };
+      if (key === "color_hex") {
+        newV.color = hexToColorName(value);
+      }
+      return newV;
+    });
     setForm((prev) => ({ ...prev, variants: updated }));
   };
 
@@ -209,10 +217,17 @@ export default function NewProductPage() {
               </div>
               <div className="space-y-2">
                 {form.variants.map((v, idx) => (
-                  <div key={idx} className="flex items-center gap-2 p-3 bg-[#F9FAFB] rounded-lg">
-                    <input type="text" value={v.size} onChange={(e) => handleVariantChange(idx, "size", e.target.value)} placeholder="Taille" className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none" />
-                    <input type="text" value={v.color} onChange={(e) => handleVariantChange(idx, "color", e.target.value)} placeholder="Couleur" className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none" />
-                    <input type="number" value={v.stock} onChange={(e) => handleVariantChange(idx, "stock", Number(e.target.value))} placeholder="Stock" className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none" min={0} />
+                  <div key={idx} className="flex items-center gap-2 p-3 bg-[#F9FAFB] border border-gray-100 rounded-lg hover:shadow-sm transition-shadow">
+                    <input type="text" value={v.size} onChange={(e) => handleVariantChange(idx, "size", e.target.value)} placeholder="Taille" className="flex-1 border border-gray-200 bg-white rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[#125C8D] transition-colors" />
+                    
+                    <div className="flex items-center flex-1 gap-2 bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus-within:border-[#125C8D] transition-colors">
+                      <div className="w-3.5 h-3.5 rounded-full border border-gray-300 overflow-hidden relative flex-shrink-0 cursor-pointer shadow-none" title="Choisir la couleur (Hex)" style={{ outline: `1px solid ${v.color_hex || '#888888'}`, outlineOffset: '1px' }}>
+                        <input type="color" value={v.color_hex || "#888888"} onChange={(e) => handleVariantChange(idx, "color_hex", e.target.value)} className="absolute -top-2 -left-2 w-8 h-8 cursor-pointer" />
+                      </div>
+                      <input type="text" value={v.color} onChange={(e) => handleVariantChange(idx, "color", e.target.value)} placeholder="Couleur" className="w-full text-xs outline-none bg-transparent" />
+                    </div>
+
+                    <input type="number" value={v.stock} onChange={(e) => handleVariantChange(idx, "stock", Number(e.target.value))} placeholder="Stock" className="w-16 border border-gray-200 bg-white rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[#125C8D] transition-colors" min={0} />
                   </div>
                 ))}
                 {form.variants.length === 0 && <p className="text-xs text-gray-400 text-center py-3">Aucune variante ajoutée</p>}
