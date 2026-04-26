@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/feature/DashboardLayout";
-import { mockProducts } from "@/mocks/products";
 import ProductCard from "./components/ProductCard";
 import EditProductModal from "./components/EditProductModal";
-import { getCatalogPending } from "@/lib/sharedStorage";
+import { getCatalogPending, getSellerProducts, addSellerProduct, initializeSellerMockData } from "@/lib/sharedStorage";
 
 export default function CatalogPage() {
   const navigate = useNavigate();
-  const [products, setProducts] = useState(mockProducts);
+  const [products, setProducts] = useState([]);
   const [view, setView] = useState("grid");
   const [filterStatus, setFilterStatus] = useState("all");
   const [search, setSearch] = useState("");
@@ -16,17 +15,20 @@ export default function CatalogPage() {
   const [pendingProductNames, setPendingProductNames] = useState(new Set());
 
   useEffect(() => {
-    const refresh = () => {
+    initializeSellerMockData();
+    const loadProducts = () => {
+      setProducts(getSellerProducts());
       const pending = getCatalogPending();
       setPendingProductNames(new Set(pending.map((p) => p.name)));
     };
-    refresh();
-    window.addEventListener("tl_storage_update", refresh);
-    return () => window.removeEventListener("tl_storage_update", refresh);
+    loadProducts();
+    window.addEventListener("tl_storage_update", loadProducts);
+    return () => window.removeEventListener("tl_storage_update", loadProducts);
   }, []);
 
   const handleSaveProduct = (updated) => {
-    setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    addSellerProduct(updated);
+    setProducts(getSellerProducts());
     setEditingProduct(null);
   };
 

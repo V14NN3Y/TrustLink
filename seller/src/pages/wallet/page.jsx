@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/feature/DashboardLayout";
-import { mockTransactions, mockBankAccounts } from "@/mocks/wallet";
-import { mockStats } from "@/mocks/seller";
 import WithdrawalModal from "./components/WithdrawalModal";
 import { useExchangeRate, convertNGNtoFCFA } from "@/hooks/useExchangeRate";
+import { getSellerWallet, initializeSellerMockData } from "@/lib/sharedStorage";
 
 const txnConfig = {
   release:    { icon: "ri-arrow-down-circle-line",  color: "text-[#10B981]",  bg: "bg-[#10B981]/10", sign: "+", typeLabel: "Escrow débloqué" },
@@ -24,20 +23,28 @@ export default function WalletPage() {
   const [showWithdrawal, setShowWithdrawal] = useState(false);
   const [filterType, setFilterType] = useState("all");
   const [txnSearch, setTxnSearch] = useState("");
+  const [wallet, setWallet] = useState({ balance_ngn: 0, pending_escrow: 0, transactions: [], bank_accounts: [] });
 
-  const filtered = mockTransactions.filter((t) => {
+  useEffect(() => {
+    initializeSellerMockData();
+    const load = () => setWallet(getSellerWallet());
+    load();
+    window.addEventListener("tl_storage_update", load);
+    return () => window.removeEventListener("tl_storage_update", load);
+  }, []);
+
+  const filtered = (wallet.transactions || []).filter((t) => {
     const matchType = filterType === "all" || t.type === filterType;
     const matchSearch = txnSearch === "" || t.description.toLowerCase().includes(txnSearch.toLowerCase());
     return matchType && matchSearch;
   });
 
-  const primaryBank = mockBankAccounts.find((b) => b.primary);
-  const totalIn = mockTransactions.filter((t) => t.type === "release" && t.status === "completed").reduce((s, t) => s + t.amount_ngn, 0);
-  const lastWithdrawal = mockTransactions.find((t) => t.type === "withdrawal");
+  const primaryBank = (wallet.bank_accounts || []).find((b) => b.primary);
+  const totalIn = (wallet.transactions || []).filter((t) => t.type === "release" && t.status === "completed").reduce((s, t) => s + t.amount_ngn, 0);
+  const lastWithdrawal = (wallet.transactions || []).find((t) => t.type === "withdrawal");
 
-  // Conversions dynamiques
-  const availableFcfa = convertNGNtoFCFA(mockStats.balance_available, rate);
-  const escrowFcfa = convertNGNtoFCFA(mockStats.escrow_amount, rate);
+  const availableFcfa = convertNGNtoFCFA(wallet.balance_ngn, rate);
+  const escrowFcfa = convertNGNtoFCFA(wallet.pending_escrow, rate);
 
   return (
     <DashboardLayout>
@@ -57,7 +64,7 @@ export default function WalletPage() {
               </div>
             </div>
             <p className="text-4xl font-bold text-white mb-1" style={{ fontFamily: "'Poppins', sans-serif" }}>
-              ₦{mockStats.balance_available.toLocaleString()}
+              ₦{wallet.balance_ngn.toLocaleString()}
             </p>
             <p className="text-white/60 text-sm mb-4">≈ FCFA {availableFcfa.toLocaleString("fr-FR")}</p>
             <div className="flex gap-3">
@@ -86,7 +93,7 @@ export default function WalletPage() {
             </div>
           </div>
           <p className="text-3xl font-bold text-gray-900 mb-1" style={{ fontFamily: "'Poppins', sans-serif" }}>
-            ₦{mockStats.escrow_amount.toLocaleString()}
+            ₦{wallet.pending_escrow.toLocaleString()}
           </p>
           <p className="text-sm text-gray-400 mb-4">≈ FCFA {escrowFcfa.toLocaleString("fr-FR")}</p>
           {/* Taux live */}
@@ -130,7 +137,7 @@ export default function WalletPage() {
           </div>
           <div>
             <p className="text-[10px] text-gray-400">Comptes bancaires</p>
-            <p className="text-sm font-bold text-gray-900">{mockBankAccounts.length} comptes</p>
+            <p className="text-sm font-bold text-gray-900">{(wallet.bank_accounts || []).length} comptes</p>
           </div>
         </div>
       </div>
@@ -144,7 +151,7 @@ export default function WalletPage() {
           </button>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {mockBankAccounts.map((bank) => (
+          {wallet.bank_accounts.map((bank) => (
             <div key={bank.id} className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl hover:bg-[#F9FAFB] transition-all">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
                 <i className="ri-bank-line text-gray-500"></i>
@@ -169,7 +176,7 @@ export default function WalletPage() {
         <div className="flex items-center justify-between p-5 border-b border-gray-100 flex-wrap gap-3">
           <div>
             <h3 className="text-sm font-bold text-gray-900">Historique des transactions</h3>
-            <p className="text-[10px] text-gray-400">{mockTransactions.length} transactions</p>
+            <p className="text-[10px] text-gray-400">{filtered.length} transactions</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
@@ -230,7 +237,7 @@ export default function WalletPage() {
 
       {showWithdrawal && (
         <WithdrawalModal
-          availableBalance={mockStats.balance_available}
+          availableBalance={wallet.balance_ngn}
           onClose={() => setShowWithdrawal(false)}
         />
       )}

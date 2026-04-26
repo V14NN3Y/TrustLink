@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "@/components/feature/DashboardLayout";
-import { mockOrders } from "@/mocks/orders";
 import OrderStatusBadge from "./components/OrderStatusBadge";
 import OrderDetailModal from "./components/OrderDetailModal";
 import QRBordereau from "./components/QRBordereau";
 import {
   getDispatchesForSeller,
   getSharedOrders,
+  getSellerOrders,
   updateSharedOrder,
+  initializeSellerMockData,
 } from "@/lib/sharedStorage";
 
 const SELLER_ID = "adebayo-fashions";
@@ -61,8 +62,10 @@ function sharedOrderToLocal(shared, dispatch) {
 
 function loadOrders() {
   const dispatches = getDispatchesForSeller(SELLER_ID);
+  let localOrders = getSellerOrders();
+  if (localOrders.length === 0) return { list: [], hasShared: false };
   if (dispatches.length === 0) {
-    return { list: mockOrders, hasShared: false };
+    return { list: localOrders, hasShared: false };
   }
   const sharedOrders = getSharedOrders();
   const dispatchedOrders = dispatches
@@ -74,9 +77,9 @@ function loadOrders() {
     .filter(Boolean);
 
   const dispatchedIds = new Set(dispatchedOrders.map((o) => o.id));
-  const mockFallback = mockOrders.filter((o) => !dispatchedIds.has(o.id));
+  const localFallback = localOrders.filter((o) => !dispatchedIds.has(o.id));
   return {
-    list: [...dispatchedOrders, ...mockFallback],
+    list: [...dispatchedOrders, ...localFallback],
     hasShared: true,
   };
 }
@@ -90,6 +93,7 @@ export default function OrdersPage() {
   const [hasSharedData, setHasSharedData] = useState(false);
 
   useEffect(() => {
+    initializeSellerMockData();
     const refresh = () => {
       const { list, hasShared } = loadOrders();
       setAllOrders(list);
