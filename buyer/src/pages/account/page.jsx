@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ORDERS } from '@/mocks/orders';
 import { PRODUCTS } from '@/mocks/products';
 import { useWishlist } from '@/hooks/useWishlist';
-import { getSharedOrders, mapSharedStatusToMarketplace } from '@/lib/sharedStorage';
+import { getSharedOrders, mapSharedStatusToMarketplace, getBuyerOrders, initializeMarketplaceMockData } from '@/lib/sharedStorage';
 import { formatPrice } from '@/utils/format';
 
 const STATUS_CONFIG = {
@@ -37,8 +36,17 @@ export default function Account() {
   const [profile, setProfile] = useState({ firstName: 'Adjoua', lastName: 'Mensah', email: 'adjoua.mensah@gmail.com', phone: '+229 97 45 23 11', city: 'Cotonou', country: 'Bénin' });
   const [address, setAddress] = useState('Quartier Cadjehoun, Rue 12.315, Cotonou');
   const [notifs, setNotifs] = useState({ orders: true, escrow: true, promo: false, newsletter: false, sms: true });
+  const [orders, setOrders] = useState([]);
 
-  const filteredOrders = orderFilter === 'all' ? ORDERS : ORDERS.filter((o) => o.status === orderFilter);
+  useEffect(() => {
+    initializeMarketplaceMockData();
+    setOrders(getBuyerOrders());
+    const handleUpdate = () => setOrders(getBuyerOrders());
+    window.addEventListener('tl_storage_update', handleUpdate);
+    return () => window.removeEventListener('tl_storage_update', handleUpdate);
+  }, []);
+
+  const filteredOrders = orderFilter === 'all' ? orders : orders.filter((o) => o.status === orderFilter);
 
   return (
     <div className="pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
