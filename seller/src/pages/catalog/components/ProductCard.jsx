@@ -4,7 +4,7 @@ const statusConfig = {
   inactive: { label: "Inactif",      bg: "bg-gray-100",  color: "text-gray-400" },
 };
 
-export default function ProductCard({ product, onEdit }) {
+export default function ProductCard({ product, onEdit, isPending = false }) {
   const cfg = statusConfig[product.status] || statusConfig.inactive;
 
   return (
@@ -20,6 +20,12 @@ export default function ProductCard({ product, onEdit }) {
         <span className={`absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
           {cfg.label}
         </span>
+        {/* En attente Admin badge */}
+        {isPending && (
+          <span className="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#FF6A00]/90 text-white whitespace-nowrap">
+            Admin
+          </span>
+        )}
         {/* Edit button */}
         <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-all">
           <button

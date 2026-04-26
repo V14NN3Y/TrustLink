@@ -3,6 +3,7 @@ import DashboardLayout from "@/components/feature/DashboardLayout";
 import { mockTransactions, mockBankAccounts } from "@/mocks/wallet";
 import { mockStats } from "@/mocks/seller";
 import WithdrawalModal from "./components/WithdrawalModal";
+import { useExchangeRate, convertNGNtoFCFA } from "@/hooks/useExchangeRate";
 
 const txnConfig = {
   release:    { icon: "ri-arrow-down-circle-line",  color: "text-[#10B981]",  bg: "bg-[#10B981]/10", sign: "+", typeLabel: "Escrow débloqué" },
@@ -19,6 +20,7 @@ const filterTypes = [
 ];
 
 export default function WalletPage() {
+  const { rate } = useExchangeRate();
   const [showWithdrawal, setShowWithdrawal] = useState(false);
   const [filterType, setFilterType] = useState("all");
   const [txnSearch, setTxnSearch] = useState("");
@@ -32,6 +34,10 @@ export default function WalletPage() {
   const primaryBank = mockBankAccounts.find((b) => b.primary);
   const totalIn = mockTransactions.filter((t) => t.type === "release" && t.status === "completed").reduce((s, t) => s + t.amount_ngn, 0);
   const lastWithdrawal = mockTransactions.find((t) => t.type === "withdrawal");
+
+  // Conversions dynamiques
+  const availableFcfa = convertNGNtoFCFA(mockStats.balance_available, rate);
+  const escrowFcfa = convertNGNtoFCFA(mockStats.escrow_amount, rate);
 
   return (
     <DashboardLayout>
@@ -49,14 +55,11 @@ export default function WalletPage() {
                 <p className="text-white/70 text-xs font-medium">Solde Disponible</p>
                 <p className="text-white/50 text-[10px]">Prêt à retirer</p>
               </div>
-              <button className="ml-auto w-7 h-7 rounded-lg flex items-center justify-center bg-white/10 hover:bg-white/20 transition-colors">
-                <i className="ri-settings-3-line text-white/60 text-sm"></i>
-              </button>
             </div>
             <p className="text-4xl font-bold text-white mb-1" style={{ fontFamily: "'Poppins', sans-serif" }}>
               ₦{mockStats.balance_available.toLocaleString()}
             </p>
-            <p className="text-white/60 text-sm mb-4">≈ FCFA {(mockStats.balance_available * 4).toLocaleString()}</p>
+            <p className="text-white/60 text-sm mb-4">≈ FCFA {availableFcfa.toLocaleString("fr-FR")}</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowWithdrawal(true)}
@@ -85,7 +88,14 @@ export default function WalletPage() {
           <p className="text-3xl font-bold text-gray-900 mb-1" style={{ fontFamily: "'Poppins', sans-serif" }}>
             ₦{mockStats.escrow_amount.toLocaleString()}
           </p>
-          <p className="text-sm text-gray-400 mb-4">≈ FCFA {(mockStats.escrow_amount * 4).toLocaleString()}</p>
+          <p className="text-sm text-gray-400 mb-4">≈ FCFA {escrowFcfa.toLocaleString("fr-FR")}</p>
+          {/* Taux live */}
+          <div className="flex items-center gap-2 mb-4 p-2 bg-[#F9FAFB] rounded-lg">
+            <i className="ri-exchange-line text-[#10B981] text-sm flex-shrink-0"></i>
+            <span className="text-xs text-gray-600">
+              Taux actuel : <span className="font-bold text-[#10B981]">1 NGN = {rate.toFixed(4)} FCFA</span>
+            </span>
+          </div>
           <div className="bg-amber-50 border border-amber-100 rounded-lg px-4 py-2.5 flex items-center gap-2">
             <i className="ri-time-line text-amber-600 text-sm flex-shrink-0"></i>
             <p className="text-xs text-amber-700 font-medium">Débloqué après confirmation de livraison</p>
@@ -185,6 +195,7 @@ export default function WalletPage() {
         <div className="divide-y divide-gray-100">
           {filtered.map((txn) => {
             const cfg = txnConfig[txn.type];
+            const fcfaAmount = convertNGNtoFCFA(txn.amount_ngn, rate);
             return (
               <div key={txn.id} className="flex items-center gap-4 px-5 py-4 hover:bg-[#F9FAFB] transition-all">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
@@ -205,6 +216,7 @@ export default function WalletPage() {
                   <p className={`text-sm font-bold ${cfg.color}`}>
                     {cfg.sign}₦{txn.amount_ngn.toLocaleString()}
                   </p>
+                  <p className="text-[10px] text-gray-400">≈ FCFA {fcfaAmount.toLocaleString("fr-FR")}</p>
                   <p className="text-[10px] text-gray-400">{txn.date}</p>
                   <span className={`text-[10px] font-semibold ${txn.status === "completed" ? "text-[#10B981]" : "text-amber-600"}`}>
                     {txn.status === "completed" ? "Complété" : "En attente"}

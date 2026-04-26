@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import { mockProducts } from "@/mocks/products";
 import ProductCard from "./components/ProductCard";
 import EditProductModal from "./components/EditProductModal";
+import { getCatalogPending } from "@/lib/sharedStorage";
 
 export default function CatalogPage() {
   const navigate = useNavigate();
@@ -12,6 +13,17 @@ export default function CatalogPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
+  const [pendingProductNames, setPendingProductNames] = useState(new Set());
+
+  useEffect(() => {
+    const refresh = () => {
+      const pending = getCatalogPending();
+      setPendingProductNames(new Set(pending.map((p) => p.name)));
+    };
+    refresh();
+    window.addEventListener("tl_storage_update", refresh);
+    return () => window.removeEventListener("tl_storage_update", refresh);
+  }, []);
 
   const handleSaveProduct = (updated) => {
     setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
@@ -104,7 +116,12 @@ export default function CatalogPage() {
       {view === "grid" && (
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} onEdit={setEditingProduct} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              onEdit={setEditingProduct}
+              isPending={pendingProductNames.has(product.name)}
+            />
           ))}
         </div>
       )}
@@ -144,6 +161,11 @@ export default function CatalogPage() {
                       }`}>
                         {product.status === "active" ? "Actif" : product.status === "pending" ? "En revision" : "Inactif"}
                       </span>
+                      {pendingProductNames.has(product.name) && (
+                        <span className="ml-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FF6A00]/10 text-[#FF6A00] whitespace-nowrap">
+                          En attente Admin
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <button
