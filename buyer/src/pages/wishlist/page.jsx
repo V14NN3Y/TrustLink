@@ -1,11 +1,22 @@
 import { Link } from 'react-router-dom';
-import { PRODUCTS } from '@/mocks/products';
 import { useWishlist } from '@/hooks/useWishlist';
+import { getCatalogApproved } from '@/lib/sharedStorage';
 import ProductCard from '@/pages/home/components/ProductCard';
+import { useState, useEffect } from 'react';
 
 export default function Wishlist() {
   const { items } = useWishlist();
-  const products = PRODUCTS.filter((p) => items.includes(p.id));
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    const loadProducts = () => {
+      const catalog = getCatalogApproved();
+      setProducts(catalog.filter((p) => items.includes(p.id)));
+    };
+    loadProducts();
+    window.addEventListener('tl_storage_update', loadProducts);
+    return () => window.removeEventListener('tl_storage_update', loadProducts);
+  }, [items]);
 
   return (
     <div className="pt-24 pb-12 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>

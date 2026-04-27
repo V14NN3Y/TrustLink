@@ -1,10 +1,19 @@
-import { useState } from "react";
-import { mockBankAccounts } from "@/mocks/wallet";
+import { useState, useEffect } from "react";
+import { getSellerWallet } from "@/lib/sharedStorage";
 
 export default function WithdrawalModal({ availableBalance, onClose }) {
   const [amount, setAmount] = useState("");
-  const [selectedBank, setSelectedBank] = useState(mockBankAccounts[0]);
+  const [bankAccounts, setBankAccounts] = useState([]);
+  const [selectedBank, setSelectedBank] = useState(null);
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    const wallet = getSellerWallet();
+    setBankAccounts(wallet.bank_accounts || []);
+    if (wallet.bank_accounts?.[0]) {
+      setSelectedBank(wallet.bank_accounts[0]);
+    }
+  }, []);
 
   const numAmount = Number(amount);
   const isValid = numAmount > 0 && numAmount <= availableBalance;

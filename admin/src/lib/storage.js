@@ -21,12 +21,6 @@ export const StorageManager = {
     if (!localStorage.getItem(KEYS.SYSTEM_CONFIG)) {
       localStorage.setItem(KEYS.SYSTEM_CONFIG, JSON.stringify({ commission: 2.8, escrow_enabled: true }));
     }
-    if (!localStorage.getItem(KEYS.SELLERS)) {
-      localStorage.setItem(KEYS.SELLERS, JSON.stringify([
-        { id: 'sel_01', name: 'Adebayo Fashions', category: 'Mode', status: 'active' },
-        { id: 'sel_02', name: 'TechNigeria', category: 'Electronique', status: 'active' }
-      ]));
-    }
   },
 
   getAdminUser: () => {

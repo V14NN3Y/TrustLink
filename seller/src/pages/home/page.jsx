@@ -5,10 +5,12 @@ import RevenueChart from "./components/RevenueChart";
 import WalletWidget from "./components/WalletWidget";
 import LogisticsAlerts from "./components/LogisticsAlerts";
 import TopProducts from "./components/TopProducts";
-import { mockStats } from "@/mocks/seller";
 import {
   getDispatchesForSeller,
   getSharedOrders,
+  getSellerStats,
+  getSellerWallet,
+  initializeSellerMockData,
 } from "@/lib/sharedStorage";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 
@@ -22,9 +24,15 @@ export default function Home() {
   const navigate = useNavigate();
   const { rate } = useExchangeRate();
   const [pendingDispatchCount, setPendingDispatchCount] = useState(0);
+  const [sellerStats, setSellerStats] = useState({ total_orders: 0, total_revenue: 0, pending_orders: 0, completed_orders: 0 });
+  const [wallet, setWallet] = useState({ balance_ngn: 0, pending_escrow: 0 });
 
   useEffect(() => {
-    const updateCount = () => {
+    initializeSellerMockData();
+  }, []);
+
+  useEffect(() => {
+    const updateData = () => {
       const dispatches = getDispatchesForSeller(SELLER_ID);
       const sharedOrders = getSharedOrders();
       const pending = dispatches.filter((d) => {
@@ -32,15 +40,18 @@ export default function Home() {
         return order?.status === "dispatched_to_seller";
       });
       setPendingDispatchCount(pending.length);
+      setSellerStats(getSellerStats());
+      setWallet(getSellerWallet());
     };
-    updateCount();
-    window.addEventListener("tl_storage_update", updateCount);
-    return () => window.removeEventListener("tl_storage_update", updateCount);
+    updateData();
+    window.addEventListener("tl_storage_update", updateData);
+    return () => window.removeEventListener("tl_storage_update", updateData);
   }, []);
 
-  // Prix acheteur simulé avec taux dynamique : ₦50,000 * 1.075 * rate
   const simulatedFcfa = Math.round(50000 * 1.075 * rate);
-
+  
+  const formatNgn = (val) => val ? `₦${val.toLocaleString()}` : "₦0";
+  
   const kpiCards = [
     {
       icon: "ri-money-dollar-circle-line",
@@ -49,7 +60,7 @@ export default function Home() {
       badge: "+18.4%",
       badgeColor: "#10B981",
       label: "Ventes Totales (NGN)",
-      value: "₦4,820,500",
+      value: formatNgn(sellerStats.total_revenue),
     },
     {
       icon: "ri-inbox-line",
@@ -58,7 +69,7 @@ export default function Home() {
       badge: "+7 aujourd'hui",
       badgeColor: "#FF6A00",
       label: "Commandes à Expédier",
-      value: "34",
+      value: String(pendingDispatchCount),
     },
     {
       icon: "ri-bank-card-line",
@@ -67,7 +78,7 @@ export default function Home() {
       badge: `+₦320,000 ce mois`,
       badgeColor: "#10B981",
       label: "Solde Disponible (NGN)",
-      value: "₦1,245,000",
+      value: formatNgn(wallet.balance_ngn),
     },
     {
       icon: "ri-lock-2-line",
@@ -76,7 +87,7 @@ export default function Home() {
       badge: "12 commandes",
       badgeColor: "#8B5CF6",
       label: "Fonds en Attente",
-      value: "₦890,200",
+      value: formatNgn(wallet.pending_escrow),
     },
   ];
 
@@ -199,11 +210,11 @@ export default function Home() {
 
             <div className="grid grid-cols-2 gap-2">
               <div className="p-3 bg-[#10B981]/5 rounded-lg text-center">
-                <p className="text-[#10B981] font-bold text-lg">{mockStats.conversion_rate}%</p>
+                <p className="text-[#10B981] font-bold text-lg">98.2%</p>
                 <p className="text-gray-400 text-xs">Taux livraison</p>
               </div>
               <div className="p-3 bg-[#FF6A00]/5 rounded-lg text-center">
-                <p className="text-[#FF6A00] font-bold text-lg">{mockStats.dispute_rate}%</p>
+                <p className="text-[#FF6A00] font-bold text-lg">1.8%</p>
                 <p className="text-gray-400 text-xs">Litiges</p>
               </div>
             </div>

@@ -1,11 +1,33 @@
-import { useState } from "react";
-import { mockRevenueChart } from "@/mocks/seller";
+import { useState, useEffect } from "react";
+import { getSellerStats, getSellerWallet } from "@/lib/sharedStorage";
 
 export default function RevenueChart() {
   const [currency, setCurrency] = useState("NGN");
+  const [stats, setStats] = useState({ total_revenue: 0 });
+  const [wallet, setWallet] = useState({ balance_ngn: 0 });
+
+  useEffect(() => {
+    const loadData = () => {
+      setStats(getSellerStats());
+      setWallet(getSellerWallet());
+    };
+    loadData();
+    window.addEventListener("tl_storage_update", loadData);
+    return () => window.removeEventListener("tl_storage_update", loadData);
+  }, []);
 
   const RATE = 4;
-  const data = mockRevenueChart.map((d) => ({
+  const fixedData = [
+    { month: 'Oct', revenue: 280000 },
+    { month: 'Nov', revenue: 420000 },
+    { month: 'Déc', revenue: 680000 },
+    { month: 'Jan', revenue: 520000 },
+    { month: 'Fév', revenue: 750000 },
+    { month: 'Mar', revenue: 920000 },
+    { month: 'Avr', revenue: stats.total_revenue || 1250000 },
+  ];
+  
+  const data = fixedData.map((d) => ({
     ...d,
     value: currency === "NGN" ? d.revenue : Math.round(d.revenue * RATE),
   }));
@@ -18,7 +40,7 @@ export default function RevenueChart() {
     return v;
   };
 
-  const totalRevenue = mockRevenueChart[mockRevenueChart.length - 1].revenue;
+  const totalRevenue = stats.total_revenue || 1250000;
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5">
@@ -28,7 +50,7 @@ export default function RevenueChart() {
           <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>Revenus mensuels</h3>
           <p className="text-[10px] text-gray-400 mt-0.5">
             Total Avr 2026 : <span className="font-semibold text-[#125C8D]">
-              {currency === "NGN" ? `₦${(1250000).toLocaleString()}` : `${(1250000 * RATE).toLocaleString()} FCFA`}
+              {currency === "NGN" ? `₦${totalRevenue.toLocaleString()}` : `${(totalRevenue * RATE).toLocaleString()} FCFA`}
             </span>
           </p>
         </div>

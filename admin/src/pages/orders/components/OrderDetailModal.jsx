@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { JOURNEY_STEPS } from '@/mocks/orders';
-import { getActiveSellers } from '@/mocks/sellers';
+import { getSellers } from '@/lib/sharedStorage';
 import StatusBadge from '@/components/base/StatusBadge';
 import { formatXOF, formatNGN, formatDate } from '@/components/base/DataTransformer';
 import DispatchModal from './DispatchModal';
@@ -20,7 +20,7 @@ export default function OrderDetailModal({ order, onClose, onUpdate, onDispatchS
   const [dispatchInstructions, setDispatchInstructions] = useState('');
   const [showDispatchModal, setShowDispatchModal] = useState(false);
 
-  const sellers = getActiveSellers();
+  const sellers = getSellers();
   const selectedSeller = sellers.find(s => s.id === selectedSellerId) || null;
   const canDispatch = order.status === 'pending_admin' || order.status === 'validated';
   const hasChanges = editStep !== (order.journey_step || 'awaiting_payment') || editStatus !== order.status;

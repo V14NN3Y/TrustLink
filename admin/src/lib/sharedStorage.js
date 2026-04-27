@@ -1,3 +1,7 @@
+import { supabase } from './supabase';
+
+const USE_SUPABASE = import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes('your-project');
+
 const KEYS = {
   EXCHANGE_RATE:    'tl_exchange_rate',
   ORDERS:           'tl_orders',
@@ -5,7 +9,7 @@ const KEYS = {
   CATALOG_PENDING:  'tl_catalog_pending',
   CATALOG_APPROVED:  'tl_catalog_approved',
   RATE_HISTORY:     'tl_rate_history',
-  SYSTEM_CONFIG:   'tl_system_config',
+  SYSTEM_CONFIG:    'tl_system_config',
   SELLERS:          'tl_sellers',
 };
 
@@ -23,15 +27,15 @@ function safeWrite(key, value) {
   } catch { /* silent */ }
 }
 
+function emitEvent(key) {
+  window.dispatchEvent(new CustomEvent('tl_storage_update', { detail: { key } }));
+}
+
 export const DEFAULT_RATE = 0.4132;
 export const DEFAULT_XOF_TO_NGN = 2.42;
 
 export function getSharedRate() {
-  return safeRead(KEYS.EXCHANGE_RATE, {
-    rate: DEFAULT_RATE,
-    updated_at: new Date().toISOString(),
-    updated_by: 'Système',
-  });
+  return safeRead(KEYS.EXCHANGE_RATE, { rate: DEFAULT_RATE, updated_at: new Date().toISOString(), updated_by: 'Systeme' });
 }
 
 export function setSharedRate(rate, updatedBy) {
@@ -39,6 +43,11 @@ export function setSharedRate(rate, updatedBy) {
   safeWrite(KEYS.EXCHANGE_RATE, data);
   const history = safeRead(KEYS.RATE_HISTORY, []);
   safeWrite(KEYS.RATE_HISTORY, [data, ...history].slice(0, 10));
+  
+  if (USE_SUPABASE) {
+    supabase.from('exchange_rates').insert(data).then();
+  }
+  emitEvent(KEYS.EXCHANGE_RATE);
 }
 
 export function getRateHistory() {
@@ -51,6 +60,10 @@ export function getSharedOrders() {
 
 export function setSharedOrders(orders) {
   safeWrite(KEYS.ORDERS, orders);
+  if (USE_SUPABASE) {
+    supabase.from('orders').upsert(orders, { onConflict: 'id' }).then();
+  }
+  emitEvent(KEYS.ORDERS);
 }
 
 export function updateSharedOrder(id, patch) {
@@ -66,10 +79,16 @@ export function getDispatches() {
 }
 
 export function dispatchOrderToSeller(orderId, data) {
-  const dispatches = getDispatches();
   const newDispatch = { ...data, dispatch_id: `DSP-${Date.now()}` };
-  safeWrite(KEYS.DISPATCHES, [...dispatches, newDispatch]);
+  const dispatches = getDispatches();
+  dispatches.push(newDispatch);
+  safeWrite(KEYS.DISPATCHES, dispatches);
   updateSharedOrder(orderId, { status: 'dispatched_to_seller' });
+  
+  if (USE_SUPABASE) {
+    supabase.from('dispatches').insert(newDispatch).then();
+  }
+  emitEvent(KEYS.DISPATCHES);
 }
 
 export function getCatalogPending() {
@@ -84,11 +103,17 @@ export function approveCatalogItem(id, adminComment) {
   const pending = safeRead(KEYS.CATALOG_PENDING, []);
   const idx = pending.findIndex(p => p.id === id);
   if (idx === -1) return;
-  const approved = { ...pending[idx], status: 'approved', admin_comment: adminComment };
-  pending[idx] = approved;
+  const approvedItem = { ...pending[idx], status: 'approved', admin_comment: adminComment };
+  pending[idx] = approvedItem;
   safeWrite(KEYS.CATALOG_PENDING, pending);
-  const approvedList = getCatalogApproved();
-  safeWrite(KEYS.CATALOG_APPROVED, [...approvedList, approved]);
+  const approved = getCatalogApproved();
+  approved.push(approvedItem);
+  safeWrite(KEYS.CATALOG_APPROVED, approved);
+  
+  if (USE_SUPABASE) {
+    supabase.from('products').update({ status: 'active', admin_comment: adminComment }).eq('id', id).then();
+  }
+  emitEvent(KEYS.CATALOG_APPROVED);
 }
 
 export function rejectCatalogItem(id, adminComment) {
@@ -97,6 +122,11 @@ export function rejectCatalogItem(id, adminComment) {
   if (idx === -1) return;
   pending[idx] = { ...pending[idx], status: 'rejected', admin_comment: adminComment };
   safeWrite(KEYS.CATALOG_PENDING, pending);
+  
+  if (USE_SUPABASE) {
+    supabase.from('catalog_pending').update({ status: 'rejected', admin_comment: adminComment }).eq('id', id).then();
+  }
+  emitEvent(KEYS.CATALOG_PENDING);
 }
 
 export function getSellers() {
@@ -112,43 +142,56 @@ export function addSeller(seller) {
     sellers.push({ ...seller, created_at: new Date().toISOString() });
   }
   safeWrite(KEYS.SELLERS, sellers);
+  
+  if (USE_SUPABASE) {
+    supabase.from('sellers').upsert(seller, { onConflict: 'seller_id' }).then();
+  }
+  emitEvent(KEYS.SELLERS);
 }
 
 export function updateSeller(id, patch) {
   const sellers = getSellers();
-  const idx = sellers.findIndex(s => s.id === id);
+  const idx = sellers.findIndex(s => s.seller_id === id);
   if (idx === -1) return;
   sellers[idx] = { ...sellers[idx], ...patch };
   safeWrite(KEYS.SELLERS, sellers);
+  
+  if (USE_SUPABASE) {
+    supabase.from('sellers').update(patch).eq('seller_id', id).then();
+  }
+  emitEvent(KEYS.SELLERS);
+}
+
+export async function syncFromSupabase() {
+  if (!USE_SUPABASE) return;
+  
+  try {
+    const { data: orders } = await supabase.from('orders').select('*');
+    if (orders?.length) safeWrite(KEYS.ORDERS, orders);
+    
+    const { data: products } = await supabase.from('products').select('*');
+    if (products?.length) safeWrite(KEYS.CATALOG_APPROVED, products);
+    
+    const { data: sellers } = await supabase.from('sellers').select('*');
+    if (sellers?.length) safeWrite(KEYS.SELLERS, sellers);
+    
+    const { data: rate } = await supabase.from('exchange_rates').select('*').order('updated_at', { ascending: false }).limit(1);
+    if (rate?.length) safeWrite(KEYS.EXCHANGE_RATE, rate[0]);
+  } catch (e) {
+    console.log('Sync from Supabase failed, using localStorage:', e);
+  }
 }
 
 export function initializeMockData() {
   if (getSharedOrders().length > 0) return;
+  
   const mockOrders = [
-    {
-      id: 'TL-2026-0901', buyer_name: 'Kofi Mensah', buyer_city: 'Cotonou',
-      seller_id: 'adebayo-fashions', seller_name: 'Adebayo Fashions',
-      product_name: 'Agbada Premium Brodé', product_id: 'prod-001',
-      amount_ngn: 85000, amount_xof: 35120, hub: 'Lagos Hub',
-      status: 'pending_admin', created_at: '2026-04-24T09:15:00Z', updated_at: '2026-04-24T09:15:00Z',
-    },
-    {
-      id: 'TL-2026-0902', buyer_name: 'Aminata Diallo', buyer_city: 'Porto-Novo',
-      seller_id: 'tech-nigeria', seller_name: 'TechNigeria Store',
-      product_name: 'Casque Bluetooth Pro Bass', product_id: 'prod-002',
-      amount_ngn: 32000, amount_xof: 13222, hub: 'Lagos Hub',
-      status: 'pending_admin', created_at: '2026-04-24T10:30:00Z', updated_at: '2026-04-24T10:30:00Z',
-    },
-    {
-      id: 'TL-2026-0903', buyer_name: 'Séraphin Hounsou', buyer_city: 'Parakou',
-      seller_id: 'beauty-lagos', seller_name: 'Beauty Lagos Pro',
-      product_name: 'Coffret Soin Naturel Karité', product_id: 'prod-003',
-      amount_ngn: 18500, amount_xof: 7644, hub: 'Abuja Hub',
-      status: 'validated', created_at: '2026-04-23T14:20:00Z', updated_at: '2026-04-24T08:00:00Z',
-    },
+    { id: 'TL-2026-0901', buyer_name: 'Kofi Mensah', buyer_city: 'Cotonou', seller_id: 'adebayo-fashions', seller_name: 'Adebayo Fashions', product_name: 'Agbada Premium Brodé', product_id: 'prod-001', amount_ngn: 85000, amount_xof: 35120, hub: 'Lagos Hub', status: 'pending_admin', created_at: '2026-04-24T09:15:00Z', updated_at: '2026-04-24T09:15:00Z' },
+    { id: 'TL-2026-0902', buyer_name: 'Aminata Diallo', buyer_city: 'Porto-Novo', seller_id: 'tech-nigeria', seller_name: 'TechNigeria Store', product_name: 'Casque Bluetooth Pro Bass', product_id: 'prod-002', amount_ngn: 32000, amount_xof: 13222, hub: 'Lagos Hub', status: 'pending_admin', created_at: '2026-04-24T10:30:00Z', updated_at: '2026-04-24T10:30:00Z' },
+    { id: 'TL-2026-0903', buyer_name: 'Séraphin Hounsou', buyer_city: 'Parakou', seller_id: 'beauty-lagos', seller_name: 'Beauty Lagos Pro', product_name: 'Coffret Soin Naturel Karité', product_id: 'prod-003', amount_ngn: 18500, amount_xof: 7644, hub: 'Abuja Hub', status: 'validated', created_at: '2026-04-23T14:20:00Z', updated_at: '2026-04-24T08:00:00Z' },
   ];
   setSharedOrders(mockOrders);
-
+  
   if (getCatalogApproved().length === 0) {
     const seedProducts = [
       { id: 'mp-001', name: 'Chemise Coton Premium', category: 'Mode', price_ngn: 25000, price_fcfa: 10330, image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=300&h=300&fit=crop', status: 'active', description: 'Chemise 100% coton premium' },
@@ -167,8 +210,12 @@ export function initializeMockData() {
       { id: 'mp-014', name: 'Savon Naturel Bio', category: 'Beauté', price_ngn: 2500, price_fcfa: 1033, image: 'https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?w=300&h=300&fit=crop', status: 'active', description: 'Savon artisanal bio' },
     ];
     safeWrite(KEYS.CATALOG_APPROVED, seedProducts);
+    
+    if (USE_SUPABASE) {
+      supabase.from('products').insert(seedProducts).then();
+    }
   }
-
+  
   if (getSellers().length === 0) {
     const seedSellers = [
       { id: 'adebayo-fashions', name: 'Adebayo Fashions', email: 'adebayo@fashions.ng', status: 'verified', hub: 'Lagos Hub', created_at: '2025-01-15T00:00:00Z' },
@@ -176,5 +223,9 @@ export function initializeMockData() {
       { id: 'beauty-lagos', name: 'Beauty Lagos Pro', email: 'contact@beautylagos.ng', status: 'verified', hub: 'Lagos Hub', created_at: '2025-03-10T00:00:00Z' },
     ];
     safeWrite(KEYS.SELLERS, seedSellers);
+    
+    if (USE_SUPABASE) {
+      supabase.from('sellers').insert(seedSellers).then();
+    }
   }
 }

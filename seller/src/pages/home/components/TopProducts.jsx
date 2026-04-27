@@ -1,8 +1,23 @@
 import { useNavigate } from "react-router-dom";
-import { mockTopProducts } from "@/mocks/seller";
+import { getSellerProducts } from "@/lib/sharedStorage";
+import { useState, useEffect } from "react";
 
 export default function TopProducts() {
   const navigate = useNavigate();
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    const loadProducts = () => {
+      const prods = getSellerProducts();
+      const sorted = [...prods]
+        .sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0))
+        .slice(0, 5);
+      setProducts(sorted);
+    };
+    loadProducts();
+    window.addEventListener("tl_storage_update", loadProducts);
+    return () => window.removeEventListener("tl_storage_update", loadProducts);
+  }, []);
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5">
@@ -17,7 +32,7 @@ export default function TopProducts() {
       </div>
 
       <div className="space-y-3">
-        {mockTopProducts.map((product, idx) => (
+        {products.map((product, idx) => (
           <div
             key={product.id}
             className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#F9FAFB] transition-all cursor-pointer"
@@ -34,7 +49,7 @@ export default function TopProducts() {
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-gray-900 truncate">{product.name}</p>
               <p className="text-[10px] text-gray-400">
-                {product.sales} vendus &bull; Stock : {product.stock}
+                {product.sales_count || 0} vendus &bull; Stock : {product.stock_total}
               </p>
             </div>
             <p className="text-xs font-bold text-[#10B981] whitespace-nowrap flex-shrink-0">

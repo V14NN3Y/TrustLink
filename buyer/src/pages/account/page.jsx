@@ -158,7 +158,7 @@ export default function Account() {
                 <h1 className="text-xl font-poppins font-bold mb-5" style={{ color: '#111827' }}>Mes commandes</h1>
                 <div className="flex flex-wrap gap-2 mb-5">
                   {ORDER_FILTERS.map((f) => {
-                    const count = f.id === 'all' ? ORDERS.length : ORDERS.filter((o) => o.status === f.id).length;
+                    const count = f.id === 'all' ? orders.length : orders.filter((o) => o.status === f.id).length;
                     return (
                       <button key={f.id} onClick={() => setOrderFilter(f.id)}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-poppins font-medium rounded-full border transition-all"
