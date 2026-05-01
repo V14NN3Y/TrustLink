@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { calculateFCFA } from "@/mocks/products";
-import { hexToColorName } from "@/lib/utils";
 
 export default function EditProductModal({ product, onClose, onSave }) {
   const [form, setForm] = useState({ ...product });
@@ -15,14 +14,7 @@ export default function EditProductModal({ product, onClose, onSave }) {
   };
 
   const handleVariantChange = (idx, key, value) => {
-    const updated = form.variants.map((v, i) => {
-      if (i !== idx) return v;
-      const newV = { ...v, [key]: value };
-      if (key === "color_hex") {
-        newV.color = hexToColorName(value);
-      }
-      return newV;
-    });
+    const updated = form.variants.map((v, i) => i === idx ? { ...v, [key]: value } : v);
     setForm((prev) => ({ ...prev, variants: updated }));
   };
 
@@ -33,7 +25,7 @@ export default function EditProductModal({ product, onClose, onSave }) {
   const addVariant = () => {
     setForm((prev) => ({
       ...prev,
-      variants: [...prev.variants, { size: "", color: hexToColorName("#888888"), color_hex: "#888888", stock: 0 }],
+      variants: [...prev.variants, { size: "", color: "", color_hex: "#888888", stock: 0 }],
     }));
   };
 
@@ -159,43 +151,36 @@ export default function EditProductModal({ product, onClose, onSave }) {
             </div>
             <div className="space-y-2">
               {form.variants.map((v, idx) => (
-                <div key={idx} className="flex items-center gap-2 p-3 bg-[#F9FAFB] border border-gray-100 rounded-lg hover:shadow-sm transition-shadow">
+                <div key={idx} className="flex items-center gap-2 p-3 bg-[#F9FAFB] rounded-lg">
+                  <div className="w-4 h-4 rounded-full border border-gray-200 flex-shrink-0" style={{ backgroundColor: v.color_hex }}></div>
                   <input
                     type="text"
                     value={v.size}
                     onChange={(e) => handleVariantChange(idx, "size", e.target.value)}
                     placeholder="Taille"
-                    className="flex-1 border border-gray-200 bg-white rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[#125C8D] transition-colors"
+                    className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-[#125C8D]"
                     style={{ fontFamily: "'Inter', sans-serif" }}
                   />
-                  
-                  <div className="flex items-center flex-1 gap-2 bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus-within:border-[#125C8D] transition-colors">
-                    <div className="w-3.5 h-3.5 rounded-full border border-gray-300 overflow-hidden relative flex-shrink-0 cursor-pointer shadow-none" title="Choisir la couleur (Hex)" style={{ outline: `1px solid ${v.color_hex || '#888888'}`, outlineOffset: '1px' }}>
-                      <input type="color" value={v.color_hex || "#888888"} onChange={(e) => handleVariantChange(idx, "color_hex", e.target.value)} className="absolute -top-2 -left-2 w-8 h-8 cursor-pointer" />
-                    </div>
-                    <input
-                      type="text"
-                      value={v.color}
-                      onChange={(e) => handleVariantChange(idx, "color", e.target.value)}
-                      placeholder="Couleur"
-                      className="w-full text-xs outline-none bg-transparent"
-                      style={{ fontFamily: "'Inter', sans-serif" }}
-                    />
-                  </div>
-
+                  <input
+                    type="text"
+                    value={v.color}
+                    onChange={(e) => handleVariantChange(idx, "color", e.target.value)}
+                    placeholder="Couleur"
+                    className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-[#125C8D]"
+                    style={{ fontFamily: "'Inter', sans-serif" }}
+                  />
                   <input
                     type="number"
                     value={v.stock}
                     onChange={(e) => handleVariantChange(idx, "stock", Number(e.target.value))}
                     placeholder="Stock"
-                    className="w-16 border border-gray-200 bg-white rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[#125C8D] transition-colors"
+                    className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-[#125C8D]"
                     style={{ fontFamily: "'Inter', sans-serif" }}
                     min={0}
                   />
                   <button
                     onClick={() => removeVariant(idx)}
                     className="w-6 h-6 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-50 cursor-pointer flex-shrink-0"
-                    title="Supprimer la variante"
                   >
                     <i className="ri-close-line text-xs"></i>
                   </button>

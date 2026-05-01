@@ -1,5 +1,4 @@
 import { useLocation } from "react-router-dom";
-import { useExchangeRate } from "@/hooks/useExchangeRate";
 
 const pageTitles = [
   { path: "/catalog/new", title: "Nouveau Produit", subtitle: "Ajoutez un produit à votre catalogue" },
@@ -19,7 +18,6 @@ const pageTitles = [
 
 export default function Header() {
   const location = useLocation();
-  const { rate } = useExchangeRate();
 
   const current = pageTitles.find((p) => {
     if (p.path === "/") return location.pathname === "/";
@@ -49,10 +47,10 @@ export default function Header() {
           />
         </div>
 
-        {/* Exchange Rate Badge — DYNAMIQUE */}
+        {/* Exchange Rate Badge */}
         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-green-200 bg-green-50 whitespace-nowrap">
           <span className="text-[#10B981] text-xs">⊙</span>
-          <span className="text-xs font-semibold text-[#10B981]">1 NGN = {rate.toFixed(4)} FCFA</span>
+          <span className="text-xs font-semibold text-[#10B981]">1 NGN = 4.00 FCFA</span>
         </div>
 
         {/* Notifications */}

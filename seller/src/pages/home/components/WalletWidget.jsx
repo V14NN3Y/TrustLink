@@ -1,19 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getSellerWallet, initializeSellerMockData } from "@/lib/sharedStorage";
+import { mockStats } from "@/mocks/seller";
 
 export default function WalletWidget() {
   const [hidden, setHidden] = useState(false);
   const navigate = useNavigate();
-  const [wallet, setWallet] = useState({ balance_ngn: 0, pending_escrow: 0 });
-
-  useEffect(() => {
-    initializeSellerMockData();
-    setWallet(getSellerWallet());
-    const handleUpdate = () => setWallet(getSellerWallet());
-    window.addEventListener("tl_storage_update", handleUpdate);
-    return () => window.removeEventListener("tl_storage_update", handleUpdate);
-  }, []);
 
   return (
     <div
@@ -36,20 +27,20 @@ export default function WalletWidget() {
           </button>
         </div>
         <p className="text-3xl font-bold text-white mt-1" style={{ fontFamily: "'Poppins', sans-serif" }}>
-          {hidden ? "••••••••" : `₦${wallet.balance_ngn.toLocaleString()}`}
+          {hidden ? "••••••••" : `₦${mockStats.balance_available.toLocaleString()}`}
         </p>
         <p className="text-white/50 text-xs mt-1">
-          +₦{wallet.total_released?.toLocaleString() || 0} ce mois
+          +₦{mockStats.balance_change_month.toLocaleString()} ce mois
         </p>
 
         <div className="mt-4 pt-4 border-t border-white/10">
           <div className="flex items-center justify-between">
             <p className="text-white/60 text-[10px] uppercase tracking-widest">En Escrow</p>
             <p className="text-white/80 text-sm font-semibold">
-              {hidden ? "••••••" : `₦${wallet.pending_escrow.toLocaleString()}`}
+              {hidden ? "••••••" : `₦${mockStats.escrow_amount.toLocaleString()}`}
             </p>
           </div>
-          <p className="text-white/40 text-[10px] mt-0.5">{wallet.pending_escrow > 0 ? 'commandes en attente' : 'Aucune commande'}</p>
+          <p className="text-white/40 text-[10px] mt-0.5">{mockStats.escrow_orders} commandes en attente</p>
         </div>
       </div>
 

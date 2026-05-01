@@ -1,34 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/feature/DashboardLayout";
+import { mockProducts } from "@/mocks/products";
 import ProductCard from "./components/ProductCard";
 import EditProductModal from "./components/EditProductModal";
-import { getCatalogPending, getSellerProducts, addSellerProduct, initializeSellerMockData } from "@/lib/sharedStorage";
 
 export default function CatalogPage() {
   const navigate = useNavigate();
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState(mockProducts);
   const [view, setView] = useState("grid");
   const [filterStatus, setFilterStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
-  const [pendingProductNames, setPendingProductNames] = useState(new Set());
-
-  useEffect(() => {
-    initializeSellerMockData();
-    const loadProducts = () => {
-      setProducts(getSellerProducts());
-      const pending = getCatalogPending();
-      setPendingProductNames(new Set(pending.map((p) => p.name)));
-    };
-    loadProducts();
-    window.addEventListener("tl_storage_update", loadProducts);
-    return () => window.removeEventListener("tl_storage_update", loadProducts);
-  }, []);
 
   const handleSaveProduct = (updated) => {
-    addSellerProduct(updated);
-    setProducts(getSellerProducts());
+    setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
     setEditingProduct(null);
   };
 
@@ -118,12 +104,7 @@ export default function CatalogPage() {
       {view === "grid" && (
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onEdit={setEditingProduct}
-              isPending={pendingProductNames.has(product.name)}
-            />
+            <ProductCard key={product.id} product={product} onEdit={setEditingProduct} />
           ))}
         </div>
       )}
@@ -163,11 +144,6 @@ export default function CatalogPage() {
                       }`}>
                         {product.status === "active" ? "Actif" : product.status === "pending" ? "En revision" : "Inactif"}
                       </span>
-                      {pendingProductNames.has(product.name) && (
-                        <span className="ml-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FF6A00]/10 text-[#FF6A00] whitespace-nowrap">
-                          En attente Admin
-                        </span>
-                      )}
                     </td>
                     <td className="px-4 py-3">
                       <button

@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { BrowserRouter as Router } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClientInstance } from "@/lib/query-client";
@@ -6,14 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import UserNotRegisteredError from "@/components/UserNotRegisteredError";
 import AppRoutes from "@/router/index.jsx";
-import { initializeSellerMockData } from "@/lib/sharedStorage";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
-
-  useEffect(() => {
-    initializeSellerMockData();
-  }, []);
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (

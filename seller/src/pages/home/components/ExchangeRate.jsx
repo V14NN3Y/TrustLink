@@ -1,22 +1,10 @@
-import { useState, useEffect } from "react";
-import { getSellerStats, getSharedRate } from "@/lib/sharedStorage";
+import { useState } from "react";
+import { mockStats } from "@/mocks/seller";
 
 export default function ExchangeRate() {
   const [ngnInput, setNgnInput] = useState(50000);
-  const [stats, setStats] = useState({});
-  const [rateData, setRateData] = useState({ rate: 4 });
 
-  useEffect(() => {
-    const loadData = () => {
-      setStats(getSellerStats());
-      setRateData(getSharedRate());
-    };
-    loadData();
-    window.addEventListener("tl_storage_update", loadData);
-    return () => window.removeEventListener("tl_storage_update", loadData);
-  }, []);
-
-  const rate = rateData.rate || 4;
+  const rate = 4;
   const commission = 0.05;
   const changeFee = 0.025;
   const fcfaResult = Math.round(ngnInput * rate * (1 + commission + changeFee));
@@ -33,7 +21,7 @@ export default function ExchangeRate() {
       {/* Rate badge */}
       <div className="flex items-center justify-center gap-2 bg-[#F9FAFB] rounded-lg p-2 mb-4">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Taux affiché</span>
-        <span className="text-sm font-bold text-[#125C8D]">1 NGN = {rate.toFixed(4)} FCFA</span>
+        <span className="text-sm font-bold text-[#125C8D]">1 NGN = 4 FCFA</span>
       </div>
 
       {/* Converter */}
@@ -71,11 +59,11 @@ export default function ExchangeRate() {
       <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
         <div className="text-center">
           <p className="text-[10px] text-gray-400 uppercase tracking-widest">Taux conversion</p>
-          <p className="text-base font-bold text-[#10B981]">{stats.conversion_rate || 98.2}%</p>
+          <p className="text-base font-bold text-[#10B981]">{mockStats.conversion_rate}%</p>
         </div>
         <div className="text-center">
           <p className="text-[10px] text-gray-400 uppercase tracking-widest">Taux litige</p>
-          <p className="text-base font-bold text-[#FF6A00]">{stats.dispute_rate || 1.8}%</p>
+          <p className="text-base font-bold text-[#FF6A00]">{mockStats.dispute_rate}%</p>
         </div>
       </div>
     </div>
