@@ -1,111 +1,157 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
-
-const AuthContext = createContext();
-
+import {
+  createContext,
+  useState,
+  useContext,
+  useEffect,
+  useCallback,
+} from 'react';
+import { supabase } from '@/lib/supabaseClient';
+const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
-
-  useEffect(() => {
-    checkAppState();
+  const fetchProfile = useCallback(async (userId) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error) {
+      console.error('Error fetching profile:', error);
+      return null;
+    }
+    return data;
   }, []);
-
-  const checkAppState = async () => {
-    try {
-      setIsLoadingPublicSettings(true);
-      setAuthError(null);
-      
-      // Mocked app settings
-      setAppPublicSettings({
-        id: "mock_app",
-        public_settings: {
-          require_auth: false
+  useEffect(() => {
+    let mounted = true;
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        if (session?.user) {
+          const profileData = await fetchProfile(session.user.id);
+          if (!mounted) return;
+          setUser(session.user);
+          setProfile(profileData);
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
+          setProfile(null);
+          setIsAuthenticated(false);
         }
-      });
-      
-      // Let's assume user is authenticated for dev purposes
-      await checkUserAuth();
-      setIsLoadingPublicSettings(false);
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      setAuthError({
-        type: 'unknown',
-        message: error.message || 'An unexpected error occurred'
-      });
-      setIsLoadingPublicSettings(false);
-      setIsLoadingAuth(false);
-    }
-  };
-
-  const checkUserAuth = async () => {
-    try {
-      // Now check if the user is authenticated
-      setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
-      setUser(currentUser);
-      setIsAuthenticated(true);
-      setIsLoadingAuth(false);
-      setAuthChecked(true);
-    } catch (error) {
-      console.error('User auth check failed:', error);
-      setIsLoadingAuth(false);
-      setIsAuthenticated(false);
-      setAuthChecked(true);
-      
-      // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
+      } catch (error) {
+        console.error('Auth init error:', error);
+        if (mounted) {
+          setAuthError({ type: 'unknown', message: error.message });
+        }
+      } finally {
+        if (mounted) {
+          setIsLoadingAuth(false);
+          setAuthChecked(true);
+        }
       }
+    };
+    initAuth();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
+        if (session?.user) {
+          const profileData = await fetchProfile(session.user.id);
+          if (!mounted) return;
+          setUser(session.user);
+          setProfile(profileData);
+          setIsAuthenticated(true);
+          setAuthError(null);
+        } else {
+          setUser(null);
+          setProfile(null);
+          setIsAuthenticated(false);
+        }
+        setIsLoadingAuth(false);
+        setAuthChecked(true);
+      }
+    );
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [fetchProfile]);
+  const loginWithEmail = useCallback(async (email, password) => {
+    setAuthError(null);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setAuthError({ type: 'login_failed', message: error.message });
+      return { success: false, error };
     }
-  };
-
-  const logout = (shouldRedirect = true) => {
+    return { success: true };
+  }, []);
+  const loginWithGoogle = useCallback(async () => {
+    setAuthError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    if (error) {
+      setAuthError({ type: 'login_failed', message: error.message });
+      return { success: false, error };
+    }
+    return { success: true };
+  }, []);
+  const registerWithEmail = useCallback(async (email, password, fullName) => {
+    setAuthError(null);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          role: 'buyer',
+        },
+      },
+    });
+    if (error) {
+      setAuthError({ type: 'register_failed', message: error.message });
+      return { success: false, error };
+    }
+    return { success: true };
+  }, []);
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
     setUser(null);
+    setProfile(null);
     setIsAuthenticated(false);
-    
-    if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
-    } else {
-      // Just remove the token without redirect
-      base44.auth.logout();
-    }
-  };
-
-  const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
-  };
-
+  }, []);
+  const refreshProfile = useCallback(async () => {
+    if (!user?.id) return;
+    const profileData = await fetchProfile(user.id);
+    setProfile(profileData);
+  }, [user, fetchProfile]);
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
-      isLoadingAuth,
-      isLoadingPublicSettings,
-      authError,
-      appPublicSettings,
-      authChecked,
-      logout,
-      navigateToLogin,
-      checkUserAuth,
-      checkAppState
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        isAuthenticated,
+        isLoadingAuth,
+        authError,
+        authChecked,
+        loginWithEmail,
+        loginWithGoogle,
+        registerWithEmail,
+        logout,
+        refreshProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
-
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

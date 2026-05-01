@@ -1,26 +1,18 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useCart } from '@/hooks/useCart';
+import { useNavigate } from 'react-router-dom';
 import { useWishlist } from '@/hooks/useWishlist';
 import { formatPrice, renderStars } from '@/utils/format';
 
 export default function ProductCard({ product }) {
-  const { addItem } = useCart();
+  const navigate = useNavigate();
   const { toggle, isWishlisted } = useWishlist();
-  const [added, setAdded] = useState(false);
-
-  const handleAdd = (e) => {
-    e.preventDefault();
-    addItem({ productId: product.id, name: product.name, image: product.images[0], price: product.price, quantity: 1 });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
-  };
-
   const stars = renderStars(product.rating);
   const wishlisted = isWishlisted(product.id);
-
   return (
-    <Link to={`/product/${product.id}`} className="group flex flex-col bg-white rounded-xl overflow-hidden hover:-translate-y-1 transition-all duration-300 cursor-pointer" style={{ border: '1px solid #F0F0F0' }}>
+    <div
+      onClick={() => navigate(`/product/${product.id}`)}
+      className="group flex flex-col bg-white rounded-xl overflow-hidden hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+      style={{ border: '1px solid #F0F0F0' }}
+    >
       {/* Image */}
       <div className="relative overflow-hidden" style={{ backgroundColor: '#F8FAFC', height: '200px' }}>
         <img
@@ -66,21 +58,15 @@ export default function ProductCard({ product }) {
         </div>
 
         <button
-          onClick={handleAdd}
-          className="w-full py-2 text-sm font-poppins font-medium rounded-lg transition-all duration-200 mt-auto flex items-center justify-center gap-1.5"
-          style={added
-            ? { backgroundColor: '#DCFCE7', color: '#15803D' }
-            : { backgroundColor: '#EBF4FB', color: '#125C8D' }}
-          onMouseEnter={(e) => { if (!added) { e.currentTarget.style.backgroundColor = '#125C8D'; e.currentTarget.style.color = '#fff'; } }}
-          onMouseLeave={(e) => { if (!added) { e.currentTarget.style.backgroundColor = '#EBF4FB'; e.currentTarget.style.color = '#125C8D'; } }}
+          onClick={(e) => { e.stopPropagation(); navigate(`/product/${product.id}`); }}
+          className="w-full py-2 text-sm font-poppins font-medium rounded-lg transition-all duration-200 mt-auto flex items-center justify-center gap-1.5 cursor-pointer"
+          style={{ backgroundColor: '#EBF4FB', color: '#125C8D' }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#125C8D'; e.currentTarget.style.color = '#fff'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#EBF4FB'; e.currentTarget.style.color = '#125C8D'; }}
         >
-          {added ? (
-            <>✓ Ajouté !</>
-          ) : (
-            <><i className="ri-shopping-cart-line text-sm"></i> Ajouter au panier</>
-          )}
+          <i className="ri-shopping-cart-line text-sm"></i> Ajouter au panier
         </button>
       </div>
-    </Link>
+    </div>
   );
 }

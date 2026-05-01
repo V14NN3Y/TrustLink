@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
+import NotificationBell from './NotificationBell';
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -26,12 +27,7 @@ export default function Header() {
         {/* Desktop */}
         <div className="hidden md:flex items-center h-16 gap-6">
           <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#125C8D' }}>
-              <i className="ri-links-line text-white text-base"></i>
-            </div>
-            <span className="font-poppins font-bold text-xl">
-              <span style={{ color: '#0E3A4F' }}>Trust</span><span style={{ color: '#FF6A00' }}>Link</span>
-            </span>
+            <img src="/TrustLink_Logo_Bleu-Fonce.png" alt="TrustLink" className="h-9 w-auto" />
           </Link>
 
           <form onSubmit={handleSearch} className="flex-1 max-w-xl">
@@ -62,6 +58,7 @@ export default function Header() {
                 </span>
               )}
             </Link>
+            <NotificationBell />
             <Link to="/account" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
               <i className="ri-user-3-line text-xl" style={{ color: '#6B7280' }}></i>
             </Link>
@@ -72,12 +69,7 @@ export default function Header() {
         <div className="md:hidden">
           <div className="flex items-center justify-between h-14">
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#125C8D' }}>
-                <i className="ri-links-line text-white text-sm"></i>
-              </div>
-              <span className="font-poppins font-bold text-lg">
-                <span style={{ color: '#0E3A4F' }}>Trust</span><span style={{ color: '#FF6A00' }}>Link</span>
-              </span>
+              <img src="/TrustLink_Logo_Bleu-Fonce.png" alt="TrustLink" className="h-8 w-auto" />
             </Link>
             <div className="flex items-center gap-1">
               <Link to="/cart" className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100">
@@ -95,13 +87,13 @@ export default function Header() {
           </div>
           <div className="pb-2">
             <form onSubmit={handleSearch}>
-            <div className="flex items-center border border-gray-200 rounded-full overflow-hidden">
-              <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher..." className="flex-1 px-4 py-2 text-sm outline-none font-inter" />
-              <button type="submit" className="px-3 py-1.5 text-white rounded-full m-1" style={{ backgroundColor: '#125C8D' }}>
-                <i className="ri-search-line text-sm"></i>
-              </button>
-            </div>
-          </form>
+              <div className="flex items-center border border-gray-200 rounded-full overflow-hidden">
+                <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher..." className="flex-1 px-4 py-2 text-sm outline-none font-inter" />
+                <button type="submit" className="px-3 py-1.5 text-white rounded-full m-1" style={{ backgroundColor: '#125C8D' }}>
+                  <i className="ri-search-line text-sm"></i>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

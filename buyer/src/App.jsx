@@ -1,50 +1,19 @@
-import { Toaster } from "@/components/ui/toaster"
-import { useEffect } from 'react';
-import { initializeMarketplaceMockData } from '@/lib/sharedStorage';
-import { QueryClientProvider } from '@tanstack/react-query'
-import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router } from 'react-router-dom';
-import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import { BrowserRouter } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClientInstance } from '@/lib/query-client';
+import { AuthProvider } from '@/lib/AuthContext';
 import AppRoutes from './router/index';
-
-const AuthenticatedApp = () => {
-  useEffect(() => {
-    initializeMarketplaceMockData();
-  }, []);
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
-
-  if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
-    }
-  }
-
-  return <AppRoutes />;
-};
-
+import { Toaster } from '@/components/ui/toaster';
 function App() {
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-      </QueryClientProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClientInstance}>
+      <BrowserRouter basename="/">
+        <AuthProvider>
+          <AppRoutes />
+          <Toaster />
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
-
 export default App;

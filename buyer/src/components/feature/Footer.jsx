@@ -29,6 +29,39 @@ export default function Footer() {
             {/* Brand */}
             <div>
               <Link to="/" className="inline-flex items-center gap-2 mb-4">
+                <img src="/TrustLink_Logo_Bleu-Fonce.png" alt="TrustLink" className="h-8 w-auto" />
+              </Link>
+              <p className="text-sm font-inter text-white/70 mb-5 leading-relaxed">
+                La marketplace de confiance entre le Bénin et le Nigeria. Achetez en FCFA, recevez en toute sécurité.
+              </p>
+              <div className="flex gap-3">
+                {[
+                  { icon: 'ri-facebook-fill', href: '#' },
+                  { icon: 'ri-instagram-line', href: '#' },
+                  { icon: 'ri-twitter-x-line', href: '#' },
+                  { icon: 'ri-whatsapp-line', href: '#' },
+                ].map((s) => (
+                  <a key={s.icon} href={s.href} className="w-8 h-8 rounded-full flex items-center justify-center transition-colors" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
+                  >
+                    <i className={`${s.icon} text-sm`}></i>
+                  </a>
+                ))}
+              </div>
+            </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main footer */}
+      <div style={{ backgroundColor: '#0E3A4F' }} className="text-white py-12">
+        <div className="max-w-[1200px] mx-auto px-4 md:px-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+            {/* Brand */}
+            <div>
+              <Link to="/" className="inline-flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#125C8D' }}>
                   <i className="ri-links-line text-white text-sm"></i>
                 </div>
