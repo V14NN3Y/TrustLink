@@ -1,23 +1,16 @@
 import OrderStatusBadge from "./OrderStatusBadge";
 
-const statusOrder = ["new", "ready", "hub_received", "in_transit", "delivered", "completed"];
+const normalFlow = ["paid", "processing", "in_transit", "delivered", "confirmed"];
 
 const stepLabels = [
-  { key: "new",          icon: "ri-add-circle-line",      label: "Commande\nreçue" },
-  { key: "ready",        icon: "ri-box-3-line",            label: "Prete a\ndeposer" },
-  { key: "hub_received", icon: "ri-store-2-line",          label: "Au Hub\nLogistique" },
-  { key: "in_transit",   icon: "ri-truck-line",            label: "En\ntransit" },
-  { key: "delivered",    icon: "ri-map-pin-line",          label: "Livree\nacheteur" },
-  { key: "completed",    icon: "ri-check-double-line",     label: "Fonds\ndebloques" },
+  { key: "paid", icon: "ri-check-line", label: "Payée" },
+  { key: "processing", icon: "ri-loader-2-line", label: "En traitement" },
+  { key: "in_transit", icon: "ri-truck-line", label: "En transit" },
+  { key: "delivered", icon: "ri-map-pin-line", label: "Livrée" },
+  { key: "confirmed", icon: "ri-check-double-line", label: "Confirmée" },
 ];
 
-const nextActionLabel = {
-  new:          "Marquer Prete a deposer",
-  ready:        "Confirmer depot au Hub",
-  hub_received: "En transit",
-  in_transit:   "Marquer Livree",
-  delivered:    "Marquer Terminee",
-};
+const terminalStatuses = ["disputed", "cancelled", "refunded", "pending"];
 
 const MiniQR = ({ code }) => {
   const grid = Array.from({ length: 7 }, (_, r) =>
@@ -43,14 +36,13 @@ const MiniQR = ({ code }) => {
 
 export default function OrderDetailModal({ order, onClose }) {
   if (!order) return null;
-  const currentIdx = statusOrder.indexOf(order.status);
+  const isTerminal = terminalStatuses.includes(order.status);
+  const currentIdx = normalFlow.indexOf(order.status);
+  const safeCurrentIdx = currentIdx >= 0 ? currentIdx : -1;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4" onClick={onClose}>
-      <div
-        className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-gray-100">
           <div>
@@ -69,73 +61,88 @@ export default function OrderDetailModal({ order, onClose }) {
           </button>
         </div>
 
-        {/* Tracker */}
-        <div className="p-6 border-b border-gray-100">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4">Suivi logistique</h4>
-          <div className="relative flex items-start justify-between">
-            {/* Connector lines */}
-            {stepLabels.map((_, idx) => {
-              if (idx === stepLabels.length - 1) return null;
-              const passed = idx < currentIdx;
-              return (
-                <div
-                  key={`line-${idx}`}
-                  className="absolute top-5 h-px"
-                  style={{
-                    left: `calc(${(idx / (stepLabels.length - 1)) * 100}% + 20px)`,
-                    width: `calc(${100 / (stepLabels.length - 1)}% - 40px)`,
-                    backgroundColor: passed ? "#125C8D" : "#E5E7EB",
-                  }}
-                ></div>
-              );
-            })}
-
-            {stepLabels.map((step, idx) => {
-              const passed = idx <= currentIdx;
-              return (
-                <div key={step.key} className="flex flex-col items-center flex-1 relative z-10">
+        {/* Tracker — masqué pour les statuts terminaux */}
+        {!isTerminal && (
+          <div className="p-6 border-b border-gray-100">
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4">Suivi logistique</h4>
+            <div className="relative flex items-start justify-between">
+              {stepLabels.map((_, idx) => {
+                if (idx === stepLabels.length - 1) return null;
+                const passed = idx < safeCurrentIdx && safeCurrentIdx >= 0;
+                return (
                   <div
-                    className={`w-10 h-10 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                      passed
+                    key={`line-${idx}`}
+                    className="absolute top-5 h-px"
+                    style={{
+                      left: `calc(${(idx / (stepLabels.length - 1)) * 100}% + 20px)`,
+                      width: `calc(${100 / (stepLabels.length - 1)}% - 40px)`,
+                      backgroundColor: passed ? "#125C8D" : "#E5E7EB",
+                    }}
+                  ></div>
+                );
+              })}
+              {stepLabels.map((step, idx) => {
+                const passed = idx <= safeCurrentIdx && safeCurrentIdx >= 0;
+                return (
+                  <div key={step.key} className="flex flex-col items-center flex-1 relative z-10">
+                    <div
+                      className={`w-10 h-10 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${passed
                         ? "border-[#125C8D] bg-[#125C8D] text-white"
                         : "border-gray-200 bg-white text-gray-300"
-                    }`}
-                  >
-                    <i className={`${step.icon} text-sm`}></i>
+                        }`}
+                    >
+                      <i className={`${step.icon} text-sm`}></i>
+                    </div>
+                    <p className="text-[10px] text-center mt-1 max-w-[60px] leading-tight text-gray-500">
+                      {step.label}
+                    </p>
                   </div>
-                  <p className="text-[10px] text-center mt-1 max-w-[60px] leading-tight text-gray-500">
-                    {step.label.split("\n").map((l, i) => <span key={i} className="block">{l}</span>)}
-                  </p>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
+        {isTerminal && (
+          <div className="p-6 border-b border-gray-100">
+            <div className={`p-4 rounded-xl border ${order.status === "disputed" ? "bg-red-50 border-red-200" :
+              order.status === "refunded" ? "bg-gray-50 border-gray-200" :
+                "bg-gray-50 border-gray-200"
+              }`}>
+              <div className="flex items-center gap-2">
+                <i className={`${order.status === "disputed" ? "ri-error-warning-line text-red-500" :
+                  order.status === "refunded" ? "ri-refund-line text-gray-500" :
+                    "ri-close-circle-line text-gray-500"
+                  } text-lg`}></i>
+                <p className="text-sm font-semibold text-gray-800">
+                  {order.status === "disputed" ? "Cette commande fait l'objet d'un litige en cours de traitement par l'administration." :
+                    order.status === "refunded" ? "Cette commande a été remboursée." :
+                      "Cette commande a été annulée."}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Buyer + QR */}
         <div className="grid grid-cols-2 gap-4 p-6 border-b border-gray-100">
           <div className="bg-[#F9FAFB] rounded-xl p-4">
             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Acheteur</h4>
             <p className="text-sm font-semibold text-gray-900 mb-1">{order.buyer}</p>
-            <p className="text-xs text-gray-500 mb-1">
-              <i className="ri-phone-line mr-1"></i>{order.buyer_phone || "+229 97 00 00 00"}
-            </p>
             <p className="text-xs text-gray-500 mb-2">
               <i className="ri-map-pin-line mr-1"></i>{order.buyer_city}
             </p>
-            {order.deadline && (
-              <p className="text-xs font-semibold text-[#FF6A00]">
-                <i className="ri-alarm-line mr-1"></i>Echéance : {order.deadline}
+            {order.created_at && (
+              <p className="text-xs text-gray-400">
+                <i className="ri-calendar-line mr-1"></i>Commande du {new Date(order.created_at).toLocaleDateString("fr-FR")}
               </p>
             )}
           </div>
           <div className="bg-[#F9FAFB] rounded-xl p-4 flex flex-col items-center">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Bordereau QR</h4>
-            <MiniQR code={order.qr_code} />
-            <p className="font-mono text-xs font-bold text-gray-700 mt-2">{order.qr_code}</p>
-            <button className="mt-2 text-[10px] font-semibold text-[#125C8D] hover:underline cursor-pointer whitespace-nowrap">
-              <i className="ri-download-line mr-1"></i>Télécharger
-            </button>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Référence</h4>
+            <div className="bg-white px-4 py-2 rounded-lg border border-gray-200">
+              <p className="font-mono text-sm font-bold text-gray-700">{order.id}</p>
+            </div>
+            <p className="text-[10px] text-gray-400 mt-2">ID interne Hub</p>
           </div>
         </div>
 
@@ -178,20 +185,10 @@ export default function OrderDetailModal({ order, onClose }) {
 
         {/* Footer */}
         <div className="bg-gray-50 rounded-b-2xl px-6 py-4 flex items-center justify-between gap-3">
-          {order.status === "completed" ? (
-            <div className="flex items-center gap-2 px-4 py-2 bg-green-50 rounded-lg">
-              <i className="ri-checkbox-circle-fill text-[#10B981]"></i>
-              <span className="text-sm font-semibold text-[#10B981]">Commande terminée — Fonds débloqués</span>
-            </div>
-          ) : (
-            <button
-              className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer whitespace-nowrap transition-colors"
-              style={{ backgroundColor: "#125C8D" }}
-            >
-              <i className="ri-arrow-right-circle-line mr-1.5"></i>
-              {nextActionLabel[order.status]}
-            </button>
-          )}
+          <div className="flex items-center gap-2 px-4 py-2 bg-[#125C8D]/10 rounded-lg">
+            <i className="ri-information-line text-[#125C8D]"></i>
+            <span className="text-sm font-semibold text-[#125C8D]">Lecture seule — Admin gère les statuts</span>
+          </div>
           <button
             onClick={onClose}
             className="py-2.5 px-4 rounded-lg text-sm font-semibold text-gray-700 border border-gray-200 hover:bg-gray-100 cursor-pointer whitespace-nowrap transition-colors"

@@ -1,64 +1,71 @@
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/lib/AuthContext";
+import { useSellerOrders } from "@/hooks/useSellerOrders";
+import { useSellerProducts } from "@/hooks/useSellerProducts";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import RevenueChart from "./components/RevenueChart";
-import WalletWidget from "./components/WalletWidget";
+import SalesQuickWidget from "./components/SalesQuickWidget";
 import LogisticsAlerts from "./components/LogisticsAlerts";
 import TopProducts from "./components/TopProducts";
 import ExchangeRate from "./components/ExchangeRate";
-import { mockStats } from "@/mocks/seller";
-
-const kpiCards = [
-  {
-    icon: "ri-money-dollar-circle-line",
-    iconColor: "#10B981",
-    iconBg: "rgba(16,185,129,0.1)",
-    badge: "+18.4%",
-    badgeColor: "#10B981",
-    label: "Ventes Totales (NGN)",
-    value: "₦4,820,500",
-  },
-  {
-    icon: "ri-inbox-line",
-    iconColor: "#FF6A00",
-    iconBg: "rgba(255,106,0,0.1)",
-    badge: "+7 aujourd'hui",
-    badgeColor: "#FF6A00",
-    label: "Commandes à Expédier",
-    value: "34",
-  },
-  {
-    icon: "ri-bank-card-line",
-    iconColor: "#125C8D",
-    iconBg: "rgba(18,92,141,0.1)",
-    badge: "+₦320,000 ce mois",
-    badgeColor: "#10B981",
-    label: "Solde Disponible (NGN)",
-    value: "₦1,245,000",
-  },
-  {
-    icon: "ri-lock-2-line",
-    iconColor: "#8B5CF6",
-    iconBg: "rgba(139,92,246,0.1)",
-    badge: "12 commandes",
-    badgeColor: "#8B5CF6",
-    label: "Fonds en Attente",
-    value: "₦890,200",
-  },
-];
+import RecentOrders from "./components/RecentOrders";
 
 export default function Home() {
   const navigate = useNavigate();
-
+  const { user, profile } = useAuth();
+  const { orders } = useSellerOrders(user?.id);
+  const { products } = useSellerProducts(user?.id);
+  const toShip = orders.filter((o) => o.status === "paid" || o.status === "processing").length;
+  const delivered = orders.filter((o) => o.status === "delivered" || o.status === "confirmed").length;
+  const totalRevenue = orders.reduce((s, o) => s + (o.amount_ngn || 0), 0);
+  const approvedProducts = products.filter((p) => p.status === "approved").length;
+  const kpiCards = [
+    {
+      icon: "ri-money-dollar-circle-line",
+      iconColor: "#10B981",
+      iconBg: "rgba(16,185,129,0.1)",
+      badge: `${orders.length} total`,
+      badgeColor: "#10B981",
+      label: "Commandes reçues",
+      value: orders.length.toString(),
+    },
+    {
+      icon: "ri-inbox-line",
+      iconColor: "#FF6A00",
+      iconBg: "rgba(255,106,0,0.1)",
+      badge: `${toShip} à traiter`,
+      badgeColor: "#FF6A00",
+      label: "En cours de traitement",
+      value: toShip.toString(),
+    },
+    {
+      icon: "ri-store-2-line",
+      iconColor: "#125C8D",
+      iconBg: "rgba(18,92,141,0.1)",
+      badge: `${approvedProducts} actifs`,
+      badgeColor: "#125C8D",
+      label: "Produits approuvés",
+      value: products.length.toString(),
+    },
+    {
+      icon: "ri-bar-chart-line",
+      iconColor: "#125C8D",
+      iconBg: "rgba(18,92,141,0.1)",
+      badge: `${delivered} livrées`,
+      badgeColor: "#10B981",
+      label: "Revenus estimés (NGN)",
+      value: `₦${totalRevenue.toLocaleString()}`,
+    },
+  ];
   return (
     <DashboardLayout>
-      {/* Greeting + CTA */}
       <div className="flex items-start justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
-            Bonjour, <span style={{ color: "#125C8D" }}>Adebayo Fashions</span> 👋
+            Bonjour, <span style={{ color: "#125C8D" }}>{profile?.business_name || "Vendeur"}</span>
           </h2>
           <p className="text-sm text-gray-400 mt-0.5">
-            Voici un aperçu de votre activité aujourd'hui — 20 Avril 2026
+            Voici un aperçu de votre activité
           </p>
         </div>
         <button
@@ -70,8 +77,6 @@ export default function Home() {
           Nouveau Produit
         </button>
       </div>
-
-      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {kpiCards.map((card) => (
           <div key={card.label} className="bg-white rounded-xl border border-gray-100 p-5">
@@ -80,9 +85,7 @@ export default function Home() {
                 <i className={`${card.icon} text-lg`} style={{ color: card.iconColor }}></i>
               </div>
               <span className="text-xs font-semibold px-2 py-1 rounded-md" style={{ color: card.badgeColor, backgroundColor: `${card.badgeColor}15` }}>
-                {card.badge.includes("+") || card.badge.includes("₦") ? (
-                  <><i className="ri-arrow-up-line mr-0.5"></i>{card.badge.replace("+","")}</>
-                ) : card.badge}
+                {card.badge}
               </span>
             </div>
             <p className="text-[11px] text-gray-400 font-medium mb-1">{card.label}</p>
@@ -90,22 +93,21 @@ export default function Home() {
           </div>
         ))}
       </div>
-
-      {/* Chart + Wallet Widget */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         <div className="lg:col-span-2">
-          <RevenueChart />
+          <RevenueChart orders={orders} />
         </div>
         <div>
-          <WalletWidget />
+          <SalesQuickWidget orders={orders} />
         </div>
       </div>
-
-      {/* Alerts + Top Products + Exchange Rate */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <LogisticsAlerts />
-        <TopProducts />
+        <LogisticsAlerts orders={orders} />
+        <TopProducts products={products} />
         <ExchangeRate />
+      </div>
+      <div className="mt-4">
+        <RecentOrders orders={orders.slice(0, 6)} />
       </div>
     </DashboardLayout>
   );

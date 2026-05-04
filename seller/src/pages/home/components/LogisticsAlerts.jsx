@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { mockAlerts } from "@/mocks/seller";
 
 const alertConfig = {
   critical: {
@@ -30,21 +29,30 @@ const alertConfig = {
     label: "Info",
   },
 };
-
-export default function LogisticsAlerts() {
+export default function LogisticsAlerts({ orders = [] }) {
   const navigate = useNavigate();
-
+  const alerts = orders
+    .filter((o) => o.status === "processing" || o.status === "paid")
+    .slice(0, 4)
+    .map((o) => ({
+      id: o.item_id,
+      order_id: o.id,
+      type: o.status === "paid" ? "info" : "warning",
+      message: o.status === "paid"
+        ? `Commande ${o.id} — En attente de traitement`
+        : `Commande ${o.id} — En cours de préparation`,
+      deadline: new Date(o.created_at).toLocaleDateString("fr-FR"),
+    }));
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>Alertes logistiques</h3>
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white whitespace-nowrap" style={{ backgroundColor: "#FF6A00" }}>
-          {mockAlerts.length}
+          {alerts.length}
         </span>
       </div>
-
       <div className="space-y-3">
-        {mockAlerts.map((alert) => {
+        {alerts.map((alert) => {
           const cfg = alertConfig[alert.type];
           return (
             <div
@@ -68,7 +76,7 @@ export default function LogisticsAlerts() {
                 <p className="text-xs text-gray-600 leading-tight">{alert.message}</p>
                 {alert.deadline && (
                   <p className="text-[10px] text-gray-400 mt-1">
-                    <i className="ri-time-line mr-0.5"></i>Echéance : {alert.deadline}
+                    <i className="ri-time-line mr-0.5"></i>Date : {alert.deadline}
                   </p>
                 )}
               </div>
@@ -76,6 +84,9 @@ export default function LogisticsAlerts() {
             </div>
           );
         })}
+        {alerts.length === 0 && (
+          <p className="text-xs text-gray-400 text-center py-4">Aucune alerte active</p>
+        )}
       </div>
     </div>
   );

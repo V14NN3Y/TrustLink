@@ -1,44 +1,153 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "@/components/feature/DashboardLayout";
+import { useAuth } from "@/lib/AuthContext";
+import { supabase } from "@/lib/supabaseClient";
 
 const sideNav = [
-  { id: "profile",       label: "Mon Profil",        icon: "ri-user-line" },
-  { id: "boutique",      label: "Boutique & Marque",  icon: "ri-store-2-line" },
-  { id: "banque",        label: "Comptes Bancaires",  icon: "ri-bank-line" },
-  { id: "notifications", label: "Notifications",      icon: "ri-notification-3-line" },
-  { id: "securite",      label: "Sécurité",           icon: "ri-shield-line" },
-  { id: "langue",        label: "Langue & Devise",    icon: "ri-global-line" },
+  { id: "profile", label: "Mon Profil", icon: "ri-user-line" },
+  { id: "boutique", label: "Boutique & Marque", icon: "ri-store-2-line" },
+  { id: "notifications", label: "Notifications", icon: "ri-notification-3-line" },
+  { id: "securite", label: "Sécurité", icon: "ri-shield-line" },
+  { id: "langue", label: "Langue & Devise", icon: "ri-global-line" },
 ];
 
 const notifRows = [
-  { section: "Commandes", items: [
-    { label: "Nouvelle commande reçue",    sub: "Alerte immédiate à chaque nouvelle commande",         email: true,  sms: true,  push: true  },
-    { label: "Commande prête à expédier", sub: "Rappel quand une commande est en attente d'expédition", email: true,  sms: false, push: true  },
-    { label: "Commande livrée",           sub: "Confirmation de livraison au client",                   email: true,  sms: false, push: false },
-  ]},
-  { section: "Wallet & Paiements", items: [
-    { label: "Paiement reçu",        sub: "À chaque crédit sur votre compte",                    email: true,  sms: true,  push: true  },
-    { label: "Retrait effectué",     sub: "Confirmation de virement bancaire",                   email: true,  sms: true,  push: false },
-    { label: "Fonds escrow libérés", sub: "Quand les fonds sont transférés vers votre solde",    email: true,  sms: false, push: true  },
-  ]},
-  { section: "Compte & Sécurité", items: [
-    { label: "Connexion depuis un nouvel appareil", sub: "Alerte de sécurité en cas de connexion suspecte", email: true,  sms: true,  push: true  },
-    { label: "Mise à jour du statut KYC",           sub: "Notifications sur l'avancement de votre vérification", email: true,  sms: false, push: true  },
-  ]},
+  {
+    section: "Commandes", items: [
+      { label: "Nouvelle commande reçue", sub: "Alerte immédiate à chaque nouvelle commande", email: true, sms: true, push: true },
+      { label: "Commande prête à expédier", sub: "Rappel quand une commande est en attente d'expédition", email: true, sms: false, push: true },
+      { label: "Commande livrée", sub: "Confirmation de livraison au client", email: true, sms: false, push: false },
+    ]
+  },
+  {
+    section: "Compte & Sécurité", items: [
+      { label: "Connexion depuis un nouvel appareil", sub: "Alerte de sécurité en cas de connexion suspecte", email: true, sms: true, push: true },
+      { label: "Mise à jour du statut KYC", sub: "Notifications sur l'avancement de votre vérification", email: true, sms: false, push: true },
+    ]
+  },
 ];
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const [notifList, setNotifList] = useState([]);
   const { section } = useParams();
+  const { profile, logout, setProfile } = useAuth();
   const [active, setActive] = useState(section || "profile");
 
+  const uploadToStorage = async (bucket, file, folderPath) => {
+    if (!file || !profile?.id) return null;
+    const fileExt = file.name.split(".").pop();
+    const path = `${folderPath}/${Date.now()}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (uploadError) throw uploadError;
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    console.log("Uploaded to:", data?.publicUrl); // TEMP: vérifie que l'URL est bien générée
+    return data?.publicUrl || null;
+  };
+
+  const [savingProfile, setSavingProfile] = useState(false);
+  const saveProfile = async () => {
+    if (!profile?.id) return;
+    setSavingProfile(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        full_name: `${profileForm.prenom} ${profileForm.nom}`.trim(),
+        email: profileForm.email,
+        phone: profileForm.phone,
+        default_address_line1: profileForm.address1,
+        default_address_line2: profileForm.address2,
+        default_city: profileForm.city,
+        default_country: profileForm.country,
+        default_postal_code: profileForm.postal,
+        business_description: profileForm.bio,
+      })
+      .eq("id", profile.id);
+    setSavingProfile(false);
+    if (error) {
+      alert("Erreur sauvegarde : " + error.message);
+    } else {
+      alert("Profil mis à jour !");
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwords.current || !passwords.next || !passwords.confirm || pwMismatch) return;
+    if (passwords.next.length < 6) {
+      setPwMessage({ type: 'error', text: 'Le nouveau mot de passe doit contenir au moins 6 caractères.' });
+      return;
+    }
+    setPwSaving(true);
+    setPwMessage(null);
+    // Étape 1 : vérifier le mot de passe actuel en re-essayant une connexion
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: profile?.email,
+      password: passwords.current,
+    });
+    if (signInError) {
+      setPwSaving(false);
+      setPwMessage({ type: 'error', text: 'Mot de passe actuel incorrect.' });
+      return;
+    }
+    // Étape 2 : appeler Supabase pour mettre à jour le mot de passe
+    const { error } = await supabase.auth.updateUser({
+      password: passwords.next,
+    });
+    setPwSaving(false);
+    if (error) {
+      setPwMessage({ type: 'error', text: error.message });
+    } else {
+      setPwMessage({ type: 'success', text: 'Mot de passe mis à jour avec succès !' });
+      setPasswords({ current: '', next: '', confirm: '' });
+    }
+  };
+
   const [profileForm, setProfileForm] = useState({
-    prenom: "Adebayo", nom: "Okonkwo",
-    email: "adebayo@trustlink.ng", phone: "+234 801 234 5678",
-    location: "Lagos, Nigeria",
-    bio: "Vendeur certifié de vêtements et accessoires de mode africains. Spécialisé dans les tissus Ankara et la mode contemporaine nigériane.",
+    prenom: "",
+    nom: "",
+    email: "",
+    phone: "",
+    location: "",
+    bio: "",
+    address1: "",
+    address2: "",
+    city: "",
+    country: "",
+    postal: "",
   });
+  useEffect(() => {
+    if (!profile) return;
+    setProfileForm({
+      prenom: profile.full_name?.split(" ")[0] || "",
+      nom: profile.full_name?.split(" ").slice(1).join(" ") || "",
+      email: profile.email || "",
+      phone: profile.phone || "",
+      location: `${profile.default_city || ""}, ${profile.default_country || ""}`,
+      bio: profile.business_description || "",
+      address1: profile.default_address_line1 || "",
+      address2: profile.default_address_line2 || "",
+      city: profile.default_city || "",
+      country: profile.default_country || "",
+      postal: profile.default_postal_code || "",
+    });
+  }, [profile]);
+
+  useEffect(() => {
+    const fetchNotifList = async () => {
+      if (!profile?.id) return;
+      const { data } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(25);
+      setNotifList(data || []);
+    };
+    fetchNotifList();
+  }, [profile]);
 
   const [boutiqueForm, setBoutiqueForm] = useState({
     name: "Adebayo Fashions", slug: "adebayo-fashions",
@@ -47,6 +156,8 @@ export default function SettingsPage() {
   });
 
   const [passwords, setPasswords] = useState({ current: "", next: "", confirm: "" });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwMessage, setPwMessage] = useState(null);
   const [twoFA, setTwoFA] = useState(true);
   const [notifs, setNotifs] = useState(() => {
     const map = {};
@@ -91,16 +202,18 @@ export default function SettingsPage() {
               <button
                 key={item.id}
                 onClick={() => setActive(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-all text-left border-b border-gray-50 last:border-0 ${
-                  active === item.id ? "text-[#125C8D] font-semibold bg-[#125C8D]/5" : "text-gray-600 hover:bg-gray-50"
-                }`}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-all text-left border-b border-gray-50 last:border-0 ${active === item.id ? "text-[#125C8D] font-semibold bg-[#125C8D]/5" : "text-gray-600 hover:bg-gray-50"
+                  }`}
               >
                 <i className={`${item.icon} text-base w-4 text-center ${active === item.id ? "text-[#125C8D]" : "text-gray-400"}`}></i>
                 {item.label}
               </button>
             ))}
             <div className="border-t border-gray-100">
-              <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-all text-left">
+              <button
+                onClick={logout}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-all text-left"
+              >
                 <i className="ri-logout-box-r-line text-base w-4 text-center"></i>
                 Déconnexion
               </button>
@@ -120,20 +233,47 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <img
-                      src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face"
+                      src={profile?.avatar_url || ""}
                       alt="Profile"
                       className="w-16 h-16 rounded-xl object-cover"
+                      onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }}
                     />
+                    <div className="w-16 h-16 rounded-xl items-center justify-center text-white font-bold text-lg hidden" style={{ backgroundColor: "#125C8D" }}>
+                      {profile?.full_name?.slice(0, 2)?.toUpperCase() || "SE"}
+                    </div>
                     <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#10B981] border-2 border-white flex items-center justify-center">
                       <i className="ri-check-line text-white text-[8px] font-bold"></i>
                     </span>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-800">Adebayo Okonkwo</p>
+                    <p className="text-sm font-semibold text-gray-800">{profile?.full_name || "Vendeur"}</p>
                     <p className="text-xs text-gray-400">Vendeur vérifié · Lagos Hub</p>
-                    <button className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
+                    <input
+                      type="file"
+                      id="avatar-upload"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        try {
+                          const url = await uploadToStorage("avatars", file, `profiles/${profile.id}`);
+                          if (!url) return;
+                          const { error } = await supabase
+                            .from("profiles")
+                            .update({ avatar_url: url })
+                            .eq("id", profile.id);
+                          if (error) throw error;
+                          setProfile({ ...profile, avatar_url: url });
+                        } catch (err) {
+                          console.error(err);
+                          alert("Erreur lors de l'upload de la photo");
+                        }
+                      }}
+                    />
+                    <label htmlFor="avatar-upload" className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
                       <i className="ri-upload-2-line text-xs"></i>Changer la photo
-                    </button>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -141,30 +281,46 @@ export default function SettingsPage() {
               <div className="bg-white rounded-xl border border-gray-100 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-bold text-gray-800">Informations personnelles</h3>
-                  <button className="flex items-center gap-1.5 text-xs font-semibold text-[#125C8D] border border-[#125C8D]/30 px-3 py-1.5 rounded-lg hover:bg-[#125C8D]/5 transition-colors">
-                    <i className="ri-pencil-line text-xs"></i>Modifier
+                  <button
+                    onClick={saveProfile}
+                    disabled={savingProfile}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[#125C8D] px-3 py-1.5 rounded-lg hover:opacity-90 transition-colors disabled:opacity-50"
+                  >
+                    <i className="ri-save-line text-xs"></i>
+                    {savingProfile ? "Sauvegarde..." : "Sauvegarder"}
                   </button>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <FieldRow label="Prénom" value={profileForm.prenom} onChange={v => setProfileForm(f=>({...f, prenom:v}))} />
-                  <FieldRow label="Nom" value={profileForm.nom} onChange={v => setProfileForm(f=>({...f, nom:v}))} />
+                  <FieldRow label="Prénom" value={profileForm.prenom} onChange={v => setProfileForm(f => ({ ...f, prenom: v }))} />
+                  <FieldRow label="Nom" value={profileForm.nom} onChange={v => setProfileForm(f => ({ ...f, nom: v }))} />
                   <div className="col-span-2">
-                    <FieldRow label="Email" value={profileForm.email} onChange={v => setProfileForm(f=>({...f, email:v}))} type="email" />
+                    <FieldRow label="Email" value={profileForm.email} onChange={v => setProfileForm(f => ({ ...f, email: v }))} type="email" />
                   </div>
                   <div className="col-span-2">
-                    <FieldRow label="Téléphone" value={profileForm.phone} onChange={v => setProfileForm(f=>({...f, phone:v}))} />
+                    <FieldRow label="Téléphone" value={profileForm.phone} onChange={v => setProfileForm(f => ({ ...f, phone: v }))} />
                   </div>
                   <div className="col-span-2">
-                    <FieldRow label="Localisation" value={profileForm.location} onChange={v => setProfileForm(f=>({...f, location:v}))} />
+                    <FieldRow label="Localisation" value={profileForm.location} onChange={v => setProfileForm(f => ({ ...f, location: v }))} />
                   </div>
                   <div className="col-span-2">
                     <label className="text-xs text-gray-500 block mb-1">Bio</label>
                     <textarea
                       value={profileForm.bio}
-                      onChange={e => setProfileForm(f=>({...f, bio:e.target.value}))}
+                      onChange={e => setProfileForm(f => ({ ...f, bio: e.target.value }))}
                       rows={3}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#125C8D] bg-gray-50 transition-colors resize-none"
                     />
+                  </div>
+                  {/* Adresse par défaut */}
+                  <div className="col-span-2 mt-2">
+                    <p className="text-xs font-semibold text-gray-800 mb-2">Adresse de livraison par défaut</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FieldRow label="Adresse ligne 1" value={profileForm.address1} onChange={v => setProfileForm(f => ({ ...f, address1: v }))} />
+                      <FieldRow label="Adresse ligne 2" value={profileForm.address2} onChange={v => setProfileForm(f => ({ ...f, address2: v }))} />
+                      <FieldRow label="Ville" value={profileForm.city} onChange={v => setProfileForm(f => ({ ...f, city: v }))} />
+                      <FieldRow label="Pays" value={profileForm.country} onChange={v => setProfileForm(f => ({ ...f, country: v }))} />
+                      <FieldRow label="Code postal" value={profileForm.postal} onChange={v => setProfileForm(f => ({ ...f, postal: v }))} />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -179,13 +335,46 @@ export default function SettingsPage() {
               <div className="bg-white rounded-xl border border-gray-100 p-6 mb-4">
                 <h3 className="text-sm font-bold text-gray-800 mb-4">Logo de la boutique</h3>
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-xl flex items-center justify-center text-white text-xl font-bold flex-shrink-0" style={{ backgroundColor: "#125C8D" }}>AF</div>
+                  {profile?.business_logo_url ? (
+                    <img
+                      src={profile.business_logo_url}
+                      alt="Logo boutique"
+                      className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-xl flex items-center justify-center text-white text-xl font-bold flex-shrink-0" style={{ backgroundColor: "#125C8D" }}>
+                      {profile?.business_name?.slice(0, 2)?.toUpperCase() || "SE"}
+                    </div>
+                  )}
                   <div>
-                    <p className="text-sm font-semibold text-gray-800">Adebayo Fashions</p>
+                    <p className="text-sm font-semibold text-gray-800">{profile?.business_name || "Ma Boutique"}</p>
                     <p className="text-xs text-gray-400">Format recommandé : 400×400px, PNG ou JPG</p>
-                    <button className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
+                    <input
+                      type="file"
+                      id="logo-upload"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        try {
+                          const url = await uploadToStorage("avatars", file, `shops/${profile.id}`);
+                          if (!url) return;
+                          const { error } = await supabase
+                            .from("profiles")
+                            .update({ business_logo_url: url })
+                            .eq("id", profile.id);
+                          if (error) throw error;
+                          setProfile({ ...profile, business_logo_url: url });
+                        } catch (err) {
+                          console.error(err);
+                          alert("Erreur lors de l'upload du logo");
+                        }
+                      }}
+                    />
+                    <label htmlFor="logo-upload" className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
                       <i className="ri-upload-2-line text-xs"></i>Télécharger un logo
-                    </button>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -194,7 +383,7 @@ export default function SettingsPage() {
                 <h3 className="text-sm font-bold text-gray-800 mb-4">Informations de la boutique</h3>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <FieldRow label="Nom de la boutique" value={boutiqueForm.name} onChange={v => setBoutiqueForm(f=>({...f, name:v}))} />
+                    <FieldRow label="Nom de la boutique" value={boutiqueForm.name} onChange={v => setBoutiqueForm(f => ({ ...f, name: v }))} />
                     <div>
                       <label className="text-xs text-gray-500 block mb-1">URL de la boutique</label>
                       <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
@@ -202,7 +391,7 @@ export default function SettingsPage() {
                         <input
                           type="text"
                           value={boutiqueForm.slug}
-                          onChange={e => setBoutiqueForm(f=>({...f, slug:e.target.value}))}
+                          onChange={e => setBoutiqueForm(f => ({ ...f, slug: e.target.value }))}
                           className="flex-1 px-3 py-2.5 text-sm outline-none bg-gray-50"
                         />
                       </div>
@@ -212,7 +401,7 @@ export default function SettingsPage() {
                     <label className="text-xs text-gray-500 block mb-1">Description</label>
                     <textarea
                       value={boutiqueForm.description}
-                      onChange={e => setBoutiqueForm(f=>({...f, description:e.target.value}))}
+                      onChange={e => setBoutiqueForm(f => ({ ...f, description: e.target.value }))}
                       rows={3}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#125C8D] bg-gray-50 resize-none"
                     />
@@ -222,15 +411,15 @@ export default function SettingsPage() {
                       <label className="text-xs text-gray-500 block mb-1">Catégorie principale</label>
                       <select
                         value={boutiqueForm.category}
-                        onChange={e => setBoutiqueForm(f=>({...f, category:e.target.value}))}
+                        onChange={e => setBoutiqueForm(f => ({ ...f, category: e.target.value }))}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#125C8D] bg-gray-50 cursor-pointer"
                       >
-                        {["Mode & Vêtements","Electronique","Alimentation","Beauté & Cosmétiques","Sports"].map(c=><option key={c}>{c}</option>)}
+                        {["Mode & Vêtements", "Electronique", "Alimentation", "Beauté & Cosmétiques", "Sports"].map(c => <option key={c}>{c}</option>)}
                       </select>
                     </div>
-                    <FieldRow label="Site web" value={boutiqueForm.website} onChange={v => setBoutiqueForm(f=>({...f, website:v}))} />
+                    <FieldRow label="Site web" value={boutiqueForm.website} onChange={v => setBoutiqueForm(f => ({ ...f, website: v }))} />
                   </div>
-                  <FieldRow label="Instagram" value={boutiqueForm.instagram} onChange={v => setBoutiqueForm(f=>({...f, instagram:v}))} />
+                  <FieldRow label="Instagram" value={boutiqueForm.instagram} onChange={v => setBoutiqueForm(f => ({ ...f, instagram: v }))} />
                   <div className="flex justify-end pt-2">
                     <button className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity" style={{ backgroundColor: "#125C8D" }}>
                       Sauvegarder les modifications
@@ -241,49 +430,24 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Comptes Bancaires */}
-          {active === "banque" && (
-            <div>
-              <SectionTitle title="Comptes Bancaires" />
-              <div className="bg-white rounded-xl border border-gray-100 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-gray-800">Comptes enregistrés</h3>
-                  <button className="flex items-center gap-1.5 text-xs font-semibold text-[#125C8D] border border-[#125C8D]/30 px-3 py-1.5 rounded-lg hover:bg-[#125C8D]/5 transition-colors">
-                    <i className="ri-add-line"></i>Ajouter un compte
-                  </button>
-                </div>
-                {[
-                  { bank: "GTBank", num: "****1532", name: "ADEBAYO FASHIONS LTD", primary: true },
-                  { bank: "Access Bank", num: "****2291", name: "ADEBAYO FASHIONS LTD", primary: false },
-                ].map((b) => (
-                  <div key={b.bank} className="flex items-center gap-4 p-4 border border-gray-100 rounded-xl mb-3 last:mb-0">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-100 flex-shrink-0">
-                      <i className="ri-bank-line text-gray-500"></i>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-gray-800">{b.bank}</p>
-                        {b.primary && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#10B981]/10 text-[#10B981]">Défaut</span>}
-                      </div>
-                      <p className="text-xs text-gray-400">{b.num}</p>
-                      <p className="text-xs text-gray-400 uppercase">{b.name}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Notifications */}
           {active === "notifications" && (
             <div>
               <SectionTitle title="Notifications" />
+              <div className="mb-4">
+                <button
+                  onClick={() => navigate("/notifications")}
+                  className="text-xs font-semibold text-[#125C8D] hover:underline cursor-pointer"
+                >
+                  Voir l'historique des notifications →
+                </button>
+              </div>
               <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                 {notifRows.map((section, si) => (
                   <div key={section.section}>
                     <div className="grid grid-cols-[1fr_60px_60px_60px] items-center px-6 py-3 border-b border-gray-100 bg-gray-50">
                       <span className="text-sm font-bold text-gray-800">{section.section}</span>
-                      {["EMAIL","SMS","PUSH"].map(h => (
+                      {["EMAIL", "SMS", "PUSH"].map(h => (
                         <span key={h} className="text-[10px] font-bold text-gray-400 uppercase text-center">{h}</span>
                       ))}
                     </div>
@@ -293,12 +457,12 @@ export default function SettingsPage() {
                           <p className="text-sm font-medium text-gray-800">{item.label}</p>
                           <p className="text-xs text-gray-400">{item.sub}</p>
                         </div>
-                        {["email","sms","push"].map(type => (
+                        {["email", "sms", "push"].map(type => (
                           <div key={type} className="flex justify-center">
                             <input
                               type="checkbox"
                               checked={notifs[item.label]?.[type] ?? false}
-                              onChange={e => setNotifs(n => ({...n, [item.label]: {...n[item.label], [type]: e.target.checked}}))}
+                              onChange={e => setNotifs(n => ({ ...n, [item.label]: { ...n[item.label], [type]: e.target.checked } }))}
                               className="w-4 h-4 accent-[#125C8D] cursor-pointer"
                             />
                           </div>
@@ -330,7 +494,7 @@ export default function SettingsPage() {
                         <input
                           type="password"
                           value={passwords[key]}
-                          onChange={e => setPasswords(p => ({...p, [key]: e.target.value}))}
+                          onChange={e => setPasswords(p => ({ ...p, [key]: e.target.value }))}
                           className="w-full border border-gray-200 rounded-lg px-3 py-2.5 pr-10 text-sm outline-none focus:border-[#125C8D] bg-gray-50 transition-colors"
                         />
                         <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -340,13 +504,20 @@ export default function SettingsPage() {
                     </div>
                   ))}
                   {pwMismatch && <p className="text-xs text-red-500"><i className="ri-close-circle-line mr-1"></i>Les mots de passe ne correspondent pas</p>}
+                  {pwMessage && (
+                    <p className={`text-xs flex items-center gap-1 ${pwMessage.type === 'error' ? 'text-red-500' : 'text-green-600'}`}>
+                      <i className={`${pwMessage.type === 'error' ? 'ri-close-circle-line' : 'ri-checkbox-circle-line'}`}></i>
+                      {pwMessage.text}
+                    </p>
+                  )}
                   <div className="flex justify-end pt-2">
                     <button
-                      disabled={!passwords.current || !passwords.next || !passwords.confirm || pwMismatch}
+                      onClick={handleChangePassword}
+                      disabled={!passwords.current || !passwords.next || !passwords.confirm || pwMismatch || pwSaving}
                       className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ backgroundColor: "#125C8D" }}
                     >
-                      Modifier le mot de passe
+                      {pwSaving ? 'Mise à jour...' : 'Modifier le mot de passe'}
                     </button>
                   </div>
                 </div>
@@ -377,7 +548,7 @@ export default function SettingsPage() {
                 <div className="space-y-3">
                   {[
                     { browser: "Chrome", os: "Windows 11", loc: "Lagos, Nigeria", sub: "Actif maintenant", current: true },
-                    { browser: "Safari", os: "iPhone 14",  loc: "Lagos, Nigeria", sub: "Il y a 2 heures",  current: false },
+                    { browser: "Safari", os: "iPhone 14", loc: "Lagos, Nigeria", sub: "Il y a 2 heures", current: false },
                   ].map((s, i) => (
                     <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
                       <div className="flex items-center gap-3">
@@ -408,21 +579,21 @@ export default function SettingsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs text-gray-500 block mb-1">Langue d'interface</label>
-                      <select value={langForm.lang} onChange={e=>setLangForm(f=>({...f,lang:e.target.value}))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none bg-white cursor-pointer">
-                        {["English","Français","Yoruba","Hausa","Igbo"].map(l=><option key={l}>{l}</option>)}
+                      <select value={langForm.lang} onChange={e => setLangForm(f => ({ ...f, lang: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none bg-white cursor-pointer">
+                        {["English", "Français", "Yoruba", "Hausa", "Igbo"].map(l => <option key={l}>{l}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="text-xs text-gray-500 block mb-1">Devise principale</label>
-                      <select value={langForm.devise} onChange={e=>setLangForm(f=>({...f,devise:e.target.value}))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none bg-white cursor-pointer">
-                        {["Naira nigérian (₦)","Franc CFA (FCFA)","Dollar US ($)"].map(d=><option key={d}>{d}</option>)}
+                      <select value={langForm.devise} onChange={e => setLangForm(f => ({ ...f, devise: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none bg-white cursor-pointer">
+                        {["Naira nigérian (₦)", "Franc CFA (FCFA)", "Dollar US ($)"].map(d => <option key={d}>{d}</option>)}
                       </select>
                     </div>
                   </div>
                   <div>
                     <label className="text-xs text-gray-500 block mb-1">Fuseau horaire</label>
-                    <select value={langForm.timezone} onChange={e=>setLangForm(f=>({...f,timezone:e.target.value}))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none bg-white cursor-pointer">
-                      {["Africa/Lagos (GMT+1)","Africa/Cotonou (GMT+1)","Europe/Paris (GMT+2)","UTC (GMT+0)"].map(t=><option key={t}>{t}</option>)}
+                    <select value={langForm.timezone} onChange={e => setLangForm(f => ({ ...f, timezone: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none bg-white cursor-pointer">
+                      {["Africa/Lagos (GMT+1)", "Africa/Cotonou (GMT+1)", "Europe/Paris (GMT+2)", "UTC (GMT+0)"].map(t => <option key={t}>{t}</option>)}
                     </select>
                   </div>
                   <div className="flex justify-end">

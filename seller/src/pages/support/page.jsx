@@ -1,6 +1,6 @@
 import { useState } from "react";
 import DashboardLayout from "@/components/feature/DashboardLayout";
-import { mockKycDocuments, mockTickets, mockFaq } from "@/mocks/support";
+import { mockFaq } from "@/mocks/support";
 
 const kycSteps = [
   { key: "identity", label: "Identité", status: "verified", icon: "ri-user-3-line", detail: "Pièce d'identité vérifiée" },
@@ -10,10 +10,10 @@ const kycSteps = [
 ];
 
 const statusConfig = {
-  verified:    { label: "Vérifié",      color: "text-[#10B981]", bg: "bg-[#10B981]/5 border-[#10B981]/20", dot: "bg-[#10B981]" },
-  pending:     { label: "En cours",     color: "text-amber-600",  bg: "bg-amber-50 border-amber-200",       dot: "bg-amber-500" },
-  rejected:    { label: "Rejeté",       color: "text-red-500",    bg: "bg-red-50 border-red-200",           dot: "bg-red-500" },
-  not_started: { label: "Non commencé", color: "text-gray-400",   bg: "bg-gray-50 border-gray-200",         dot: "bg-gray-300" },
+  verified: { label: "Vérifié", color: "text-[#10B981]", bg: "bg-[#10B981]/5 border-[#10B981]/20", dot: "bg-[#10B981]" },
+  pending: { label: "En cours", color: "text-amber-600", bg: "bg-amber-50 border-amber-200", dot: "bg-amber-500" },
+  rejected: { label: "Rejeté", color: "text-red-500", bg: "bg-red-50 border-red-200", dot: "bg-red-500" },
+  not_started: { label: "Non commencé", color: "text-gray-400", bg: "bg-gray-50 border-gray-200", dot: "bg-gray-300" },
 };
 
 const kycCompletion = Math.round((kycSteps.filter(s => s.status === "verified").length / kycSteps.length) * 100);
@@ -45,7 +45,7 @@ export default function SupportPage() {
             <i className="ri-customer-service-2-line text-[#FF6A00] text-lg"></i>
           </div>
           <div>
-            <p className="text-xl font-bold text-gray-900">{mockTickets.filter(t => t.status === "open").length}</p>
+            <p className="text-xl font-bold text-gray-900">—</p>
             <p className="text-[11px] text-gray-400">Tickets ouverts</p>
           </div>
         </div>
@@ -70,11 +70,10 @@ export default function SupportPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === tab.id
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${activeTab === tab.id
                 ? "text-white"
                 : "text-gray-500 bg-white border border-gray-100 hover:bg-gray-50"
-            }`}
+              }`}
             style={activeTab === tab.id ? { backgroundColor: "#125C8D" } : {}}
           >
             <i className={`${tab.icon} text-sm`}></i>
@@ -109,10 +108,9 @@ export default function SupportPage() {
                 const cfg = statusConfig[step.status];
                 return (
                   <div key={step.key} className={`flex items-center gap-3 p-4 rounded-xl border ${cfg.bg}`}>
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      step.status === "verified" ? "bg-[#10B981]/15" :
-                      step.status === "pending" ? "bg-amber-100" : "bg-gray-100"
-                    }`}>
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${step.status === "verified" ? "bg-[#10B981]/15" :
+                        step.status === "pending" ? "bg-amber-100" : "bg-gray-100"
+                      }`}>
                       <i className={`${step.icon} text-sm ${cfg.color}`}></i>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -157,28 +155,9 @@ export default function SupportPage() {
 
       {/* Tickets Tab */}
       {activeTab === "tickets" && (
-        <div className="space-y-3">
-          {mockTickets.map((ticket) => (
-            <div key={ticket.id} className="bg-white rounded-xl border border-gray-100 p-4 hover:border-[#125C8D]/30 transition-all cursor-pointer">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3">
-                  <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${ticket.status === "open" ? "bg-[#FF6A00]" : "bg-gray-300"}`}></div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800">{ticket.subject}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{ticket.id} · {ticket.created_at}</p>
-                  </div>
-                </div>
-                <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
-                  ticket.status === "open" ? "bg-[#FF6A00]/10 text-[#FF6A00]" : "bg-gray-100 text-gray-500"
-                }`}>
-                  {ticket.status === "open" ? "Ouvert" : "Résolu"}
-                </span>
-              </div>
-              {ticket.messages?.length > 0 && (
-                <p className="text-xs text-gray-500 mt-2 ml-5 line-clamp-1">{ticket.messages[ticket.messages.length - 1].content}</p>
-              )}
-            </div>
-          ))}
+        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-400">
+          <i className="ri-message-2-line text-3xl mb-2 block"></i>
+          <p className="text-sm">Utilisez l'onglet "Messages" pour contacter le support</p>
         </div>
       )}
 

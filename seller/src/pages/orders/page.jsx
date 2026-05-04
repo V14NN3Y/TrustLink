@@ -1,45 +1,66 @@
 import { useState } from "react";
+import { useAuth } from "@/lib/AuthContext";
+import { useSellerOrders } from "@/hooks/useSellerOrders";
 import DashboardLayout from "@/components/feature/DashboardLayout";
-import { mockOrders } from "@/mocks/orders";
 import OrderStatusBadge from "./components/OrderStatusBadge";
 import OrderDetailModal from "./components/OrderDetailModal";
 import QRBordereau from "./components/QRBordereau";
 
 const tabs = [
   { value: "all", label: "Toutes" },
-  { value: "new", label: "Nouvelles" },
-  { value: "ready", label: "Prêtes à déposer" },
-  { value: "hub_received", label: "Reçues au Hub" },
-  { value: "in_transit", label: "En transit" },
+  { value: "processing", label: "En cours de traitement" },
+  { value: "in_transit", label: "En cours de livraison" },
   { value: "delivered", label: "Livrées" },
-  { value: "completed", label: "Terminées" },
+  { value: "cancelled", label: "Annulées" },
 ];
 
 export default function OrdersPage() {
+  const { user } = useAuth();
+  const { orders, loading } = useSellerOrders(user?.id);
   const [activeStatus, setActiveStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [detailOrder, setDetailOrder] = useState(null);
   const [showQR, setShowQR] = useState(null);
 
-  const filtered = mockOrders.filter((o) => {
-    const matchStatus = activeStatus === "all" || o.status === activeStatus;
-    const matchSearch =
-      search === "" ||
-      o.id.toLowerCase().includes(search.toLowerCase()) ||
-      o.product.toLowerCase().includes(search.toLowerCase()) ||
-      o.buyer.toLowerCase().includes(search.toLowerCase());
-    return matchStatus && matchSearch;
+  const filtered = orders.filter((o) => {
+    if (activeStatus === "all") return true;
+    if (activeStatus === "processing") return o.status === "paid" || o.status === "processing";
+    if (activeStatus === "delivered") return o.status === "delivered" || o.status === "confirmed";
+    if (activeStatus === "cancelled") return o.status === "cancelled" || o.status === "refunded" || o.status === "disputed";
+    return o.status === activeStatus;
+  }).filter((o) => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (
+      (o.id?.toLowerCase() || "").includes(s) ||
+      (o.product?.toLowerCase() || "").includes(s) ||
+      (o.buyer?.toLowerCase() || "").includes(s)
+    );
   });
-
-  const totalFiltered = filtered.reduce((sum, o) => sum + o.amount_ngn, 0);
-
+  const totalFiltered = filtered.reduce((sum, o) => sum + (o.amount_ngn || 0), 0);
+  const totalAll = orders.reduce((sum, o) => sum + (o.amount_ngn || 0), 0);
+  const tabCount = (val) => {
+    if (val === "all") return orders.length;
+    if (val === "processing") return orders.filter((o) => o.status === "paid" || o.status === "processing").length;
+    if (val === "delivered") return orders.filter((o) => o.status === "delivered" || o.status === "confirmed").length;
+    if (val === "cancelled") return orders.filter((o) => o.status === "cancelled" || o.status === "refunded" || o.status === "disputed").length;
+    return orders.filter((o) => o.status === val).length;
+  };
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="w-8 h-8 border-4 border-slate-200 border-t-[#125C8D] rounded-full animate-spin"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
   return (
     <DashboardLayout>
-      {/* Top bar: count + search + export */}
       <div className="flex items-center gap-3 mb-5 flex-wrap">
         <p className="text-sm font-semibold text-gray-700">
-          {mockOrders.length} commandes · Total{" "}
-          <span className="text-[#125C8D]">₦{mockOrders.reduce((s,o)=>s+o.amount_ngn,0).toLocaleString()}</span>
+          {orders.length} commandes · Total{" "}
+          <span className="text-[#125C8D]">₦{totalAll.toLocaleString()}</span>
         </p>
         <div className="ml-auto flex items-center gap-2">
           <div className="relative">
@@ -50,7 +71,6 @@ export default function OrdersPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="border border-gray-200 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-700 outline-none w-48 focus:border-[#125C8D] transition-colors"
-              style={{ fontFamily: "'Inter', sans-serif" }}
             />
           </div>
           <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-white whitespace-nowrap" style={{ backgroundColor: "#125C8D" }}>
@@ -58,46 +78,33 @@ export default function OrdersPage() {
           </button>
         </div>
       </div>
-
-      {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-5 overflow-x-auto">
-        {tabs.map((tab) => {
-          const count = tab.value === "all" ? mockOrders.length : mockOrders.filter((o) => o.status === tab.value).length;
-          return (
-            <button
-              key={tab.value}
-              onClick={() => setActiveStatus(tab.value)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer transition-all ${
-                activeStatus === tab.value
-                  ? "bg-white text-[#125C8D] shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+        {tabs.map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setActiveStatus(tab.value)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer transition-all ${activeStatus === tab.value
+              ? "bg-white text-[#125C8D] shadow-sm"
+              : "text-gray-500 hover:text-gray-700"
               }`}
-            >
-              {tab.label}
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${activeStatus === tab.value ? "bg-[#125C8D]/10 text-[#125C8D]" : "bg-gray-200 text-gray-500"}`}>
-                {count}
-              </span>
-            </button>
-          );
-        })}
+          >
+            {tab.label}
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${activeStatus === tab.value ? "bg-[#125C8D]/10 text-[#125C8D]" : "bg-gray-200 text-gray-500"}`}>
+              {tabCount(tab.value)}
+            </span>
+          </button>
+        ))}
       </div>
-
-      {/* Table */}
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                  ID / Date <i className="ri-arrow-up-down-line ml-0.5 opacity-50"></i>
-                </th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">ID / Date</th>
                 <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Acheteur</th>
                 <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Articles</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                  Montant <i className="ri-arrow-up-down-line ml-0.5 opacity-50"></i>
-                </th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Montant</th>
                 <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Statut</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Échéance Hub</th>
                 <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Actions</th>
               </tr>
             </thead>
@@ -110,32 +117,21 @@ export default function OrdersPage() {
                 >
                   <td className="px-4 py-3">
                     <p className="text-sm font-bold text-[#125C8D]">{order.id}</p>
-                    <p className="text-[10px] text-gray-400">{order.created_at}</p>
+                    <p className="text-[10px] text-gray-400">{order.created_at ? new Date(order.created_at).toLocaleDateString("fr-FR") : ""}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-sm font-medium text-gray-800">{order.buyer}</p>
-                    <p className="text-[10px] text-gray-400">{order.buyer_city}, Bénin</p>
+                    <p className="text-sm font-medium text-gray-800">{order.buyer || "Client"}</p>
+                    <p className="text-[10px] text-gray-400">{order.buyer_city || "Cotonou"}, Bénin</p>
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-xs font-medium text-gray-700 max-w-[180px] truncate">{order.product}</p>
-                    <p className="text-[10px] text-gray-400">FCFA {order.amount_fcfa.toLocaleString()}</p>
+                    <p className="text-[10px] text-gray-400">FCFA {(order.amount_fcfa || 0).toLocaleString()}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-sm font-bold text-gray-900">₦{order.amount_ngn.toLocaleString()}</p>
+                    <p className="text-sm font-bold text-gray-900">₦{(order.amount_ngn || 0).toLocaleString()}</p>
                   </td>
                   <td className="px-4 py-3">
                     <OrderStatusBadge status={order.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    {order.deadline ? (
-                      <span className={`text-xs font-semibold ${
-                        order.status === "ready" ? "text-orange-500" : "text-gray-500"
-                      }`}>
-                        {order.deadline}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-gray-300">—</span>
-                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -152,12 +148,6 @@ export default function OrdersPage() {
                         title="Détail"
                       >
                         <i className="ri-eye-line text-xs"></i>
-                      </button>
-                      <button
-                        className="w-7 h-7 rounded-md flex items-center justify-center bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors cursor-pointer"
-                        title="Supprimer"
-                      >
-                        <i className="ri-delete-bin-line text-xs"></i>
                       </button>
                     </div>
                   </td>
@@ -179,7 +169,6 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
-
       {detailOrder && <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} />}
       {showQR && <QRBordereau order={showQR} onClose={() => setShowQR(null)} />}
     </DashboardLayout>

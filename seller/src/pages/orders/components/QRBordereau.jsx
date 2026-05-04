@@ -44,7 +44,9 @@ export default function QRBordereau({ order, onClose }) {
         </div>
 
         <div className="flex justify-center mb-3">
-          <MiniQR code={order.qr_code} size={5} />
+          <div className="bg-white px-6 py-4 rounded-xl border border-gray-200">
+            <p className="font-mono text-lg font-bold text-gray-900">{order.id}</p>
+          </div>
         </div>
 
         <p className="font-mono text-sm font-bold text-gray-900 mb-1">{order.id}</p>

@@ -1,13 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate, NavLink } from "react-router-dom";
-
-const navItems = [
-  { path: "/", icon: "ri-dashboard-3-line", label: "Dashboard" },
-  { path: "/orders", icon: "ri-shopping-bag-3-line", label: "Commandes", badge: 34 },
-  { path: "/catalog", icon: "ri-store-2-line", label: "Catalogue" },
-  { path: "/wallet", icon: "ri-wallet-3-line", label: "Wallet" },
-  { path: "/support", icon: "ri-customer-service-2-line", label: "Support & KYC" },
-];
+import { useSellerOrders } from "@/hooks/useSellerOrders";
+import { useAuth } from "@/lib/AuthContext";
 
 const profileMenuItems = [
   { icon: "ri-user-line", label: "Mon Profil", path: "/settings/profile" },
@@ -22,6 +16,19 @@ export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user, profile, logout } = useAuth();
+  const { orders } = useSellerOrders(user?.id);
+  const toProcessCount = orders.filter(o => o.status === 'paid' || o.status === 'processing').length;
+  // navItems est maintenant DANS le composant, après toProcessCount
+  const navItems = [
+    { path: "/", icon: "ri-dashboard-3-line", label: "Dashboard" },
+    { path: "/orders", icon: "ri-shopping-bag-3-line", label: "Commandes", badge: toProcessCount > 0 ? toProcessCount : undefined },
+    { path: "/catalog", icon: "ri-store-2-line", label: "Catalogue" },
+    { path: "/reviews", icon: "ri-star-line", label: "Avis" },   // <-- AJOUT
+    { path: "/stats", icon: "ri-bar-chart-line", label: "Statistiques" },
+    { path: "/support", icon: "ri-customer-service-2-line", label: "Support & KYC" },
+    { path: "/messages", icon: "ri-message-3-line", label: "Messages" },
+  ];
 
   const isActive = (path) => {
     if (path === "/") return location.pathname === "/";
@@ -53,9 +60,8 @@ export default function Sidebar() {
               <NavLink
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all cursor-pointer ${
-                  active ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5 hover:text-white/90"
-                }`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all cursor-pointer ${active ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5 hover:text-white/90"
+                  }`}
               >
                 <i className={`${item.icon} text-base w-5 text-center flex-shrink-0 ${active ? "text-[#10B981]" : ""}`}></i>
                 <span className="text-sm font-medium flex-1 whitespace-nowrap">{item.label}</span>
@@ -76,8 +82,8 @@ export default function Sidebar() {
         {menuOpen && (
           <div className="absolute bottom-full left-3 right-3 mb-2 bg-[#0E3A4F] border border-white/15 rounded-xl overflow-hidden shadow-2xl">
             <div className="px-4 py-3 border-b border-white/10">
-              <p className="text-white text-sm font-semibold">Adebayo Fashions</p>
-              <p className="text-white/50 text-xs">adebayo@trustlink.ng</p>
+              <p className="text-white text-sm font-semibold">{profile?.business_name || "Vendeur"}</p>
+              <p className="text-white/50 text-xs">{profile?.email || ""}</p>
             </div>
             <div className="py-1">
               {profileMenuItems.map((item) => (
@@ -92,7 +98,10 @@ export default function Sidebar() {
               ))}
             </div>
             <div className="border-t border-white/10 py-1">
-              <button className="w-full flex items-center gap-3 px-4 py-2.5 text-red-400 hover:text-red-300 hover:bg-white/5 transition-all text-left">
+              <button
+                onClick={() => { setMenuOpen(false); logout(); }}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-red-400 hover:text-red-300 hover:bg-white/5 transition-all text-left"
+              >
                 <i className="ri-logout-box-r-line text-sm w-4 text-center flex-shrink-0"></i>
                 <span className="text-sm font-medium">Déconnexion</span>
               </button>
@@ -106,17 +115,19 @@ export default function Sidebar() {
         >
           <div className="relative flex-shrink-0">
             <img
-              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face"
-              alt="Adebayo Fashions"
+              src={profile?.avatar_url || ""}
+              alt={profile?.business_name || "Vendeur"}
               className="w-9 h-9 rounded-full object-cover"
-              onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
+              onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
             />
-            <div className="w-9 h-9 rounded-full items-center justify-center text-white font-bold text-sm flex-shrink-0 hidden" style={{ backgroundColor: "#125C8D" }}>AF</div>
+            <div className="w-9 h-9 rounded-full items-center justify-center text-white font-bold text-sm flex-shrink-0 flex" style={{ backgroundColor: "#125C8D" }}>
+              {profile?.business_name?.slice(0, 2)?.toUpperCase() || "SE"}
+            </div>
             <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#10B981] border-2 border-[#0E3A4F]"></span>
           </div>
           <div className="flex-1 min-w-0 text-left">
-            <div className="text-white text-sm font-semibold truncate">Adebayo Fashions</div>
-            <div className="text-white/50 text-[10px] truncate">Lagos Hub · Vérifié</div>
+            <div className="text-white text-sm font-semibold truncate">{profile?.business_name || "Vendeur"}</div>
+            <div className="text-white/50 text-[10px] truncate">{profile?.default_city || "Hub"} · Vérifié</div>
           </div>
           <i className={`ri-arrow-${menuOpen ? "down" : "up"}-s-line text-white/40 text-sm flex-shrink-0`}></i>
         </button>
