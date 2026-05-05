@@ -31,7 +31,7 @@ export function useSupabaseOrders() {
     const normalized = (data || []).map((order) => ({
       id: order.id,
       ref: `TL-${new Date(order.created_at).getFullYear()}-${order.id.slice(-4)}`,
-      status: (order.status || 'pending').toUpperCase(),
+      status: order.status || 'pending',
       journey_step: mapStatusToStep(order.status),
       hub_origin: order.shipping_city || 'Lagos',
       seller_name: order.order_items?.[0]?.seller?.full_name || '—',
@@ -52,7 +52,7 @@ export function useSupabaseOrders() {
     const { error: err } = await supabase
       .from('orders')
       .update({
-        status: updatedOrder.status.toLowerCase(),
+        status: updatedOrder.status,
         updated_at: new Date().toISOString(),
       })
       .eq('id', updatedOrder.id);

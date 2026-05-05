@@ -1,11 +1,11 @@
 import { useState } from 'react';
 
 const STEPS = [
-  { key: 'PREPARING', label: 'Préparation', icon: 'ri-archive-line' },
-  { key: 'IN_TRANSIT', label: 'En transit', icon: 'ri-truck-line' },
-  { key: 'CUSTOMS', label: 'Douane', icon: 'ri-building-2-line' },
-  { key: 'ARRIVED', label: 'Arrivé', icon: 'ri-map-pin-line' },
-  { key: 'COMPLETED', label: 'Complété', icon: 'ri-check-double-line' },
+  { key: 'preparing', label: 'Préparation', icon: 'ri-archive-line' },
+  { key: 'in_transit', label: 'En transit', icon: 'ri-truck-line' },
+  { key: 'customs', label: 'Douane', icon: 'ri-building-2-line' },
+  { key: 'arrived', label: 'Arrivé', icon: 'ri-map-pin-line' },
+  { key: 'completed', label: 'Complété', icon: 'ri-check-double-line' },
 ];
 
 export default function VoyageUpdateModal({ voyage, onClose, onUpdate }) {
@@ -15,7 +15,7 @@ export default function VoyageUpdateModal({ voyage, onClose, onUpdate }) {
   const [saved, setSaved] = useState(false);
 
   const hasChanges = newStatus !== voyage.status || customsAgent !== (voyage.customs_agent || '');
-  const showAgent = newStatus === 'CUSTOMS' || newStatus === 'ARRIVED';
+  const showAgent = newStatus === 'customs' || newStatus === 'arrived';
 
   function handleSave() {
     if (!hasChanges) return;
@@ -24,7 +24,7 @@ export default function VoyageUpdateModal({ voyage, onClose, onUpdate }) {
       const updated = {
         ...voyage, status: newStatus,
         customs_agent: customsAgent || undefined,
-        actual_arrival: (newStatus === 'ARRIVED' || newStatus === 'COMPLETED') && !voyage.actual_arrival
+        actual_arrival: (newStatus === 'arrived' || newStatus === 'completed') && !voyage.actual_arrival
           ? new Date().toISOString() : voyage.actual_arrival,
       };
       setSaving(false); setSaved(true);

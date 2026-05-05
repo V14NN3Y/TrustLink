@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { formatXOF, formatNGN, formatDate } from '@/components/base/DataTransformer';
 
 const ITEMS_PER_PAGE = 8;
-const ALL_STATUSES = ['PENDING', 'FUNDED', 'IN_TRANSIT', 'CUSTOMS', 'DELIVERED', 'DISPUTED'];
+const ALL_STATUSES = ['pending', 'paid', 'processing', 'in_transit', 'delivered', 'confirmed', 'disputed', 'cancelled', 'refunded'];
 
 export default function OrdersTable({ orders, onSelect, onUpdate }) {
   const [search, setSearch] = useState('');

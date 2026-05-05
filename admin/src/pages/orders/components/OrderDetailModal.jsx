@@ -4,7 +4,7 @@ import StatusBadge from '@/components/base/StatusBadge';
 import { supabase } from '@/lib/supabaseClient';
 import { formatXOF, formatNGN, formatDate } from '@/components/base/DataTransformer';
 
-const ALL_STATUSES = ['PENDING', 'FUNDED', 'IN_TRANSIT', 'CUSTOMS', 'DELIVERED', 'DISPUTED'];
+const ALL_STATUSES = ['pending', 'paid', 'processing', 'in_transit', 'delivered', 'confirmed', 'disputed', 'cancelled', 'refunded'];
 
 export default function OrderDetailModal({ order, onClose, onUpdate }) {
   const [tab, setTab] = useState('info');
@@ -66,7 +66,7 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
 }
 
   function handleDisputeConfirm() {
-    onUpdate({ ...order, status: 'DELIVERED' });
+    onUpdate({ ...order, status: 'delivered' });
     setDisputePhase('done');
     setTimeout(() => onClose(), 1500);
   }
@@ -74,7 +74,7 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
   const tabs = [
     { key: 'info', label: 'Informations', icon: 'ri-information-line' },
     { key: 'journey', label: 'Parcours', icon: 'ri-map-pin-time-line' },
-    ...(order.status === 'DISPUTED' ? [{ key: 'dispute', label: 'Vidéo litige', icon: 'ri-video-line' }] : []),
+    ...(order.status === 'disputed' ? [{ key: 'dispute', label: 'Vidéo litige', icon: 'ri-video-line' }] : []),
   ];
 
   return (
@@ -175,7 +175,7 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
             </div>
           )}
 
-          {tab === 'dispute' && order.status === 'DISPUTED' && (
+          {tab === 'dispute' && order.status === 'disputed' && (
             <div className="space-y-4">
               {order.dispute_video_url && (
                 <div>

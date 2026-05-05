@@ -49,7 +49,7 @@ export default function DisputeCenter({ disputes, onUpdate }) {
             <button key={d.id} onClick={() => setSelected(d)} className={`w-full text-left px-4 py-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer ${selected.id === d.id ? 'bg-blue-50 border-l-2 border-l-trustblue' : ''}`}>
               <div className="flex items-start justify-between gap-2 mb-1">
                 <p className="text-sm font-semibold text-slate-800 truncate">{d.order_ref}</p>
-                <StatusBadge status={d.status === 'OPEN' ? 'DISPUTED' : d.status === 'INVESTIGATING' ? 'PENDING' : 'DELIVERED'} />
+                <StatusBadge status={d.status === 'OPEN' ? 'disputed' : d.status === 'INVESTIGATING' ? 'pending' : 'resolved'} />
               </div>
               <p className="text-xs text-slate-500 truncate">{d.buyer_name} vs {d.seller_name}</p>
               <p className="text-xs font-bold text-trustblue mt-0.5">{formatXOF(d.amount_xof)}</p>
