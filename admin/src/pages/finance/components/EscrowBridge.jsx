@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { ESCROW_CONFIG } from '@/mocks/finance';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { formatXOF, formatNGN, convertNGNtoXOF } from '@/components/base/DataTransformer';
 

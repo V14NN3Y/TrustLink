@@ -1,20 +1,29 @@
 import { useState, useRef } from 'react';
-import { ADMIN_PROFILE } from '@/mocks/profile';
+import { useAuth } from '@/lib/AuthContext';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function ProfileInfo() {
-  const [profile, setProfile] = useState(ADMIN_PROFILE);
-  const [draft, setDraft] = useState(ADMIN_PROFILE);
+  const { profile, user } = useAuth();
+  const [draft, setDraft] = useState({
+    name: profile?.full_name || '',
+    email: profile?.email || user?.email || '',
+    phone: profile?.phone || '',
+    role: profile?.role || 'admin',
+  });
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const fileRef = useRef(null);
 
-  function handleSave() {
-    setProfile(draft); setEditing(false); setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  async function handleSave() {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ full_name: draft.name, phone: draft.phone })
+      .eq('id', user.id);
+    if (!error) { setEditing(false); setSaved(true); setTimeout(() => setSaved(false), 3000); }
   }
 
   const fields = [
-    { label: 'Nom complet', key: 'name' },
+    { label: 'Nom complet', key: 'full_name' },
     { label: 'Email', key: 'email' },
     { label: 'Téléphone', key: 'phone' },
     { label: 'Rôle', key: 'role' },
@@ -34,7 +43,7 @@ export default function ProfileInfo() {
       <div className="flex items-center gap-5 mb-8">
         <div className="relative">
           <div className="w-20 h-20 rounded-full bg-trustblue flex items-center justify-center">
-            {profile.avatar ? <img src={profile.avatar} alt="" className="w-full h-full rounded-full object-cover" /> : <span className="font-bold text-white text-2xl" style={{ fontFamily: 'Poppins, sans-serif' }}>AD</span>}
+            {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : <span className="font-bold text-white text-2xl" style={{ fontFamily: 'Poppins, sans-serif' }}>AD</span>}
           </div>
           {editing && (
             <button onClick={() => fileRef.current?.click()} className="absolute -bottom-1 -right-1 w-7 h-7 bg-blue-100 border-2 border-white rounded-full flex items-center justify-center cursor-pointer">
@@ -47,9 +56,9 @@ export default function ProfileInfo() {
           if (f) setDraft(d => ({ ...d, avatar: URL.createObjectURL(f) }));
         }} />
         <div>
-          <p className="font-bold text-slate-800 text-lg" style={{ fontFamily: 'Poppins, sans-serif' }}>{profile.name}</p>
+          <p className="font-bold text-slate-800 text-lg" style={{ fontFamily: 'Poppins, sans-serif' }}>{profile.full_name}</p>
           <p className="text-sm text-slate-500">{profile.role}</p>
-          <p className="text-xs text-slate-400 mt-0.5">Membre depuis {new Date(profile.joined_at).getFullYear()}</p>
+          <p className="text-xs text-slate-400 mt-0.5">Membre depuis {new Date(profile.created_at).getFullYear()}</p>
         </div>
       </div>
 
@@ -58,8 +67,8 @@ export default function ProfileInfo() {
           <div key={f.key}>
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">{f.label}</label>
             {editing
-              ? <input value={String(draft[f.key])} onChange={e => setDraft(d => ({ ...d, [f.key]: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-trustblue" />
-              : <p className="text-sm text-slate-700 px-3 py-2.5 bg-slate-50 rounded-xl">{String(profile[f.key])}</p>
+              ? <input value={String(draft[f.key] ?? '')} onChange={e => setDraft(d => ({ ...d, [f.key]: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-trustblue" />
+              : <p className="text-sm text-slate-700 px-3 py-2.5 bg-slate-50 rounded-xl">{String(profile?.[f.key] ?? '—')}</p>
             }
           </div>
         ))}
@@ -72,7 +81,7 @@ export default function ProfileInfo() {
       )}
       {editing && (
         <div className="flex gap-3">
-          <button onClick={() => { setDraft({ ...profile }); setEditing(false); }} className="px-6 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-semibold text-sm cursor-pointer">Annuler</button>
+          <button onClick={() => { setDraft({ full_name: profile?.full_name || '', email: profile?.email || user?.email || '', phone: profile?.phone || '', role: profile?.role || 'admin' }); setEditing(false); }} className="px-6 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-semibold text-sm cursor-pointer">Annuler</button>
           <button onClick={handleSave} className="px-6 py-2.5 bg-trustblue text-white rounded-xl font-semibold text-sm cursor-pointer">Sauvegarder</button>
         </div>
       )}

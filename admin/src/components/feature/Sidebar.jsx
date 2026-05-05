@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: 'ri-dashboard-3-line', badge: null, exact: true },
@@ -6,6 +6,11 @@ const navItems = [
   { path: '/logistics', label: 'Logistique', icon: 'ri-truck-line', badge: 3, exact: false },
   { path: '/finance', label: 'Finance', icon: 'ri-bank-line', badge: 4, exact: false },
   { path: '/moderation', label: 'Modération', icon: 'ri-shield-check-line', badge: 5, exact: false },
+  { path: '/users', label: 'Utilisateurs', icon: 'ri-user-line', badge: null, exact: false },
+  { path: '/products', label: 'Produits', icon: 'ri-box-line', badge: null, exact: false },
+  { path: '/messages', label: 'Messagerie', icon: 'ri-message-3-line', badge: null, exact: false },
+  { path: '/admin-logs', label: 'Historique', icon: 'ri-history-line', badge: null, exact: false },
+  { path: '/delivery-videos', label: 'Vidéos réception', icon: 'ri-video-line', badge: null, exact: false },
 ];
 
 export default function Sidebar() {
@@ -20,17 +25,12 @@ export default function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 w-64 h-screen bg-white border-r border-slate-100 z-30 flex flex-col">
       <div className="px-6 py-5 border-b border-slate-100">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-trustblue flex items-center justify-center flex-shrink-0">
-            <i className="ri-links-line text-white text-lg" />
-          </div>
-          <div>
-            <h1 style={{ fontFamily: 'Poppins, sans-serif' }} className="font-bold text-trustblue text-base leading-tight">TrustLink</h1>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="live-dot" />
-              <span className="text-xs text-slate-500" style={{ fontFamily: 'Inter, sans-serif' }}>Système opérationnel</span>
-            </div>
-          </div>
+        <Link to="/" className="flex items-center gap-3">
+          <img src="/TrustLink_Logo_Orange.png" alt="TrustLink" className="h-8 w-auto" />
+        </Link>
+        <div className="flex items-center gap-1.5 mt-3">
+          <span className="live-dot" />
+          <span className="text-xs text-slate-500" style={{ fontFamily: 'Inter, sans-serif' }}>Système opérationnel</span>
         </div>
       </div>
 
@@ -49,9 +49,8 @@ export default function Sidebar() {
                   <i className={`${item.icon} text-base flex-shrink-0`} />
                   <span className="flex-1 text-left">{item.label}</span>
                   {item.badge && (
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      active ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-600'
-                    }`}>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${active ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-600'
+                      }`}>
                       {item.badge}
                     </span>
                   )}

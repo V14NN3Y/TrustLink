@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { SESSIONS } from '@/mocks/profile';
+import { supabase } from '@/lib/supabaseClient';
 import { formatDateTime } from '@/components/base/DataTransformer';
 
 export default function SecuritySettings() {
-  const [sessions, setSessions] = useState(SESSIONS);
+  const [sessions, setSessions] = useState([]); // TODO: charger via supabase.auth.admin.listUserSessions()
   const [showPwdForm, setShowPwdForm] = useState(false);
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
@@ -12,11 +12,12 @@ export default function SecuritySettings() {
   const [pwdSaved, setPwdSaved] = useState(false);
   const [twoFA, setTwoFA] = useState(true);
 
-  function handlePwdSave() {
-    if (!current) { setError('Le mot de passe actuel est requis.'); return; }
-    if (next.length < 8) { setError('Le nouveau mot de passe doit faire au moins 8 caractères.'); return; }
-    if (next !== confirm) { setError('Les mots de passe ne correspondent pas.'); return; }
-    setError(''); setPwdSaved(true); setShowPwdForm(false);
+  async function handlePwdSave() {
+    if (!next || next.length < 8) { setError('Min 8 caractères'); return; }
+    if (next !== confirm) { setError('Mots de passe différents'); return; }
+    const { error } = await supabase.auth.updateUser({ password: next });
+    if (error) { setError(error.message); return; }
+    setPwdSaved(true); setShowPwdForm(false);
     setCurrent(''); setNext(''); setConfirm('');
     setTimeout(() => setPwdSaved(false), 3000);
   }

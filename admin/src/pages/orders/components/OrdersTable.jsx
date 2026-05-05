@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { ORDERS } from '@/mocks/orders';
 import StatusBadge from '@/components/base/StatusBadge';
+import { supabase } from '@/lib/supabaseClient';
 import { formatXOF, formatNGN, formatDate } from '@/components/base/DataTransformer';
 
 const ITEMS_PER_PAGE = 8;
-const ALL_STATUSES = ['PENDING', 'FUNDED', 'IN_TRANSIT', 'CUSTOMS', 'DELIVERED', 'DISPUTED', 'pending_admin', 'validated', 'dispatched_to_seller'];
+const ALL_STATUSES = ['PENDING', 'FUNDED', 'IN_TRANSIT', 'CUSTOMS', 'DELIVERED', 'DISPUTED'];
 
 export default function OrdersTable({ orders, onSelect, onUpdate }) {
   const [search, setSearch] = useState('');
@@ -39,11 +39,43 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
   const safePage = Math.min(page, totalPages);
   const paginated = filtered.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
 
-  function handleStatusChange(order, status) {
+  async function handleStatusChange(order, status) {
     onUpdate({ ...order, status });
     setDropdownId(null);
     setFlashId(order.id);
     setTimeout(() => setFlashId(null), 1000);
+
+    // Créer une notification pour le buyer
+    // D'abord récupérer le buyer_id depuis la commande
+    const { data: orderData } = await supabase
+      .from('orders')
+      .select('buyer_id')
+      .eq('id', order.id)
+      .single();
+
+
+    if (orderData?.buyer_id) {
+      await supabase.from('notifications').insert({
+        user_id: orderData.buyer_id,
+        type: 'order_update',
+        title: `Commande ${order.ref} : statut mis à jour → ${status}`,
+        body: `Votre commande est maintenant : ${status}`,
+        resource_type: 'order',
+        resource_id: order.id,
+        is_read: false,
+      });
+    }
+
+    // Log admin
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    await supabase.from('admin_logs').insert({
+      admin_id: adminUser.id,
+      action: 'order_status_changed',
+      resource_type: 'order',
+      resource_id: order.id,
+      old_value: { status: order.status },
+      new_value: { status },
+    });
   }
 
   const inputClass = "px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-trustblue transition-colors bg-white";
@@ -91,10 +123,7 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
             ) : paginated.map(order => (
               <tr key={order.id} className={`border-b border-slate-50 hover:bg-slate-50 transition-colors ${flashId === order.id ? 'bg-emerald-50' : ''}`}>
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-semibold text-slate-800 font-mono" style={{ fontFamily: 'Inter, sans-serif' }}>{order.ref}</p>
-                    {order._fromShared && <i className="ri-global-line text-xs" style={{ color: '#10B981' }} title="Marketplace" />}
-                  </div>
+                  <p className="text-sm font-semibold text-slate-800" style={{ fontFamily: 'Inter, sans-serif' }}>{order.ref}</p>
                   {order.voyage_id && <p className="text-xs text-slate-400">{order.voyage_id}</p>}
                 </td>
                 <td className="px-4 py-3 max-w-xs">

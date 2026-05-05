@@ -9,42 +9,48 @@ export default function Register() {
     password: '',
     confirmPassword: ''
   });
+  const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { register } = useAuth();
   const navigate = useNavigate();
+  const VALID_CODE = import.meta.env.VITE_ADMIN_INVITE_CODE;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (inviteCode !== VALID_CODE) {
+      return setError('Code d\'invitation invalide.');
+    }
     if (formData.password !== formData.confirmPassword) {
       return setError('Les mots de passe ne correspondent pas.');
     }
-    
     setLoading(true);
     setError('');
     try {
       await register({
-        name: formData.name,
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        name: formData.name,
       });
-      navigate('/');
+      // Avec Supabase, l'inscription peut nécessiter une confirmation email
+      // selon ta config. Redirection vers login en attendant.
+      navigate('/login');
     } catch (err) {
-      setError('Une erreur est survenue lors de la création du compte.');
+      setError(err.message || 'Une erreur est survenue lors de la création du compte.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden" 
-         style={{ background: 'linear-gradient(135deg, #0A0F1D 0%, #1A2235 100%)' }}>
-      
+    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden"
+      style={{ background: 'linear-gradient(135deg, #0A0F1D 0%, #1A2235 100%)' }}>
+
       {/* Aurora Background Effects */}
-      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full opacity-20 blur-[100px]" 
-           style={{ background: 'radial-gradient(circle, #00C2FF 0%, transparent 70%)' }}></div>
-      <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full opacity-20 blur-[120px]" 
-           style={{ background: 'radial-gradient(circle, #6A00FF 0%, transparent 70%)' }}></div>
+      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full opacity-20 blur-[100px]"
+        style={{ background: 'radial-gradient(circle, #00C2FF 0%, transparent 70%)' }}></div>
+      <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full opacity-20 blur-[120px]"
+        style={{ background: 'radial-gradient(circle, #6A00FF 0%, transparent 70%)' }}></div>
 
       <div className="w-full max-w-md z-10 animate-fade-in">
         <div className="text-center mb-8">
@@ -58,10 +64,10 @@ export default function Register() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5 block ml-1">Nom complet</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Jean Dupont"
                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-4 text-white focus:border-[#00C2FF] focus:bg-white/10 outline-none transition-all placeholder:text-slate-600"
                 required
@@ -69,11 +75,23 @@ export default function Register() {
             </div>
 
             <div>
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5 block ml-1">Code d'invitation</label>
+              <input
+                type="text"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                placeholder="Code d'invitation"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-4 text-white focus:border-[#00C2FF] focus:bg-white/10 outline-none transition-all placeholder:text-slate-600"
+                required
+              />
+            </div>
+
+            <div>
               <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5 block ml-1">Email</label>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="admin@trustlink.bj"
                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-4 text-white focus:border-[#00C2FF] focus:bg-white/10 outline-none transition-all placeholder:text-slate-600"
                 required
@@ -82,10 +100,10 @@ export default function Register() {
 
             <div>
               <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5 block ml-1">Mot de passe</label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="••••••••"
                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-4 text-white focus:border-[#00C2FF] focus:bg-white/10 outline-none transition-all placeholder:text-slate-600"
                 required
@@ -94,10 +112,10 @@ export default function Register() {
 
             <div>
               <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5 block ml-1">Confirmer</label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 value={formData.confirmPassword}
-                onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 placeholder="••••••••"
                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-4 text-white focus:border-[#00C2FF] focus:bg-white/10 outline-none transition-all placeholder:text-slate-600"
                 required
@@ -110,8 +128,8 @@ export default function Register() {
               </div>
             )}
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
               className="w-full py-4 rounded-2xl font-bold text-white transition-all transform active:scale-95 shadow-lg relative overflow-hidden group cursor-pointer"
               style={{ background: 'linear-gradient(135deg, #00C2FF 0%, #0082FF 100%)' }}

@@ -1,7 +1,10 @@
+import { useAuth } from '@/lib/AuthContext';
+import { supabase } from '@/lib/supabaseClient';
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { formatDateTime } from '@/components/base/DataTransformer';
+import { useSupabaseNotifications } from '@/hooks/useSupabaseNotifications';
 
 const PAGE_TITLES = {
   '/': 'Dashboard',
@@ -10,37 +13,74 @@ const PAGE_TITLES = {
   '/logistics': 'Logistique & Voyages',
   '/moderation': 'Modération Catalogue',
   '/profile': 'Profil & Paramètres',
+  '/users': 'Utilisateurs',
+  '/products': 'Catalogue Produits',
 };
 
-const NOTIFICATIONS = [
-  { id: 1, type: 'order', message: 'Commande TL-2024-0912 en litige', time: new Date(Date.now() - 300000).toISOString(), read: false },
-  { id: 2, type: 'finance', message: 'Payout SLR-0042 en attente de validation', time: new Date(Date.now() - 900000).toISOString(), read: false },
-  { id: 3, type: 'logistics', message: 'Voyage VY-2024-041 arrivé à la douane', time: new Date(Date.now() - 1800000).toISOString(), read: true },
-  { id: 4, type: 'moderation', message: '5 nouveaux produits en attente', time: new Date(Date.now() - 3600000).toISOString(), read: true },
-];
-
 const NOTIF_ICONS = {
-  order: 'ri-shopping-bag-3-line', finance: 'ri-bank-line',
-  logistics: 'ri-truck-line', moderation: 'ri-shield-star-line',
+  order_update: 'ri-shopping-bag-3-line',
+  new_message: 'ri-message-3-line',
+  product_approved: 'ri-checkbox-circle-line',
+  product_rejected: 'ri-close-circle-line',
+  dispute_update: 'ri-error-warning-line',
+  new_order: 'ri-shopping-bag-3-line',
+  payment_received: 'ri-bank-line',
 };
 
 export default function TopHeader() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { rate } = useExchangeRate();
+  const { rate, setRate } = useExchangeRate();
   const [showNotifs, setShowNotifs] = useState(false);
-  const [notifications, setNotifications] = useState(NOTIFICATIONS);
+  const [showRateEdit, setShowRateEdit] = useState(false);
+  const [tempRate, setTempRate] = useState(rate);
+  const { user } = useAuth();
+  const { notifications, markAsRead, markAllAsRead } = useSupabaseNotifications(user?.id);
   const notifRef = useRef(null);
+  const rateRef = useRef(null);
   const title = PAGE_TITLES[location.pathname] || 'TrustLink Admin';
-  const unread = notifications.filter(n => !n.read).length;
+  const unread = notifications.filter(n => !n.is_read).length;
 
   useEffect(() => {
     function handleClick(e) {
       if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifs(false);
+      if (rateRef.current && !rateRef.current.contains(e.target)) setShowRateEdit(false);
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  useEffect(() => {
+    setTempRate(rate);
+  }, [rate]);
+
+  async function handleRateSave() {
+    const newRate = parseFloat(tempRate);
+    setRate(newRate); // met à jour localStorage
+    setShowRateEdit(false);
+
+    // Persister dans Supabase
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+
+    await supabase
+      .from('exchange_rates')
+      .update({
+        rate: newRate,
+        updated_by: adminUser.id,
+        updated_at: new Date().toISOString()
+      })
+      .eq('from_currency', 'NGN')
+      .eq('to_currency', 'XOF');
+
+    // Admin log
+    await supabase.from('admin_logs').insert({
+      admin_id: adminUser.id,
+      action: 'exchange_rate_updated',
+      resource_type: 'exchange_rate',
+      old_value: { rate: rate },
+      new_value: { rate: newRate },
+    });
+  }
 
   return (
     <header className="glass-header sticky top-0 z-20 w-full px-6 py-3 flex items-center justify-between">
@@ -52,10 +92,48 @@ export default function TopHeader() {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2">
-          <span className="live-dot" />
-          <span className="text-xs text-slate-500" style={{ fontFamily: 'Inter, sans-serif' }}>NGN/FCFA</span>
-          <span className="font-bold text-trustblue text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>1 ₦ = {rate > 0 ? (1/rate).toFixed(2) : '2.42'} FCFA</span>
+        <div className="relative" ref={rateRef}>
+          <button
+            onClick={() => setShowRateEdit(v => !v)}
+            className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 hover:bg-blue-100/50 transition-colors cursor-pointer group"
+          >
+            <span className="live-dot" />
+            <span className="text-xs text-slate-500" style={{ fontFamily: 'Inter, sans-serif' }}>NGN/XOF</span>
+            <span className="font-bold text-trustblue text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>{rate.toFixed(4)}</span>
+            <i className="ri-edit-line text-slate-400 group-hover:text-trustblue ml-1 transition-colors" />
+          </button>
+
+          {showRateEdit && (
+            <div className="absolute top-12 left-0 w-64 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 p-4 animate-fade-in">
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Modifier le taux live</h4>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">TAUX 1 ₦ = ... FCFA</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={tempRate}
+                    onChange={e => setTempRate(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:border-trustblue focus:ring-1 focus:ring-trustblue"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowRateEdit(false)}
+                    className="flex-1 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleRateSave}
+                    className="flex-1 py-2 text-xs font-semibold bg-trustblue text-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  >
+                    Appliquer
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="relative" ref={notifRef}>
@@ -70,23 +148,23 @@ export default function TopHeader() {
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                 <h3 className="font-semibold text-slate-800 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Notifications</h3>
                 {unread > 0 && (
-                  <button onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))} className="text-xs text-trustblue hover:underline cursor-pointer">
+                  <button onClick={markAllAsRead} className="text-xs text-trustblue hover:underline cursor-pointer">
                     Tout marquer lu
                   </button>
                 )}
               </div>
               <div className="max-h-80 overflow-y-auto">
                 {notifications.map(n => (
-                  <div key={n.id} className={`flex items-start gap-3 px-4 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 cursor-pointer ${!n.read ? 'bg-blue-50/30' : ''}`}
-                    onClick={() => setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))}>
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${!n.read ? 'bg-trustblue text-white' : 'bg-slate-100 text-slate-500'}`}>
+                  <div key={n.id} className={`flex items-start gap-3 px-4 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 cursor-pointer ${!n.is_read ? 'bg-blue-50/30' : ''}`}
+                    onClick={() => markAsRead(n.id)}>
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${!n.is_read ? 'bg-trustblue text-white' : 'bg-slate-100 text-slate-500'}`}>
                       <i className={`${NOTIF_ICONS[n.type]} text-sm`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-xs leading-relaxed ${!n.read ? 'text-slate-800 font-medium' : 'text-slate-600'}`}>{n.message}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{formatDateTime(n.time)}</p>
+                      <p className={`text-xs leading-relaxed ${!n.is_read ? 'text-slate-800 font-medium' : 'text-slate-600'}`}>{n.title}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{formatDateTime(n.created_at)}</p>
                     </div>
-                    {!n.read && <span className="w-2 h-2 rounded-full bg-trustblue flex-shrink-0 mt-1" />}
+                    {!n.is_read && <span className="w-2 h-2 rounded-full bg-trustblue flex-shrink-0 mt-1" />}
                   </div>
                 ))}
               </div>

@@ -1,5 +1,4 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { VOLUME_DATA } from '@/mocks/dashboard';
 import { formatMillions } from '@/components/base/DataTransformer';
 
 function CustomTooltip({ active, payload, label }) {
@@ -18,7 +17,7 @@ function CustomTooltip({ active, payload, label }) {
   return null;
 }
 
-export default function VolumeChart() {
+export default function VolumeChart({ data }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-6">
       <div className="flex items-center justify-between mb-6">
@@ -36,7 +35,7 @@ export default function VolumeChart() {
         </div>
       </div>
       <ResponsiveContainer width="100%" height={240}>
-        <BarChart data={VOLUME_DATA} barGap={4} barCategoryGap="30%">
+        <BarChart data={data} barGap={4} barCategoryGap="30%">
           <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
           <XAxis dataKey="month" tick={{ fontFamily: 'Inter', fontSize: 12, fill: '#64748B' }} axisLine={false} tickLine={false} />
           <YAxis tickFormatter={formatMillions} tick={{ fontFamily: 'Inter', fontSize: 12, fill: '#64748B' }} axisLine={false} tickLine={false} />

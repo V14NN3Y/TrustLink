@@ -1,17 +1,22 @@
-import { useState } from 'react';
-import { TEAM_MEMBERS } from '@/mocks/profile';
+import { useEffect, useState } from 'react';
+import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import StatusBadge from '@/components/base/StatusBadge';
 
 const ROLES = ['Super Admin', 'Modérateur', 'Support', 'Analyste', 'Lecture seule'];
 
 export default function TeamManagement() {
-  const [members, setMembers] = useState(TEAM_MEMBERS);
+  const { users, loading } = useSupabaseUsers();
+  const [members, setMembers] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editRole, setEditRole] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('Support');
   const [inviteDone, setInviteDone] = useState(false);
+
+  useEffect(() => {
+    setMembers(users.filter(u => u.role === 'admin'));
+  }, [users]);
 
   function handleInvite() {
     if (!inviteEmail) return;
