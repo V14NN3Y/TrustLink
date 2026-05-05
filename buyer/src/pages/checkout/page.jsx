@@ -3,46 +3,36 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/lib/AuthContext';
 import { createOrder } from '@/lib/supabase/orders';
+import { openKkiapayPayment } from '@/lib/kkiapay';
 import { formatPrice } from '@/utils/format';
 const CITIES = ['Cotonou', 'Porto-Novo', 'Parakou', 'Abomey-Calavi', 'Bohicon'];
 const PAYMENT_METHODS = [
-  { id: 'mtn', label: 'MTN Mobile Money', icon: 'ri-smartphone-line', color: '#FCD34D' },
-  { id: 'moov', label: 'Moov Mobile Money', icon: 'ri-smartphone-line', color: '#3B82F6' },
-  { id: 'wave', label: 'Wave', icon: 'ri-bank-card-line', color: '#06B6D4' },
-  { id: 'kkiapay', label: 'KkiaPay (CB / Mobile)', icon: 'ri-bank-card-2-line', color: '#8B5CF6' },
+  { id: 'kkiapay', label: 'KkiaPay (CB / Mobile Money)', icon: 'ri-bank-card-2-line', color: '#8B5CF6' },
+  { id: 'mtn', label: 'MTN Mobile Money (hors ligne)', icon: 'ri-smartphone-line', color: '#FCD34D' },
+  { id: 'moov', label: 'Moov Money (hors ligne)', icon: 'ri-smartphone-line', color: '#3B82F6' },
+  { id: 'wave', label: 'Wave (hors ligne)', icon: 'ri-bank-card-line', color: '#06B6D4' },
 ];
 const STEPS = ['Adresse', 'Paiement', 'Confirmation'];
 const DELIVERY = 2500;
 export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const [address, setAddress] = useState({ firstName: '', lastName: '', city: '', district: '', phone: '' });
-  const [payMethod, setPayMethod] = useState('mtn');
+  const [address, setAddress] = useState({
+    firstName: '',
+    lastName: '',
+    city: '',
+    district: '',
+    phone: profile?.phone || '',
+  });
+  const [payMethod, setPayMethod] = useState('kkiapay');
   const [orderData, setOrderData] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const handleStep1 = (e) => {
     e.preventDefault();
     setStep(2);
-  };
-  const handleKkiaPayPayment = (orderData) => {
-    // Intégration KkiaPay (voir doc: https://docs.kkiapay.me)
-    const paymentUrl = `https://api.kkiapay.me/v1/payment`;
-    const callbackUrl = `${window.location.origin}/account?payment=success&order=${orderData.groupId}`;
-    // Ici vous devrez appeler l'API KkiaPay avec les bonnes clés
-    // Pour l'instant, on simule
-    const kkiapayData = {
-      amount: totalPrice + DELIVERY,
-      currency: 'XOF',
-      description: `Commande TrustLink ${orderData.trackingNumber}`,
-      callback_url: callbackUrl,
-      // ... autres paramètres KkiaPay
-    };
-    console.log('KkiaPay payment:', kkiapayData);
-    // Rediriger vers KkiaPay ou ouvrir une modale de paiement
-    alert('Redirection vers KkiaPay pour paiement...');
   };
   const handleConfirm = async () => {
     setSubmitting(true);
@@ -63,11 +53,32 @@ export default function Checkout() {
         trackingNumber: `TL-${groupId.substring(0, 8).toUpperCase()}`,
         totalAmount: totalPrice + DELIVERY,
       };
-      setOrderData(newOrderData);
-      // Si KkiaPay, déclencher le paiement
+
       if (payMethod === 'kkiapay') {
-        handleKkiaPayPayment(newOrderData);
+        try {
+          const result = await openKkiapayPayment({
+            amount: totalPrice + DELIVERY,
+            email: profile?.email || user?.email || '',
+            phone: address.phone || profile?.phone || '',
+            name: profile?.full_name || `${address.firstName} ${address.lastName}`.trim() || 'Client TrustLink',
+            orderId: groupId,
+          });
+          if (result.cancelled) {
+            setSubmitError('Paiement annulé. Vous pouvez réessayer ou choisir une autre méthode.');
+            setSubmitting(false);
+            return;
+          }
+          if (result.success) {
+            newOrderData.paymentReference = result.transactionId;
+            newOrderData.kkiapayData = result.data;
+          }
+        } catch (err) {
+          console.error('Erreur KkiaPay:', err);
+          setSubmitError(`Erreur de paiement : ${err.message}. La commande a été créée, contactez le support.`);
+        }
       }
+
+      setOrderData(newOrderData);
       setStep(3);
     } catch (err) {
       console.error('Erreur création commande:', err);
@@ -177,7 +188,9 @@ export default function Checkout() {
             </div>
             <h3 className="text-sm font-poppins font-semibold mb-3" style={{ color: '#111827' }}>Méthode de paiement</h3>
             <p className="text-xs font-inter mb-3" style={{ color: '#6B7280' }}>
-              Le paiement sera sécurisé par <strong>KkiaPay</strong> (Mobile Money ou CB). Vos fonds seront bloqués sur Escrow jusqu'à confirmation de réception.
+              <strong>KkiaPay</strong> : paiement en ligne sécurisé (CB, MTN, Moov, Wave).
+              Les autres méthodes sont traitées hors ligne par nos administrateurs.
+              Vos fonds seront bloqués sur Escrow jusqu'à confirmation de réception.
             </p>
             <div className="space-y-3 mb-6">
               {PAYMENT_METHODS.map((m) => (
@@ -219,6 +232,12 @@ export default function Checkout() {
                   Votre commande a été divisée en {orderData.sellerCount} commandes (un par vendeur) pour faciliter la livraison.
                 </span>
               )}
+              {payMethod !== 'kkiapay' && (
+                <span className="block mt-2 font-medium" style={{ color: '#B45309' }}>
+                  <i className="ri-information-line mr-1"></i>
+                  Paiement hors ligne sélectionné. Les administrateurs vous contacteront pour finaliser le paiement.
+                </span>
+              )}
             </p>
             <div className="rounded-xl p-4 mb-6 text-left space-y-2" style={{ backgroundColor: '#E1F0F9' }}>
               <p className="text-sm font-poppins">
@@ -232,6 +251,18 @@ export default function Checkout() {
               <p className="text-sm font-poppins">
                 <span className="font-medium" style={{ color: '#6B7280' }}>Total : </span>
                 <span className="font-bold" style={{ color: '#125C8D' }}>{formatPrice(orderData.totalAmount)}</span>
+              </p>
+              {orderData.paymentReference && (
+                <p className="text-sm font-poppins">
+                  <span className="font-medium" style={{ color: '#6B7280' }}>Réf. paiement : </span>
+                  <span className="font-bold" style={{ color: '#16A34A' }}>{orderData.paymentReference}</span>
+                </p>
+              )}
+              <p className="text-sm font-poppins">
+                <span className="font-medium" style={{ color: '#6B7280' }}>Méthode : </span>
+                <span className="font-semibold" style={{ color: '#111827' }}>
+                  {payMethod === 'kkiapay' ? 'KkiaPay (en ligne)' : PAYMENT_METHODS.find(m => m.id === payMethod)?.label || payMethod}
+                </span>
               </p>
               <p className="text-sm font-inter" style={{ color: '#6B7280' }}>
                 Délai estimé : <span className="font-medium" style={{ color: '#111827' }}>2 à 7 jours ouvrables</span>
