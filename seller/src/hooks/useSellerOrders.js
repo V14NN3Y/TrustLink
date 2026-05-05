@@ -69,9 +69,9 @@ export function useSellerOrders(sellerId) {
               qr_code: oid,
             };
           }
-          const ngn = item.subtotal || item.product_price * item.quantity;
-          acc[oid].amount_ngn += ngn;
-          acc[oid].amount_fcfa += Math.round(ngn * rate);
+          const xof = item.subtotal || item.product_price * item.quantity;
+          acc[oid].amount_fcfa += xof;
+          acc[oid].amount_ngn += Math.round(xof / rate);
           acc[oid].items.push({
             item_id: item.id,
             product: item.product_name || item.product?.name || "Produit",

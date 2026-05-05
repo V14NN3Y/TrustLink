@@ -82,7 +82,7 @@ export default function NewProductPage() {
           seller_id: user.id,
           name: form.name,
           description: form.description,
-          price: form.price_ngn,
+          price: form.price_fcfa,
           stock_quantity: form.stock_total,
           status: "pending_review",
           currency: "XOF",

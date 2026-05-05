@@ -47,12 +47,12 @@ export function useSellerProducts(sellerId) {
       id: p.id,
       name: p.name,
       category: p.category_id,
-      price_ngn: p.price,
-      price_fcfa: Math.round(p.price * rate),
+      price_fcfa: p.price,
+      price_ngn: Math.round(p.price / rate),
       image: p.images?.find((i) => i.is_primary)?.url || p.images?.[0]?.url || "",
       status: p.status,
       stock_total: p.stock_quantity,
-      sales_count: salesMap[p.id] || 0,  // ✅ CORRIGÉ
+      sales_count: salesMap[p.id] || 0,
       description: p.description,
       created_at: p.created_at,
     }));

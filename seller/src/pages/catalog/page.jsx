@@ -22,7 +22,7 @@ export default function CatalogPage() {
       .update({
         name: updated.name,
         description: updated.description,
-        price: updated.price_ngn,
+        price: updated.price_fcfa,
         stock_quantity: updated.stock_total,
         status: updated.status,
       })

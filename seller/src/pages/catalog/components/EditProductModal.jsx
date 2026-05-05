@@ -3,7 +3,7 @@ import { useExchangeRate } from "@/hooks/useExchangeRate";
 
 export default function EditProductModal({ product, onClose, onSave }) {
   const rate = useExchangeRate();
-  const [form, setForm] = useState({ ...product, price_fcfa: Math.round((product.price_ngn || 0) * rate) });
+  const [form, setForm] = useState({ ...product });
   const [saving, setSaving] = useState(false);
    const handleChange = (key, value) => {
     if (key === "price_ngn") {
