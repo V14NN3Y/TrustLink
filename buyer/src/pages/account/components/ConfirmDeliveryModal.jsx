@@ -6,29 +6,33 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
   const { confirmDeliveryWithVideo, uploading } = useDeliveryVideos();
   const [step, setStep] = useState(1);
   const [videoFilePath, setVideoFilePath] = useState(null);
-  const [duration, setDuration] = useState(0);
   const [error, setError] = useState(null);
+  const [confirmationChoice, setConfirmationChoice] = useState(null); // 'ok' ou 'defective'
+  const [defectReason, setDefectReason] = useState('');
   const handleVideoRecorded = (filePath) => {
     setVideoFilePath(filePath);
     setStep(3);
   };
-  const handleConfirm = async () => {
+  const handleConfirm = async (isDefective, reason = '') => {
     setError(null);
     try {
-      await confirmDeliveryWithVideo({
-        orderId: order.id,
-        videoFilePath,
-        isDefective: false,
-      });
-      onConfirmed?.();
-      onClose();
+      if (isDefective) {
+        // Ouvrir un litige avec la vidéo
+        onClose();
+        onOpenDispute?.(order, videoFilePath, reason);
+      } else {
+        // Confirmer normalement
+        await confirmDeliveryWithVideo({
+          orderId: order.id,
+          videoFilePath,
+          isDefective: false,
+        });
+        onConfirmed?.();
+        onClose();
+      }
     } catch (err) {
       setError(err.message || 'Erreur lors de la confirmation. Réessayez.');
     }
-  };
-  const handleDefective = () => {
-    onClose();
-    onOpenDispute?.(order, videoFilePath);
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
@@ -75,7 +79,7 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
                   <div>
                     <p className="text-sm font-poppins font-semibold" style={{ color: '#92400E' }}>Vidéo obligatoire — Core TrustLink</p>
                     <p className="text-xs font-inter mt-1 leading-relaxed" style={{ color: '#92400E' }}>
-                      Pour protéger buyers et sellers, vous devez filmer l&apos;ouverture complète et ininterrompue de votre colis. Sans cette preuve, la confirmation sera invalide.
+                      Pour protéger buyers et sellers, vous devez filmer l&apos;ouverture complète et ininterrompue de votre colis.
                     </p>
                   </div>
                 </div>
@@ -85,7 +89,7 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
                   'Filmez du début à la fin sans coupure',
                   'Montrez bien l\'état du produit et l\'emballage',
                   'Assurez-vous que le produit est visible et net',
-                  'Sans vidéo, le vendeur ne pourra pas être payé',
+                  'Cette preuve est obligatoire pour libérer le paiement du vendeur',
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm font-inter" style={{ color: '#6B7280' }}>
                     <i className="ri-check-line flex-shrink-0" style={{ color: '#16A34A' }}></i>
@@ -118,7 +122,7 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
                 <div className="flex items-start gap-2">
                   <i className="ri-information-line text-sm mt-0.5 flex-shrink-0" style={{ color: '#D97706' }}></i>
                   <p className="text-xs font-inter leading-relaxed" style={{ color: '#92400E' }}>
-                  <strong>Important :</strong> filmez l&apos;ouverture complète et ininterrompue du colis. Cette preuve vidéo est obligatoire pour protéger les deux parties en cas de litige.
+                  <strong>Important :</strong> filmez l&apos;ouverture complète et ininterrompue du colis.
                   </p>
                 </div>
               </div>
@@ -134,7 +138,7 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
               </button>
             </div>
           )}
-          {/* Étape 3 : Confirmation */}
+          {/* Étape 3 : Déclaration */}
           {step === 3 && (
             <div>
               <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0' }}>
@@ -143,7 +147,7 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
                   <div>
                     <p className="text-sm font-poppins font-semibold" style={{ color: '#166534' }}>Vidéo enregistrée avec succès</p>
                     <p className="text-xs font-inter mt-1" style={{ color: '#166534' }}>
-                      Vidéo envoyée et prête pour validation par l'admin
+                      Vidéo envoyée et prête pour validation. Veuillez maintenant déclarer l'état du produit.
                     </p>
                   </div>
                 </div>
@@ -154,35 +158,57 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
                 </div>
               )}
               <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E5E7EB' }}>
-                <p className="text-xs font-inter mb-1" style={{ color: '#9CA3AF' }}>
-                  Récapitulatif de la commande
+                <p className="text-xs font-inter mb-3" style={{ color: '#374151' }}>
+                  <strong>Déclaration :</strong> Le produit reçu est-il conforme à la commande ?
                 </p>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-poppins font-semibold" style={{ color: '#111827' }}>{formatPrice(order.total)}</span>
-                  <span className="text-xs font-inter" style={{ color: '#6B7280' }}>
-                    {order.items.length} article{order.items.length > 1 ? 's' : ''}
-                  </span>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setConfirmationChoice('ok')}
+                    className={`w-full p-3 text-sm font-poppins font-medium rounded-lg border transition-all cursor-pointer ${
+                      confirmationChoice === 'ok'
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <i className="ri-checkbox-circle-line mr-2"></i> Produit conforme — Tout va bien
+                  </button>
+                  <button
+                    onClick={() => setConfirmationChoice('defective')}
+                    className={`w-full p-3 text-sm font-poppins font-medium rounded-lg border transition-all cursor-pointer ${
+                      confirmationChoice === 'defective'
+                        ? 'border-red-500 bg-red-50 text-red-700'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <i className="ri-error-warning-line mr-2"></i> Produit défectueux / Problème
+                  </button>
                 </div>
+                {confirmationChoice === 'defective' && (
+                  <div className="mt-3">
+                    <label className="block text-xs font-poppins font-medium mb-1.5" style={{ color: '#374151' }}>Expliquez le problème :</label>
+                    <textarea
+                      value={defectReason}
+                      onChange={(e) => setDefectReason(e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-inter outline-none focus:border-[#125C8D]"
+                      rows="3"
+                      placeholder="Décrivez le défaut ou le problème rencontré..."
+                    />
+                  </div>
+                )}
               </div>
               <div className="space-y-3">
                 <button
-                  onClick={handleConfirm}
-                  disabled={uploading}
-                  className="w-full py-3 text-white font-poppins font-bold rounded-full transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer whitespace-nowrap"
-                  style={{ backgroundColor: '#16A34A' }}
+                  onClick={() => handleConfirm(confirmationChoice !== 'ok', defectReason)}
+                  disabled={uploading || !confirmationChoice || (confirmationChoice === 'defective' && !defectReason.trim())}
+                  className={`w-full py-3 font-poppins font-bold rounded-full transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer whitespace-nowrap ${
+                    confirmationChoice === 'defective' ? 'text-white' : 'text-white'
+                  }`}
+                  style={{ backgroundColor: confirmationChoice === 'defective' ? '#DC2626' : '#16A34A' }}
                 >
-                  {uploading ? 'Envoi en cours...' : 'Produit conforme — Confirmer la réception'}
+                  {uploading ? 'Envoi en cours...' : confirmationChoice === 'defective' ? 'Ouvrir un litige' : 'Confirmer la réception'}
                 </button>
                 <button
-                  onClick={handleDefective}
-                  disabled={uploading}
-                  className="w-full py-3 font-poppins font-bold rounded-full transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer whitespace-nowrap"
-                  style={{ backgroundColor: '#FEE2E2', color: '#DC2626' }}
-                >
-                  Produit défectueux — Ouvrir un litige
-                </button>
-                <button
-                  onClick={() => { setVideoBlob(null); setDuration(0); setStep(2); }}
+                  onClick={() => { setVideoFilePath(null); setConfirmationChoice(null); setDefectReason(''); setStep(2); }}
                   disabled={uploading}
                   className="w-full py-2.5 text-sm font-poppins font-medium rounded-full border transition-colors hover:bg-gray-50 disabled:opacity-50 cursor-pointer whitespace-nowrap"
                   style={{ borderColor: '#E5E7EB', color: '#6B7280' }}

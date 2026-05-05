@@ -6,9 +6,10 @@ import { createOrder } from '@/lib/supabase/orders';
 import { formatPrice } from '@/utils/format';
 const CITIES = ['Cotonou', 'Porto-Novo', 'Parakou', 'Abomey-Calavi', 'Bohicon'];
 const PAYMENT_METHODS = [
-  { id: 'mtn', label: 'Mobile Money MTN', icon: 'ri-smartphone-line', color: '#FCD34D' },
-  { id: 'moov', label: 'Mobile Money Moov', icon: 'ri-smartphone-line', color: '#3B82F6' },
+  { id: 'mtn', label: 'MTN Mobile Money', icon: 'ri-smartphone-line', color: '#FCD34D' },
+  { id: 'moov', label: 'Moov Mobile Money', icon: 'ri-smartphone-line', color: '#3B82F6' },
   { id: 'wave', label: 'Wave', icon: 'ri-bank-card-line', color: '#06B6D4' },
+  { id: 'kkiapay', label: 'KkiaPay (CB / Mobile)', icon: 'ri-bank-card-2-line', color: '#8B5CF6' },
 ];
 const STEPS = ['Adresse', 'Paiement', 'Confirmation'];
 const DELIVERY = 2500;
@@ -26,6 +27,23 @@ export default function Checkout() {
     e.preventDefault();
     setStep(2);
   };
+  const handleKkiaPayPayment = (orderData) => {
+    // Intégration KkiaPay (voir doc: https://docs.kkiapay.me)
+    const paymentUrl = `https://api.kkiapay.me/v1/payment`;
+    const callbackUrl = `${window.location.origin}/account?payment=success&order=${orderData.groupId}`;
+    // Ici vous devrez appeler l'API KkiaPay avec les bonnes clés
+    // Pour l'instant, on simule
+    const kkiapayData = {
+      amount: totalPrice + DELIVERY,
+      currency: 'XOF',
+      description: `Commande TrustLink ${orderData.trackingNumber}`,
+      callback_url: callbackUrl,
+      // ... autres paramètres KkiaPay
+    };
+    console.log('KkiaPay payment:', kkiapayData);
+    // Rediriger vers KkiaPay ou ouvrir une modale de paiement
+    alert('Redirection vers KkiaPay pour paiement...');
+  };
   const handleConfirm = async () => {
     setSubmitting(true);
     setSubmitError(null);
@@ -38,14 +56,18 @@ export default function Checkout() {
         totalAmount: totalPrice + DELIVERY,
       });
       await clearCart();
-      // Compter le nombre de vendeurs pour l'affichage
       const sellerCount = [...new Set(items.map(item => item.seller_id))].length;
-      setOrderData({
+      const newOrderData = {
         groupId,
         sellerCount,
         trackingNumber: `TL-${groupId.substring(0, 8).toUpperCase()}`,
         totalAmount: totalPrice + DELIVERY,
-      });
+      };
+      setOrderData(newOrderData);
+      // Si KkiaPay, déclencher le paiement
+      if (payMethod === 'kkiapay') {
+        handleKkiaPayPayment(newOrderData);
+      }
       setStep(3);
     } catch (err) {
       console.error('Erreur création commande:', err);
@@ -154,6 +176,9 @@ export default function Checkout() {
               </div>
             </div>
             <h3 className="text-sm font-poppins font-semibold mb-3" style={{ color: '#111827' }}>Méthode de paiement</h3>
+            <p className="text-xs font-inter mb-3" style={{ color: '#6B7280' }}>
+              Le paiement sera sécurisé par <strong>KkiaPay</strong> (Mobile Money ou CB). Vos fonds seront bloqués sur Escrow jusqu'à confirmation de réception.
+            </p>
             <div className="space-y-3 mb-6">
               {PAYMENT_METHODS.map((m) => (
                 <label key={m.id} className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-all"

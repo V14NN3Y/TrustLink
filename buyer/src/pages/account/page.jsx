@@ -59,12 +59,9 @@ export default function Account() {
   const [disputeOrder, setDisputeOrder] = useState(null);
   const filteredOrders = orderFilter === 'all' ? orders : orders.filter((o) => o.status === orderFilter);
 
-  const handleConfirmDelivery = async (orderId) => {
-    try {
-      await confirmDelivery(orderId);
-    } catch {
-      alert('Erreur lors de la confirmation. Réessayez.');
-    }
+  const [confirmOrder, setConfirmOrder] = useState(null);
+  const handleConfirmDelivery = (order) => {
+    setConfirmOrder(order);
   };
   return (
     <div className="pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
@@ -269,23 +266,23 @@ export default function Account() {
                               N° suivi : <span className="font-medium" style={{ color: '#125C8D' }}>{order.trackingNumber}</span>
                             </p>
                             <div className="flex gap-2 flex-wrap">
-                              {(order.status === 'in_transit' || order.status === 'delivered') && (
-                                <>
-                                  <button
-                                    onClick={() => handleConfirmDelivery(order.id)}
-                                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-poppins font-semibold text-white rounded-lg cursor-pointer whitespace-nowrap"
-                                    style={{ backgroundColor: '#16A34A' }}
-                                  >
-                                    <i className="ri-checkbox-circle-line"></i> Confirmer la réception
-                                  </button>
-                                  <button
-                                    onClick={() => setDisputeOrder(order)}
-                                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-poppins font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors cursor-pointer whitespace-nowrap"
-                                  >
-                                    <i className="ri-error-warning-line"></i> Produit défectueux ?
-                                  </button>
-                                </>
-                              )}
+               {(order.status === 'in_transit' || order.status === 'delivered') && (
+                                 <>
+                                   <button
+                                     onClick={() => handleConfirmDelivery(order)}
+                                     className="flex items-center gap-1.5 px-4 py-2 text-xs font-poppins font-semibold text-white rounded-lg cursor-pointer whitespace-nowrap"
+                                     style={{ backgroundColor: '#16A34A' }}
+                                   >
+                                     <i className="ri-checkbox-circle-line"></i> Confirmer la réception
+                                   </button>
+                                   <button
+                                     onClick={() => setDisputeOrder(order)}
+                                     className="flex items-center gap-1.5 px-4 py-2 text-xs font-poppins font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors cursor-pointer whitespace-nowrap"
+                                   >
+                                     <i className="ri-error-warning-line"></i> Produit défectueux ?
+                                   </button>
+                                 </>
+                               )}
                               <button className="flex items-center gap-1.5 px-4 py-2 text-xs font-poppins font-semibold rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer" style={{ color: '#374151' }}>
                                 <i className="ri-eye-line"></i> Détails
                               </button>
@@ -400,6 +397,20 @@ export default function Account() {
           onSuccess={() => {
             reloadOrders();
             setTab('disputes');
+          }}
+        />
+      )}
+      {confirmOrder && (
+        <ConfirmDeliveryModal
+          order={confirmOrder}
+          onClose={() => setConfirmOrder(null)}
+          onConfirmed={() => {
+            reloadOrders();
+            setConfirmOrder(null);
+          }}
+          onOpenDispute={(order, videoFilePath, reason) => {
+            setConfirmOrder(null);
+            setDisputeOrder({ ...order, videoFilePath, reason });
           }}
         />
       )}

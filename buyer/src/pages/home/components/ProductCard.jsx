@@ -64,7 +64,7 @@ export default function ProductCard({ product }) {
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#125C8D'; e.currentTarget.style.color = '#fff'; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#EBF4FB'; e.currentTarget.style.color = '#125C8D'; }}
         >
-          <i className="ri-shopping-cart-line text-sm"></i> Ajouter au panier
+          <i className="ri-eye-line text-sm"></i> Voir le produit
         </button>
       </div>
     </div>

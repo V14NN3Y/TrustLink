@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
-export default function VideoRecorder({ orderId, onVideoUploaded }) {
+export default function VideoRecorder({ orderId, onRecorded }) {
 const [recording, setRecording] = useState(false);
 const [previewUrl, setPreviewUrl] = useState(null);
 const [duration, setDuration] = useState(0);
