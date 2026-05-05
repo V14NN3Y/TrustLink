@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate, NavLink } from "react-router-dom";
+import { useLocation, useNavigate, NavLink, Link } from "react-router-dom";
 import { useSellerOrders } from "@/hooks/useSellerOrders";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -39,15 +39,10 @@ export default function Sidebar() {
     <div className="fixed left-0 top-0 w-64 h-screen z-30 flex flex-col" style={{ backgroundColor: "#0E3A4F" }}>
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#10B981" }}>
-            <i className="ri-links-line text-white text-lg"></i>
-          </div>
-          <div>
-            <div className="text-white font-bold text-sm leading-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>TrustLink</div>
-            <div className="text-white/50 text-[10px] leading-tight">Seller Hub</div>
-          </div>
-        </div>
+        <Link to="/" className="flex items-center gap-3">
+          <img src="/TrustLink_Logo_Bleu-125C8D.png" alt="TrustLink" className="h-8 w-auto" />
+        </Link>
+        <div className="text-white/50 text-[10px] leading-tight mt-1">Seller Hub</div>
       </div>
 
       {/* Nav */}

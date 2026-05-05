@@ -11,6 +11,7 @@ const tabs = [
   { value: "processing", label: "En cours de traitement" },
   { value: "in_transit", label: "En cours de livraison" },
   { value: "delivered", label: "Livrées" },
+  { value: "disputed", label: "Litiges" },
   { value: "cancelled", label: "Annulées" },
 ];
 
@@ -26,7 +27,8 @@ export default function OrdersPage() {
     if (activeStatus === "all") return true;
     if (activeStatus === "processing") return o.status === "paid" || o.status === "processing";
     if (activeStatus === "delivered") return o.status === "delivered" || o.status === "confirmed";
-    if (activeStatus === "cancelled") return o.status === "cancelled" || o.status === "refunded" || o.status === "disputed";
+    if (activeStatus === "disputed") return o.status === "disputed";
+    if (activeStatus === "cancelled") return o.status === "cancelled" || o.status === "refunded";
     return o.status === activeStatus;
   }).filter((o) => {
     if (!search) return true;
@@ -43,7 +45,8 @@ export default function OrdersPage() {
     if (val === "all") return orders.length;
     if (val === "processing") return orders.filter((o) => o.status === "paid" || o.status === "processing").length;
     if (val === "delivered") return orders.filter((o) => o.status === "delivered" || o.status === "confirmed").length;
-    if (val === "cancelled") return orders.filter((o) => o.status === "cancelled" || o.status === "refunded" || o.status === "disputed").length;
+    if (val === "disputed") return orders.filter((o) => o.status === "disputed").length;
+    if (val === "cancelled") return orders.filter((o) => o.status === "cancelled" || o.status === "refunded").length;
     return orders.filter((o) => o.status === val).length;
   };
   if (loading) {

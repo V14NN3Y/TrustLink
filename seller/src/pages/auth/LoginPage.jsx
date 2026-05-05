@@ -25,8 +25,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB] px-4">
       <div className="w-full max-w-md bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "#10B981" }}>
-            <i className="ri-links-line text-white text-xl"></i>
+          <div className="mb-4">
+            <img src="/TrustLink_Logo_Bleu-125C8D.png" alt="TrustLink" className="h-12 w-auto mx-auto" />
           </div>
           <h1 className="text-xl font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
             TrustLink Seller Hub

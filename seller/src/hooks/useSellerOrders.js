@@ -28,14 +28,7 @@ export function useSellerOrders(sellerId) {
           product_price,
           subtotal,
           created_at,
-          order:order_id (
-            id,
-            shipping_address_line1,
-            shipping_city,
-            shipping_country,
-            notes,
-            buyer:buyer_id ( full_name )
-          ),
+          order_id,
           product:product_id ( id, name )
         `)
         .eq("seller_id", sellerId)
@@ -44,36 +37,53 @@ export function useSellerOrders(sellerId) {
         setError(supaError.message);
         setOrders([]);
       } else {
-        const formatted = (data || []).map((item) => {
+        // Récupérer les infos de commande et acheteur séparément
+        const orderIds = [...new Set((data || []).map((item) => item.order_id))];
+        const { data: ordersData } = await supabase
+          .from("orders")
+          .select(`id, shipping_address_line1, shipping_city, shipping_country, notes, buyer:buyer_id ( full_name )`)
+          .in("id", orderIds);
+        const orderMap = (ordersData || []).reduce((acc, o) => { acc[o.id] = o; return acc; }, {});
+
+        // Grouper par order_id
+        const grouped = (data || []).reduce((acc, item) => {
+          const oid = item.order_id;
+          if (!acc[oid]) {
+            const order = orderMap[oid];
+            acc[oid] = {
+              id: oid.slice(0, 8),
+              order_id: oid,
+              buyer: order?.buyer?.full_name || "Client",
+              buyer_city: order?.shipping_city || "Cotonou",
+              status: item.status,
+              created_at: item.created_at,
+              amount_ngn: 0,
+              amount_fcfa: 0,
+              items: [],
+              order_address: order ? {
+                line1: order.shipping_address_line1,
+                city: order.shipping_city,
+                country: order.shipping_country,
+              } : null,
+              notes: order?.notes || "",
+              qr_code: oid,
+            };
+          }
           const ngn = item.subtotal || item.product_price * item.quantity;
-          return {
-            id: item.order?.id?.slice(0, 8) || item.id.slice(0, 8),
+          acc[oid].amount_ngn += ngn;
+          acc[oid].amount_fcfa += Math.round(ngn * rate);
+          acc[oid].items.push({
             item_id: item.id,
             product: item.product_name || item.product?.name || "Produit",
             product_image: "",
-            buyer: item.order?.buyer?.full_name || "Client",
-            buyer_city: item.order?.shipping_city || "Cotonou",
-            quantity: item.quantity,
-            amount_ngn: ngn,
-            amount_fcfa: Math.round(ngn * rate), // CORRECTION : multiplication
-            status: item.status,
-            created_at: item.created_at,
-            items: [{
-              product: item.product_name || item.product?.name,
-              variant: "Standard",
-              qty: item.quantity,
-              unit_price: item.product_price,
-              total: item.subtotal || item.product_price * item.quantity,
-            }],
-            order_address: item.order ? {
-              line1: item.order.shipping_address_line1,
-              city: item.order.shipping_city,
-              country: item.order.shipping_country,
-            } : null,
-            notes: item.order?.notes || "",
-            qr_code: item.order?.id || item.id,
-          };
-        });
+            variant: "Standard",
+            qty: item.quantity,
+            unit_price: item.product_price,
+            total: item.subtotal || item.product_price * item.quantity,
+          });
+          return acc;
+        }, {});
+        const formatted = Object.values(grouped);
         setOrders(formatted);
       }
       setLoading(false);
