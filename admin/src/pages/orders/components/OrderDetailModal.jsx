@@ -20,10 +20,10 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
   async function handleSave() {
   setSaving(true);
 
-  // Update Supabase
+  const newStatus = editStatus.toLowerCase();
   await supabase
     .from('orders')
-    .update({ status: editStatus.toLowerCase(), updated_at: new Date().toISOString() })
+    .update({ status: newStatus, updated_at: new Date().toISOString() })
     .eq('id', order.id);
 
   // Notification buyer
@@ -32,18 +32,38 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
     .select('buyer_id')
     .eq('id', order.id)
     .single();
-  
 
   if (orderData?.buyer_id && editStatus !== order.status) {
     await supabase.from('notifications').insert({
       user_id: orderData.buyer_id,
       type: 'order_update',
       title: `Commande ${order.ref} mise à jour`,
-      body: `Nouveau statut : ${editStatus}`,
+      body: `Nouveau statut : ${newStatus}`,
       resource_type: 'order',
       resource_id: order.id,
       is_read: false,
     });
+  }
+
+  // Notification seller
+  if (editStatus !== order.status) {
+    const { data: orderItems } = await supabase
+      .from('order_items')
+      .select('seller_id')
+      .eq('order_id', order.id)
+      .limit(1);
+
+    if (orderItems && orderItems.length > 0 && orderItems[0].seller_id) {
+      await supabase.from('notifications').insert({
+        user_id: orderItems[0].seller_id,
+        type: 'order_update',
+        title: `Commande ${order.ref} mise à jour`,
+        body: `Nouveau statut : ${newStatus}`,
+        resource_type: 'order',
+        resource_id: order.id,
+        is_read: false,
+      });
+    }
   }
 
   // Admin log

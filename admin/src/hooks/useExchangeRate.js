@@ -22,12 +22,21 @@ export function useExchangeRate() {
       });
   }, []);
 
-  function setRate(newRate) {
-    StorageManager.setExchangeRate(newRate);
-    setData({
-      rate: newRate,
-      lastUpdated: new Date().toISOString()
-    });
+  async function setRate(newRate) {
+    const { error } = await supabase
+      .from('exchange_rates')
+      .update({ rate: newRate, updated_at: new Date().toISOString() })
+      .eq('from_currency', 'NGN')
+      .eq('to_currency', 'XOF');
+    if (!error) {
+      StorageManager.setExchangeRate(newRate);
+      setData({
+        rate: newRate,
+        lastUpdated: new Date().toISOString()
+      });
+    } else {
+      console.error('Erreur mise à jour taux de change:', error);
+    }
   }
 
   return {

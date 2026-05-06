@@ -46,13 +46,11 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
     setTimeout(() => setFlashId(null), 1000);
 
     // Créer une notification pour le buyer
-    // D'abord récupérer le buyer_id depuis la commande
     const { data: orderData } = await supabase
       .from('orders')
       .select('buyer_id')
       .eq('id', order.id)
       .single();
-
 
     if (orderData?.buyer_id) {
       await supabase.from('notifications').insert({
@@ -60,6 +58,25 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
         type: 'order_update',
         title: `Commande ${order.ref} : statut mis à jour → ${status}`,
         body: `Votre commande est maintenant : ${status}`,
+        resource_type: 'order',
+        resource_id: order.id,
+        is_read: false,
+      });
+    }
+
+    // Créer une notification pour le seller
+    const { data: orderItems } = await supabase
+      .from('order_items')
+      .select('seller_id')
+      .eq('order_id', order.id)
+      .limit(1);
+
+    if (orderItems && orderItems.length > 0 && orderItems[0].seller_id) {
+      await supabase.from('notifications').insert({
+        user_id: orderItems[0].seller_id,
+        type: 'order_update',
+        title: `Commande ${order.ref} : statut mis à jour → ${status}`,
+        body: `Le statut de la commande a été changé en : ${status}`,
         resource_type: 'order',
         resource_id: order.id,
         is_read: false,

@@ -3,8 +3,8 @@ import { supabase } from '@/lib/supabaseClient';
 import { formatNGN, formatXOF } from '@/components/base/DataTransformer';
 
 export default function CatalogueInspection({ products, onUpdate }) {
-  const pending = products.filter(p => p.status === 'PENDING_REVIEW');
-  const [currentIdx, setCurrentIdx] = useState(0);
+  const pending = products.filter(p => p.status === 'pending_review');
+  const currentIdx = 0;
   const [imgIdx, setImgIdx] = useState(0);
   const [swipeDir, setSwipeDir] = useState(null);
 
@@ -14,7 +14,7 @@ export default function CatalogueInspection({ products, onUpdate }) {
     if (!current) return;
     setSwipeDir(dir);
 
-    const newStatus = dir === 'right' ? 'APPROVED' : 'REJECTED';
+    const newStatus = dir === 'right' ? 'approved' : 'rejected';
 
     // Log admin
     const { data: { user: adminUser } } = await supabase.auth.getUser();
@@ -24,11 +24,10 @@ export default function CatalogueInspection({ products, onUpdate }) {
       resource_type: 'product',
       resource_id: current.id,
       old_value: { status: 'pending_review' },
-      new_value: { status: newStatus.toLowerCase() },
+      new_value: { status: newStatus },
     });
 
     // Notification au seller
-    // Récupère seller_id depuis le produit
     const { data: prod } = await supabase
       .from('products')
       .select('seller_id')
