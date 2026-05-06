@@ -1,11 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { fetchOrders } from '@/lib/supabase/orders';
+import { supabase } from '@/lib/supabaseClient';
+
 export function useOrders() {
   const { user, isAuthenticated } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const channelRef = useRef(null);
+
   const loadOrders = useCallback(async () => {
     if (!isAuthenticated || !user?.id) return;
     setLoading(true);
@@ -20,8 +24,33 @@ export function useOrders() {
       setLoading(false);
     }
   }, [isAuthenticated, user?.id]);
+
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) return;
+
+    const channel = supabase
+      .channel('buyer-orders-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders' },
+        () => {
+          loadOrders();
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+    };
+  }, [isAuthenticated, user?.id, loadOrders]);
+
   return { orders, loading, error, reload: loadOrders };
 }

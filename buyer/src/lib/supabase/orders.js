@@ -2,8 +2,21 @@ import { supabase } from '@/lib/supabaseClient';
 /**
  * Crée des commandes groupées par vendeur (seller) avec un group_id commun.
  * Retourne le group_id pour que le checkout puisse l'utiliser.
+ * Sauvegarde aussi l'adresse dans le profil buyer si elle n'existe pas.
  */
 export const createOrder = async ({ buyerId, items, address, paymentMethod, totalAmount }) => {
+  // Sauvegarder l'adresse dans le profil buyer
+  if (address.district || address.city || address.phone) {
+    await supabase
+      .from('profiles')
+      .update({
+        default_address_line1: address.district || null,
+        default_city: address.city || null,
+        phone: address.phone || null,
+      })
+      .eq('id', buyerId);
+  }
+
   // 1. Générer un group_id unique pour lier les commandes de ce panier
   const groupId = crypto.randomUUID();
   // 2. Grouper les items par seller_id

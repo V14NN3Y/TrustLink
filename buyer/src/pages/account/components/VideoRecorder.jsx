@@ -43,7 +43,7 @@ const startRecording = async () => {
                         .from('delivery-videos')
                         .upload(fileName, blob, { contentType: 'video/webm', upsert: false });
                     if (upErr) throw upErr;
-                    onVideoUploaded && onVideoUploaded(fileName); // Retourne le chemin relatif
+                    onRecorded && onRecorded(fileName); // Retourne le chemin relatif
                 } catch (err) {
                     console.error('Erreur upload vidéo:', err);
                     alert('Erreur lors de l\'envoi de la vidéo. Réessayez.');
@@ -72,7 +72,7 @@ const stopRecording = () => {
 };
 const retake = () => {
     setPreviewUrl(null);
-    onVideoUploaded && onVideoUploaded(null);
+    onRecorded && onRecorded(null);
 };
 const formatTime = (s) => {
     const m = Math.floor(s / 60);

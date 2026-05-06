@@ -22,8 +22,8 @@ export default function Checkout() {
   const [address, setAddress] = useState({
     firstName: '',
     lastName: '',
-    city: '',
-    district: '',
+    city: profile?.default_city || '',
+    district: profile?.default_address_line1 || '',
     phone: profile?.phone || '',
   });
   const [payMethod, setPayMethod] = useState('kkiapay');

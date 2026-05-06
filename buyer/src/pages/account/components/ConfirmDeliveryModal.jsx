@@ -127,7 +127,7 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
                 </div>
               </div>
               <div className="mb-2">
-                <VideoRecorder onRecorded={handleVideoRecorded} />
+                <VideoRecorder orderId={order.id} onRecorded={handleVideoRecorded} />
               </div>
               <button
                 onClick={() => setStep(1)}
