@@ -12,6 +12,7 @@ import RegisterPage from "@/pages/auth/RegisterPage";
 import NotificationsPage from "@/pages/notifications/page";
 import MessagesPage from "@/pages/messages/page";
 import ReviewsPage from "@/pages/reviews/page";
+import PageNotFound from "@/lib/PageNotFound";
 
 const routes = [
   { path: "/login", element: <LoginPage /> },
@@ -33,6 +34,7 @@ const routes = [
       { path: "/notifications", element: <NotificationsPage /> },
       { path: "/settings/:section", element: <SettingsPage /> },
       { path: "/reviews", element: <ReviewsPage /> },
+      { path: "*", element: <PageNotFound /> },
     ],
   },
 ];
