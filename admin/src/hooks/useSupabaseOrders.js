@@ -28,6 +28,19 @@ export function useSupabaseOrders() {
       setLoading(false);
       return;
     }
+    // Récupérer les dispatch_orders pour avoir les voyage_id
+    const orderIds = (data || []).map(o => o.id);
+    const { data: dispatchOrders } = await supabase
+      .from('dispatch_orders')
+      .select(`
+        order_id,
+        dispatch:dispatch_id (id, dispatch_code, status)
+      `)
+      .in('order_id', orderIds);
+    const dispatchMap = (dispatchOrders || []).reduce((acc, d) => {
+      acc[d.order_id] = d.dispatch;
+      return acc;
+    }, {});
     const normalized = (data || []).map((order) => ({
       id: order.id,
       ref: `TL-${new Date(order.created_at).getFullYear()}-${order.id.slice(-4)}`,
@@ -41,7 +54,8 @@ export function useSupabaseOrders() {
       amount_xof: order.total_amount || 0,
       amount_ngn: order.order_items?.reduce((acc, i) => acc + (i.subtotal || 0), 0) || 0,
       created_at: order.created_at,
-      voyage_id: null,
+      group_id: order.group_id || null,
+      voyage_id: dispatchMap[order.id]?.dispatch_code || '—',
       dispute_reason: null,
     }));
     setOrders(normalized);

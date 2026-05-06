@@ -124,21 +124,22 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
         <div className="flex-1 overflow-y-auto p-6">
           {tab === 'info' && (
             <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: 'Acheteur', value: order.buyer_name },
-                { label: 'Vendeur', value: `${order.seller_name} (${order.seller_id})` },
-                { label: 'Hub origine', value: order.hub_origin },
-                { label: 'Voyage', value: order.voyage_id || '—' },
-                { label: 'Montant XOF', value: formatXOF(order.amount_xof) },
-                { label: 'Montant NGN', value: formatNGN(order.amount_ngn) },
-                { label: 'Créé le', value: formatDate(order.created_at) },
-                { label: 'Étape', value: order.journey_step },
-              ].map(f => (
-                <div key={f.label}>
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">{f.label}</label>
-                  <p className="text-sm text-slate-700 px-3 py-2.5 bg-slate-50 rounded-xl">{f.value}</p>
-                </div>
-              ))}
+                 {[
+                  { label: 'Acheteur', value: order.buyer_name },
+                  { label: 'Vendeur', value: `${order.seller_name} (${order.seller_id})` },
+                  { label: 'Hub origine', value: order.hub_origin },
+                  { label: 'Voyage', value: order.voyage_id || '—' },
+                  { label: 'Groupement', value: order.group_id ? `${order.group_id.slice(0, 8)}...` : '—' },
+                  { label: 'Montant XOF', value: formatXOF(order.amount_xof) },
+                  { label: 'Montant NGN', value: formatNGN(order.amount_ngn) },
+                  { label: 'Crée le', value: formatDate(order.created_at) },
+                  { label: 'Etape', value: order.journey_step },
+                ].map(f => (
+                  <div key={f.label}>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">{f.label}</label>
+                    <p className="text-sm text-slate-700 px-3 py-2.5 bg-slate-50 rounded-xl">{f.value}</p>
+                  </div>
+                ))}
               {order.dispute_reason && (
                 <div className="col-span-2">
                   <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">Motif du litige</label>

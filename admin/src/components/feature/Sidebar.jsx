@@ -9,6 +9,7 @@ const navItems = [
   { path: '/users', label: 'Utilisateurs', icon: 'ri-user-line', badge: null, exact: false },
   { path: '/products', label: 'Produits', icon: 'ri-box-line', badge: null, exact: false },
   { path: '/messages', label: 'Messagerie', icon: 'ri-message-3-line', badge: null, exact: false },
+  { path: '/notifications', label: 'Notifications', icon: 'ri-notification-3-line', badge: null, exact: false },
   { path: '/admin-logs', label: 'Historique', icon: 'ri-history-line', badge: null, exact: false },
   { path: '/delivery-videos', label: 'Vidéos réception', icon: 'ri-video-line', badge: null, exact: false },
 ];
