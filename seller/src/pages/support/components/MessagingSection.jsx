@@ -23,6 +23,18 @@ export default function MessagingSection() {
       setLoading(false);
     };
     fetchMessages();
+    // Realtime subscription
+    const channel = supabase
+      .channel('seller-messages')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new]);
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
   useEffect(() => {
     const fetchAdmin = async () => {

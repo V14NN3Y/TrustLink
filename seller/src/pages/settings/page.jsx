@@ -52,6 +52,16 @@ export default function SettingsPage() {
   const saveProfile = async () => {
     if (!profile?.id) return;
     setSavingProfile(true);
+    // 1. Mettre à jour l'email dans auth.users si changé
+    if (profileForm.email !== profile.email) {
+      const { error: authError } = await supabase.auth.updateUser({ email: profileForm.email });
+      if (authError) {
+        setSavingProfile(false);
+        alert("Erreur mise à jour email : " + authError.message);
+        return;
+      }
+    }
+    // 2. Mettre à jour le profil
     const { error } = await supabase
       .from("profiles")
       .update({
@@ -150,10 +160,37 @@ export default function SettingsPage() {
   }, [profile]);
 
   const [boutiqueForm, setBoutiqueForm] = useState({
-    name: "Adebayo Fashions", slug: "adebayo-fashions",
-    description: "Boutique spécialisée dans la mode africaine contemporaine — vêtements Ankara, accessoires et prêt-à-porter.",
-    category: "Mode & Vêtements", website: "https://adebayo-fashions.com", instagram: "@adebayofashions",
+    name: profile?.business_name || "Ma Boutique",
+    slug: "",
+    description: profile?.business_description || "",
+    category: "Mode & Vêtements",
+    website: "",
+    instagram: "",
   });
+  useEffect(() => {
+    if (profile?.business_name) {
+      setBoutiqueForm(f => ({
+        ...f,
+        name: profile.business_name || "Ma Boutique",
+        description: profile.business_description || "",
+      }));
+    }
+  }, [profile]);
+  const saveBoutique = async () => {
+    if (!profile?.id) return;
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        business_name: boutiqueForm.name,
+        business_description: boutiqueForm.description,
+      })
+      .eq("id", profile.id);
+    if (error) {
+      alert("Erreur sauvegarde boutique : " + error.message);
+    } else {
+      alert("Boutique mise à jour !");
+    }
+  };
 
   const [passwords, setPasswords] = useState({ current: "", next: "", confirm: "" });
   const [pwSaving, setPwSaving] = useState(false);
@@ -421,7 +458,7 @@ export default function SettingsPage() {
                   </div>
                   <FieldRow label="Instagram" value={boutiqueForm.instagram} onChange={v => setBoutiqueForm(f => ({ ...f, instagram: v }))} />
                   <div className="flex justify-end pt-2">
-                    <button className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity" style={{ backgroundColor: "#125C8D" }}>
+                    <button onClick={saveBoutique} className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity" style={{ backgroundColor: "#125C8D" }}>
                       Sauvegarder les modifications
                     </button>
                   </div>

@@ -13,7 +13,7 @@ export default function StatsPage() {
   const totalOrders = orders.length;
   const totalRevenue = orders.reduce((s, o) => s + (o.amount_ngn || 0), 0);
   const avgOrder = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
-  const totalSold = orders.reduce((s, o) => s + (o.quantity || 1), 0);
+  const totalSold = orders.reduce((s, o) => s + (o.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0), 0);
   const revenueByMonth = useMemo(() => {
     const map = {};
     orders.forEach((o) => {
