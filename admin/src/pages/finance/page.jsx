@@ -20,7 +20,7 @@ export default function FinancePage() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <EscrowBridge config={config} onSave={handleSaveConfig} />
-      <PayoutValidation payouts={payouts} onUpdate={updated => setPayouts(prev => prev.map(p => p.id === updated.id ? updated : p))} />
+      <PayoutValidation payouts={payouts} onRefresh={refresh} />
       <AuditTrail entries={auditEntries} />
     </div>
   );

@@ -1,13 +1,38 @@
 import { useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 import StatusBadge from '@/components/base/StatusBadge';
 import { formatNGN, formatXOF, formatDate } from '@/components/base/DataTransformer';
 
-export default function PayoutValidation({ payouts, onUpdate }) {
-  const [selected, setSelected] = useState(null);
+// Mapping UI status -> DB enum
+const STATUS_TO_DB = {
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  PAID: 'paid',
+};
 
-  function handleAction(payout, status) {
-    onUpdate({ ...payout, status });
-    setSelected(null);
+export default function PayoutValidation({ payouts, onRefresh }) {
+  const [selected, setSelected] = useState(null);
+  const [updating, setUpdating] = useState(false);
+
+  async function handleAction(payout, uiStatus) {
+    setUpdating(true);
+    const dbStatus = STATUS_TO_DB[uiStatus];
+    const { error } = await supabase
+      .from('payouts')
+      .update({
+        status: dbStatus,
+        resolved_at: new Date().toISOString(),
+        resolved_by: (await supabase.auth.getUser()).data.user?.id,
+      })
+      .eq('id', payout.id);
+    setUpdating(false);
+    if (error) {
+      console.error('Erreur mise à jour payout:', error);
+      alert('Erreur lors de la mise à jour');
+    } else {
+      setSelected(null);
+      onRefresh?.();
+    }
   }
 
   function getInitials(name) {
@@ -44,9 +69,7 @@ export default function PayoutValidation({ payouts, onUpdate }) {
                   <div className="bg-slate-50 rounded-xl p-4 space-y-2 mb-4">
                     {[
                       { label: 'Montant XOF', value: formatXOF(payout.amount_xof) },
-                      { label: 'Banque', value: payout.bank },
-                      { label: 'N° compte', value: payout.account_number },
-                      { label: 'Commandes', value: payout.orders.join(', ') },
+                      { label: 'ID Payout', value: payout.id.slice(0, 8) },
                     ].map(f => (
                       <div key={f.label} className="flex justify-between text-xs">
                         <span className="text-slate-500 font-medium">{f.label}</span>
@@ -56,16 +79,28 @@ export default function PayoutValidation({ payouts, onUpdate }) {
                   </div>
                   {payout.status === 'PENDING_REVIEW' && (
                     <div className="grid grid-cols-2 gap-2">
-                      <button onClick={() => handleAction(payout, 'APPROVED')} className="py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl font-semibold text-xs cursor-pointer flex items-center justify-center gap-1.5">
+                      <button
+                        onClick={() => handleAction(payout, 'APPROVED')}
+                        disabled={updating}
+                        className="py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl font-semibold text-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
                         <i className="ri-checkbox-circle-line" />Approuver
                       </button>
-                      <button onClick={() => handleAction(payout, 'REJECTED')} className="py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-xl font-semibold text-xs cursor-pointer flex items-center justify-center gap-1.5">
+                      <button
+                        onClick={() => handleAction(payout, 'REJECTED')}
+                        disabled={updating}
+                        className="py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-xl font-semibold text-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
                         <i className="ri-close-circle-line" />Rejeter
                       </button>
                     </div>
                   )}
                   {payout.status === 'APPROVED' && (
-                    <button onClick={() => handleAction(payout, 'PAID')} className="w-full py-2.5 bg-trustblue text-white rounded-xl font-semibold text-xs cursor-pointer">
+                    <button
+                      onClick={() => handleAction(payout, 'PAID')}
+                      disabled={updating}
+                      className="w-full py-2.5 bg-trustblue text-white rounded-xl font-semibold text-xs cursor-pointer disabled:opacity-50"
+                    >
                       <i className="ri-bank-card-line mr-1.5" />Marquer comme payé
                     </button>
                   )}
