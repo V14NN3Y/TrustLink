@@ -14,12 +14,12 @@ export function useSupabaseDashboard() {
         .select('*', { count: 'exact', head: true });
       if (e1) throw e1;
       // Escrow volume (sum of total_amount)
-      const { data: volumeData, error: e2 } = await supabase
+      const { data: escrowData, error: e2 } = await supabase
         .from('orders')
         .select('total_amount')
         .not('total_amount', 'is', null);
       if (e2) throw e2;
-      const escrowVolume = volumeData?.reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0) || 0;
+      const escrowVolume = escrowData?.reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0) || 0;
       // Active sellers
       const { count: sellerCount, error: e3 } = await supabase
         .from('profiles')
