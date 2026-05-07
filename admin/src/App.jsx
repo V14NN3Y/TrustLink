@@ -19,6 +19,7 @@ import AdminLogsPage from '@/pages/admin-logs/page';
 import ProductsPage from '@/pages/products/page';
 import MessagesPage from '@/pages/messages/page';
 import DeliveryVideosPage from '@/pages/delivery-videos/page';
+import NotificationsPage from '@/pages/notifications/page';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, isAuthenticated, authError } = useAuth();
@@ -79,6 +80,7 @@ const AuthenticatedApp = () => {
             <Route path="/admin-logs" element={<AdminLogsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/delivery-videos" element={<DeliveryVideosPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="*" element={<PageNotFound />} />
           </Routes>
         </AdminLayout>
