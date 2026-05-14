@@ -40,7 +40,7 @@ export default function RecentOrders({ orders = [] }) {
                   <span className="font-mono text-xs font-bold text-gray-700">{order.id}</span>
                 </td>
                 <td className="px-5 py-3">
-                  <span className="text-xs font-medium text-gray-700 max-w-[160px] truncate block">{order.product}</span>
+                  <span className="text-xs font-medium text-gray-700 max-w-[160px] truncate block">{order.items?.[0]?.product || "—"}</span>
                 </td>
                 <td className="px-5 py-3">
                   <p className="text-xs font-medium text-gray-700">{order.buyer}</p>

@@ -8,7 +8,7 @@ export default function EditProductModal({ product, onClose, onSave }) {
    const handleChange = (key, value) => {
     if (key === "price_ngn") {
       const ngn = Number(value) || 0;
-      setForm((prev) => ({ ...prev, price_ngn: ngn, price_fcfa: Math.round(ngn * rate) }));
+      setForm((prev) => ({ ...prev, price_ngn: ngn, price_fcfa: Math.round(ngn * (rate || 1)) }));
     } else {
       setForm((prev) => ({ ...prev, [key]: value }));
     }

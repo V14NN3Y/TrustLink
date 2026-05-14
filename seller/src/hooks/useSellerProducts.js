@@ -19,11 +19,10 @@ export function useSellerProducts(sellerId) {
     const rate = rateData?.rate || 0.89;
     const { data, error } = await supabase
       .from("products")
-      .select(`*, images:product_images(url, is_primary)`)
+      .select(`*, images:product_images(url, is_primary), category:categories(name)`)
       .eq("seller_id", sellerId)
       .order("created_at", { ascending: false });
     if (error) {
-      console.error("useSellerProducts error:", error);
       setProducts([]);
       setLoading(false);
       return;
@@ -46,7 +45,7 @@ export function useSellerProducts(sellerId) {
     const formatted = (data || []).map((p) => ({
       id: p.id,
       name: p.name,
-      category: p.category_id,
+      category: p.category?.name || "—",
       price_fcfa: p.price,
       price_ngn: Math.round(p.price / rate),
       image: p.images?.find((i) => i.is_primary)?.url || p.images?.[0]?.url || "",

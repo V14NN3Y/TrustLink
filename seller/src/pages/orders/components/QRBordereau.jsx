@@ -44,14 +44,12 @@ export default function QRBordereau({ order, onClose }) {
         </div>
 
         <div className="flex justify-center mb-3">
-          <div className="bg-white px-6 py-4 rounded-xl border border-gray-200">
-            <p className="font-mono text-lg font-bold text-gray-900">{order.id}</p>
-          </div>
+          <MiniQR code={order.id} />
         </div>
 
         <p className="font-mono text-sm font-bold text-gray-900 mb-1">{order.id}</p>
-        <p className="text-xs text-gray-500 mb-1">{order.product}</p>
-        <p className="text-xs text-gray-400 mb-4">{order.buyer} — {order.buyer_city}</p>
+        <p className="text-xs text-gray-500 mb-1">{order.items?.[0]?.product || "—"}</p>
+        <p className="text-xs text-gray-400 mb-4">{order.buyer || "—"} — {order.buyer_city || "—"}</p>
 
         <div className="flex gap-2">
           <button
@@ -63,6 +61,7 @@ export default function QRBordereau({ order, onClose }) {
           <button
             className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer whitespace-nowrap transition-colors"
             style={{ backgroundColor: "#125C8D" }}
+            onClick={() => { const el = document.createElement('a'); el.href = `data:image/svg+xml,${encodeURIComponent(document.querySelector('[data-qr]')?.outerHTML || '')}`; el.download = `bordereau-${order.id}.svg`; el.click(); }}
           >
             <i className="ri-download-line mr-1.5"></i>Télécharger
           </button>

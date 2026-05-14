@@ -35,7 +35,7 @@ export default function LogisticsAlerts({ orders = [] }) {
     .filter((o) => o.status === "processing" || o.status === "paid")
     .slice(0, 4)
     .map((o) => ({
-      id: o.item_id,
+      id: o.items?.[0]?.item_id || o.id,
       order_id: o.id,
       type: o.status === "paid" ? "info" : "warning",
       message: o.status === "paid"

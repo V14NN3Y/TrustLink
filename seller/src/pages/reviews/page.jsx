@@ -64,14 +64,14 @@ export default function ReviewsPage() {
               <div key={r.id} className="flex items-start gap-4 px-5 py-4 hover:bg-[#F9FAFB] transition-all">
                 <div className="w-10 h-10 rounded-xl bg-[#125C8D]/10 flex items-center justify-center flex-shrink-0">
                   <span className="text-sm font-bold text-[#125C8D]">
-                    {(r.buyer?.full_name || "CL").slice(0, 2).toUpperCase()}
+                    {(r.buyer?.full_name || "—").slice(0, 2).toUpperCase()}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <div>
-                      <p className="text-sm font-semibold text-gray-900">{r.buyer?.full_name || "Client"}</p>
-                      <p className="text-[10px] text-gray-400">sur <span className="font-medium text-gray-600">{r.product?.name || "Produit"}</span></p>
+                      <p className="text-sm font-semibold text-gray-900">{r.buyer?.full_name || "—"}</p>
+                      <p className="text-[10px] text-gray-400">sur <span className="font-medium text-gray-600">{r.product?.name || "—"}</span></p>
                     </div>
                     <span className="text-[10px] text-gray-400 whitespace-nowrap">
                       {new Date(r.created_at).toLocaleDateString("fr-FR")}

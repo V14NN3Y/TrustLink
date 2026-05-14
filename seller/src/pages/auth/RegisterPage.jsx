@@ -25,8 +25,12 @@ export default function RegisterPage() {
       setError("Les mots de passe ne correspondent pas");
       return;
     }
-    if (form.password.length < 6) {
-      setError("Le mot de passe doit contenir au moins 6 caractères");
+    if (form.password.length < 8) {
+      setError("Le mot de passe doit contenir au moins 8 caractères");
+      return;
+    }
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(form.email)) {
+      setError("Format d'email invalide");
       return;
     }
     setError("");

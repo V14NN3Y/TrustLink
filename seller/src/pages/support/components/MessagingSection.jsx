@@ -25,7 +25,7 @@ export default function MessagingSection() {
     fetchMessages();
     // Realtime subscription
     const channel = supabase
-      .channel('seller-messages')
+      .channel(`seller-messages-${user.id}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
@@ -47,7 +47,7 @@ export default function MessagingSection() {
       if (!error && data?.id) {
         setAdminId(data.id);
       } else {
-        console.warn("Aucun admin trouvé dans profiles");
+        // Aucun admin trouvé, on garde l'état en attente
       }
       setAdminLoading(false);
     };

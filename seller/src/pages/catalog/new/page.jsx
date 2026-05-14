@@ -26,25 +26,10 @@ export default function NewProductPage() {
 
   const [categories, setCategories] = useState([]);
   useEffect(() => {
-    const fetchCategories = async () => {
-      const { data } = await supabase.from("categories").select("id,name");
-      if (data) setCategories(data);
-    };
-    fetchCategories();
+    supabase.from("categories").select("id, name").order("name").then(({ data }) => { if (data) setCategories(data); });
+    supabase.from("exchange_rates").select("rate").eq("from_currency", "NGN").eq("to_currency", "XOF").maybeSingle().then(({ data }) => { if (data?.rate) setExchangeRate(data.rate); });
   }, []);
-  // Récupère le vrai taux au montage
-  useEffect(() => {
-    const fetchRate = async () => {
-      const { data } = await supabase
-        .from("exchange_rates")
-        .select("rate")
-        .eq("from_currency", "NGN")
-        .eq("to_currency", "XOF")
-        .maybeSingle();
-      if (data?.rate) setExchangeRate(data.rate);
-    };
-    fetchRate();
-  }, []);
+  const getCatName = (id) => categories.find(c => c.id === id)?.name || id;
   const handleChange = (key, value) => {
     if (key === "price_ngn") {
       const ngn = Number(value) || 0;
@@ -293,7 +278,7 @@ export default function NewProductPage() {
               </div>
               <div className="flex justify-between py-2 border-b border-gray-100">
                 <span className="text-gray-500">Catégorie</span>
-                <span className="font-semibold text-gray-900">{form.category_id}</span>
+                <span className="font-semibold text-gray-900">{getCatName(form.category_id)}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-gray-100">
                 <span className="text-gray-500">Prix</span>

@@ -35,7 +35,7 @@ export default function OrdersPage() {
     const s = search.toLowerCase();
     return (
       (o.id?.toLowerCase() || "").includes(s) ||
-      (o.product?.toLowerCase() || "").includes(s) ||
+      (o.items?.[0]?.product?.toLowerCase() || "").includes(s) ||
       (o.buyer?.toLowerCase() || "").includes(s)
     );
   });
@@ -123,11 +123,11 @@ export default function OrdersPage() {
                     <p className="text-[10px] text-gray-400">{order.created_at ? new Date(order.created_at).toLocaleDateString("fr-FR") : ""}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-sm font-medium text-gray-800">{order.buyer || "Client"}</p>
-                    <p className="text-[10px] text-gray-400">{order.buyer_city || "Cotonou"}, Bénin</p>
+                    <p className="text-sm font-medium text-gray-800">{order.buyer || "—"}</p>
+                    <p className="text-[10px] text-gray-400">{order.buyer_city || "—"}, Bénin</p>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-xs font-medium text-gray-700 max-w-[180px] truncate">{order.product}</p>
+                    <p className="text-xs font-medium text-gray-700 max-w-[180px] truncate">{order.items?.[0]?.product || "—"}</p>
                     <p className="text-[10px] text-gray-400">FCFA {(order.amount_fcfa || 0).toLocaleString()}</p>
                   </td>
                   <td className="px-4 py-3">

@@ -52,8 +52,8 @@ export function useSellerOrders(sellerId) {
           acc[oid] = {
             id: oid.slice(0, 8),
             order_id: oid,
-            buyer: order?.buyer?.full_name || "Client",
-            buyer_city: order?.shipping_city || "Cotonou",
+            buyer: order?.buyer?.full_name,
+            buyer_city: order?.shipping_city,
             status: item.status,
             created_at: item.created_at,
             amount_ngn: 0,
@@ -73,7 +73,7 @@ export function useSellerOrders(sellerId) {
         acc[oid].amount_ngn += Math.round(xof / rate);
         acc[oid].items.push({
           item_id: item.id,
-          product: item.product_name || item.product?.name || "Produit",
+          product: item.product_name || item.product?.name,
           product_image: "",
           variant: "Standard",
           qty: item.quantity,
@@ -95,8 +95,9 @@ export function useSellerOrders(sellerId) {
   useEffect(() => {
     if (!sellerId) return;
 
+    const channelName = `seller-orders-${sellerId}-${Date.now()}`;
     const channel = supabase
-      .channel('seller-orders-realtime')
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders' },

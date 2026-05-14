@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 export function useExchangeRate() {
-  const [rate, setRate] = useState(0.89);
+  const [rate, setRate] = useState(null);
   useEffect(() => {
     const fetchRate = async () => {
       const { data } = await supabase

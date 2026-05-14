@@ -36,7 +36,7 @@ export function useSellerReviews(sellerId) {
       setReviews(data || []);
       const total = (data || []).length;
       const avg = total > 0
-        ? ((data || []).reduce((s, r) => s + r.rating, 0) / total).toFixed(1)
+        ? Math.round(((data || []).reduce((s, r) => s + r.rating, 0) / total) * 10) / 10
         : 0;
       const fiveStars = (data || []).filter((r) => r.rating === 5).length;
       setStats({ total, avg, fiveStars });

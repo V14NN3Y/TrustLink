@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { useLocation, useNavigate, NavLink, Link } from "react-router-dom";
-import { useSellerOrders } from "@/hooks/useSellerOrders";
 import { useAuth } from "@/lib/AuthContext";
 
 const profileMenuItems = [
   { icon: "ri-user-line", label: "Mon Profil", path: "/settings/profile" },
   { icon: "ri-store-2-line", label: "Boutique & Marque", path: "/settings/boutique" },
-  { icon: "ri-bank-line", label: "Comptes Bancaires", path: "/settings/banque" },
   { icon: "ri-notification-3-line", label: "Notifications", path: "/settings/notifications" },
   { icon: "ri-shield-line", label: "Sécurité", path: "/settings/securite" },
   { icon: "ri-global-line", label: "Langue & Devise", path: "/settings/langue" },
@@ -17,12 +15,9 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, profile, logout } = useAuth();
-  const { orders } = useSellerOrders(user?.id);
-  const toProcessCount = orders.filter(o => o.status === 'paid' || o.status === 'processing').length;
-  // navItems est maintenant DANS le composant, après toProcessCount
   const navItems = [
     { path: "/", icon: "ri-dashboard-3-line", label: "Dashboard" },
-    { path: "/orders", icon: "ri-shopping-bag-3-line", label: "Commandes", badge: toProcessCount > 0 ? toProcessCount : undefined },
+    { path: "/orders", icon: "ri-shopping-bag-3-line", label: "Commandes" },
     { path: "/catalog", icon: "ri-store-2-line", label: "Catalogue" },
     { path: "/reviews", icon: "ri-star-line", label: "Avis" },   // <-- AJOUT
     { path: "/stats", icon: "ri-bar-chart-line", label: "Statistiques" },
@@ -60,11 +55,6 @@ export default function Sidebar() {
               >
                 <i className={`${item.icon} text-base w-5 text-center flex-shrink-0 ${active ? "text-[#10B981]" : ""}`}></i>
                 <span className="text-sm font-medium flex-1 whitespace-nowrap">{item.label}</span>
-                {item.badge && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ backgroundColor: "#FF6A00", color: "#fff" }}>
-                    {item.badge}
-                  </span>
-                )}
               </NavLink>
             );
           })}
@@ -113,9 +103,9 @@ export default function Sidebar() {
               src={profile?.avatar_url || ""}
               alt={profile?.business_name || "Vendeur"}
               className="w-9 h-9 rounded-full object-cover"
-              onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+              onError={(e) => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; }}
             />
-            <div className="w-9 h-9 rounded-full items-center justify-center text-white font-bold text-sm flex-shrink-0 flex" style={{ backgroundColor: "#125C8D" }}>
+            <div className="w-9 h-9 rounded-full items-center justify-center text-white font-bold text-sm flex-shrink-0 hidden" style={{ backgroundColor: "#125C8D" }}>
               {profile?.business_name?.slice(0, 2)?.toUpperCase() || "SE"}
             </div>
             <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#10B981] border-2 border-[#0E3A4F]"></span>

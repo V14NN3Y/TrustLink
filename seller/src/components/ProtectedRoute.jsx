@@ -23,7 +23,7 @@ export default function ProtectedRoute({ fallback = <DefaultFallback />, unauthe
   }
 
   if (authError) {
-    if (authError.type === 'user_not_registered') {
+    if (authError.type === 'user_not_registered' || authError.type === 'profile_missing') {
       return <UserNotRegisteredError />;
     }
     return unauthenticatedElement;

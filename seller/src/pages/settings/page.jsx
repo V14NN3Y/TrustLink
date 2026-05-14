@@ -37,6 +37,14 @@ export default function SettingsPage() {
 
   const uploadToStorage = async (bucket, file, folderPath) => {
     if (!file || !profile?.id) return null;
+    const MAX_SIZE = 5 * 1024 * 1024;
+    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!ALLOWED.includes(file.type)) {
+      throw new Error('Format non autorisé (JPEG, PNG, WebP seulement)');
+    }
+    if (file.size > MAX_SIZE) {
+      throw new Error('Fichier trop volumineux (max 5 Mo)');
+    }
     const fileExt = file.name.split(".").pop();
     const path = `${folderPath}/${Date.now()}.${fileExt}`;
     const { error: uploadError } = await supabase.storage
@@ -44,7 +52,7 @@ export default function SettingsPage() {
       .upload(path, file, { upsert: true, contentType: file.type });
     if (uploadError) throw uploadError;
     const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    console.log("Uploaded to:", data?.publicUrl); // TEMP: vérifie que l'URL est bien générée
+    // TEMP: vérifie que l'URL est bien générée
     return data?.publicUrl || null;
   };
 
@@ -183,6 +191,10 @@ export default function SettingsPage() {
       .update({
         business_name: boutiqueForm.name,
         business_description: boutiqueForm.description,
+        business_slug: boutiqueForm.slug || null,
+        business_category: boutiqueForm.category || null,
+        business_website: boutiqueForm.website || null,
+        business_instagram: boutiqueForm.instagram || null,
       })
       .eq("id", profile.id);
     if (error) {
@@ -228,6 +240,18 @@ export default function SettingsPage() {
       </div>
     </div>
   );
+
+  const [savedLangMsg, setSavedLangMsg] = useState(false);
+
+  const handleSaveLang = async () => {
+    await supabase.from('profiles').update({
+      business_website: langForm.lang,
+      business_category: langForm.devise,
+      default_address_line2: langForm.timezone,
+    }).eq('id', user?.id);
+    setSavedLangMsg(true);
+    setTimeout(() => setSavedLangMsg(false), 3000);
+  };
 
   return (
     <DashboardLayout>
@@ -633,8 +657,13 @@ export default function SettingsPage() {
                       {["Africa/Lagos (GMT+1)", "Africa/Cotonou (GMT+1)", "Europe/Paris (GMT+2)", "UTC (GMT+0)"].map(t => <option key={t}>{t}</option>)}
                     </select>
                   </div>
+                  {savedLangMsg && (
+                    <div className="animate-fade-in bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 text-emerald-700 text-xs flex items-center gap-2 mb-3">
+                      <i className="ri-checkbox-circle-line" />Préférences sauvegardées
+                    </div>
+                  )}
                   <div className="flex justify-end">
-                    <button className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity" style={{ backgroundColor: "#125C8D" }}>
+                    <button onClick={handleSaveLang} className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity" style={{ backgroundColor: "#125C8D" }}>
                       Sauvegarder
                     </button>
                   </div>

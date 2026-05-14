@@ -4,7 +4,6 @@ import { supabase } from "@/lib/supabaseClient";
 export default function ExchangeRate() {
   const [ngnInput, setNgnInput] = useState(50000);
   const [rate, setRate] = useState(0.89);
-  const [stats, setStats] = useState({ conversion_rate: 0, dispute_rate: 0 });
   useEffect(() => {
     const fetchRate = async () => {
       const { data } = await supabase
@@ -16,10 +15,6 @@ export default function ExchangeRate() {
       if (data) setRate(data.rate);
     };
     fetchRate();
-  }, []);
-  useEffect(() => {
-    // TODO: brancher sur vraies stats Supabase
-    setStats({ conversion_rate: 0, dispute_rate: 0 });
   }, []);
   const fcfaResult = Math.round(ngnInput * rate);
 
@@ -53,16 +48,6 @@ export default function ExchangeRate() {
         <div className="flex-1 border border-gray-200 rounded-lg p-3 bg-[#F9FAFB]">
           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">XOF</p>
           <p className="text-sm font-bold text-[#10B981]">{fcfaResult.toLocaleString()}</p>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
-        <div className="text-center">
-          <p className="text-[10px] text-gray-400 uppercase tracking-widest">Confiance</p>
-          <p className="text-base font-bold text-[#10B981]">{stats.conversion_rate}%</p>
-        </div>
-        <div className="text-center">
-          <p className="text-[10px] text-gray-400 uppercase tracking-widest">Litiges</p>
-          <p className="text-base font-bold text-[#FF6A00]">{stats.dispute_rate}%</p>
         </div>
       </div>
     </div>

@@ -1,13 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/lib/AuthContext";
 import DashboardLayout from "@/components/feature/DashboardLayout";
-import { mockFaq } from "@/mocks/support";
-
-const kycSteps = [
-  { key: "identity", label: "Identité", status: "verified", icon: "ri-user-3-line", detail: "Pièce d'identité vérifiée" },
-  { key: "address", label: "Adresse", status: "verified", icon: "ri-map-pin-line", detail: "Preuve de domicile validée" },
-  { key: "activity", label: "Activité", status: "pending", icon: "ri-store-2-line", detail: "En cours d'examen" },
-  { key: "bank", label: "Bancaire", status: "not_started", icon: "ri-bank-line", detail: "Vérification non commencée" },
-];
 
 const statusConfig = {
   verified: { label: "Vérifié", color: "text-[#10B981]", bg: "bg-[#10B981]/5 border-[#10B981]/20", dot: "bg-[#10B981]" },
@@ -16,10 +10,36 @@ const statusConfig = {
   not_started: { label: "Non commencé", color: "text-gray-400", bg: "bg-gray-50 border-gray-200", dot: "bg-gray-300" },
 };
 
-const kycCompletion = Math.round((kycSteps.filter(s => s.status === "verified").length / kycSteps.length) * 100);
+const KYC_CONFIG = [
+  { key: "identity", label: "Identité", flag: "kyc_identity_verified", icon: "ri-user-3-line", detail: "Pièce d'identité" },
+  { key: "address", label: "Adresse", flag: "kyc_address_verified", icon: "ri-map-pin-line", detail: "Justificatif de domicile" },
+  { key: "activity", label: "Activité", flag: "kyc_business_verified", icon: "ri-store-2-line", detail: "Registre de commerce" },
+  { key: "bank", label: "Bancaire", flag: null, icon: "ri-bank-line", detail: "RIB bancaire" },
+];
 
 export default function SupportPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("kyc");
+  const [kycSteps, setKycSteps] = useState([]);
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('profiles').select('kyc_identity_verified, kyc_address_verified, kyc_business_verified').eq('id', user.id).single()
+      .then(({ data }) => {
+        setProfile(data);
+        if (data) {
+          setKycSteps(KYC_CONFIG.map(k => ({
+            ...k,
+            status: !k.flag ? 'not_started' : data[k.flag] ? 'verified' : 'not_started',
+          })));
+        }
+      });
+  }, [user]);
+
+  const kycCompletion = kycSteps.length > 0
+    ? Math.round((kycSteps.filter(s => s.status === "verified").length / kycSteps.length) * 100)
+    : 0;
 
   return (
     <DashboardLayout>
@@ -163,18 +183,9 @@ export default function SupportPage() {
 
       {/* FAQ Tab */}
       {activeTab === "faq" && (
-        <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-2">
-          {mockFaq.map((faq) => (
-            <details key={faq.id} className="group border border-gray-100 rounded-xl overflow-hidden">
-              <summary className="flex items-center justify-between px-4 py-3.5 cursor-pointer list-none hover:bg-[#F9FAFB] transition-all">
-                <span className="text-sm font-semibold text-gray-800 pr-4">{faq.question}</span>
-                <i className="ri-arrow-down-s-line text-gray-400 flex-shrink-0 transition-transform group-open:rotate-180 text-lg"></i>
-              </summary>
-              <div className="px-4 pb-4 text-sm text-gray-600 leading-relaxed border-t border-gray-100 pt-3">
-                {faq.answer}
-              </div>
-            </details>
-          ))}
+        <div className="bg-white rounded-xl border border-gray-100 p-5 text-center py-12">
+          <i className="ri-question-answer-line text-4xl text-gray-200 mb-3 block" />
+          <p className="text-sm text-gray-500">Section FAQ — bientôt disponible</p>
         </div>
       )}
     </DashboardLayout>

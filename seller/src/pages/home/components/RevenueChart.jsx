@@ -10,7 +10,7 @@ export default function RevenueChart({ orders = [] }) {
     orders.forEach((o) => {
       const d = new Date(o.created_at);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      const val = currency === "NGN" ? (o.amount_ngn || 0) : Math.round((o.amount_ngn || 0) * rate);
+      const val = currency === "NGN" ? (o.amount_ngn || 0) : Math.round((o.amount_ngn || 0) * (rate || 1));
       map[key] = (map[key] || 0) + val;
     });
     const keys = Object.keys(map).sort().slice(-7);
@@ -31,7 +31,7 @@ export default function RevenueChart({ orders = [] }) {
           <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>Revenus mensuels</h3>
           <p className="text-[10px] text-gray-400 mt-0.5">
             Total : <span className="font-semibold text-[#125C8D]">
-              {currency === "NGN" ? `₦${totalRevenue.toLocaleString()}` : `${Math.round(totalRevenue * rate).toLocaleString()} FCFA`}
+              {currency === "NGN" ? `₦${totalRevenue.toLocaleString()}` : `${Math.round(totalRevenue * (rate || 1)).toLocaleString()} FCFA`}
             </span>
           </p>
         </div>

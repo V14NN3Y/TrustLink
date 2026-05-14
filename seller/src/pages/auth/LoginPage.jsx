@@ -14,6 +14,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
+      await new Promise(r => setTimeout(r, 100));
       navigate("/", { replace: true });
     } catch (err) {
       setError(err.message || "Email ou mot de passe incorrect");

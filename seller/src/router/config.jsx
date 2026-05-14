@@ -32,6 +32,7 @@ const routes = [
       { path: "/support", element: <SupportPage /> },
       { path: "/settings", element: <SettingsPage /> },
       { path: "/notifications", element: <NotificationsPage /> },
+      { path: "/messages", element: <MessagesPage /> },
       { path: "/settings/:section", element: <SettingsPage /> },
       { path: "/reviews", element: <ReviewsPage /> },
       { path: "*", element: <PageNotFound /> },

@@ -89,7 +89,7 @@ export default function StatsPage() {
           <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-100">
             <div>
               <p className="text-[10px] text-gray-400 uppercase tracking-widest">Croissance</p>
-              <p className="text-sm font-bold text-[#10B981]">—</p>
+               <p className="text-sm font-bold text-[#10B981]">0%</p>
             </div>
             <div>
               <p className="text-[10px] text-gray-400 uppercase tracking-widest">Moy. mensuelle</p>
@@ -150,7 +150,7 @@ export default function StatsPage() {
               <div key={product.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#F9FAFB] transition-all">
                 <span className="text-[10px] font-bold text-gray-300 w-4 text-center flex-shrink-0">#{idx + 1}</span>
                 <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
-                  <img src={product.image} alt={product.name} className="w-full h-full object-cover object-top" />
+                  <img src={product.image || ""} alt={product.name} className="w-full h-full object-cover object-top" onError={e => e.target.style.display = 'none'} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-gray-900 truncate">{product.name}</p>

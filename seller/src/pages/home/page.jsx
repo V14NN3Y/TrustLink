@@ -45,7 +45,7 @@ export default function Home() {
       badge: `${approvedProducts} actifs`,
       badgeColor: "#125C8D",
       label: "Produits approuvés",
-      value: products.length.toString(),
+      value: approvedProducts.toString(),
     },
     {
       icon: "ri-bar-chart-line",

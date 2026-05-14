@@ -10,9 +10,11 @@ const pageTitles = [
   { path: "/orders", title: "Commandes", subtitle: "Suivi et gestion des commandes" },
   { path: "/stats", title: "Statistiques de ventes", subtitle: "Historique et performances de vos ventes" },
   { path: "/support", title: "Support & KYC", subtitle: "Assistance et vérification d'identité" },
+  { path: "/messages", title: "Messagerie", subtitle: "Échangez avec le support TrustLink" },
+  { path: "/reviews", title: "Avis clients", subtitle: "Consultez les avis sur vos produits" },
+  { path: "/notifications", title: "Notifications", subtitle: "Historique de vos notifications" },
   { path: "/settings/profile", title: "Mon Profil", subtitle: "Gérez vos informations personnelles et préférences" },
   { path: "/settings/boutique", title: "Boutique & Marque", subtitle: "Gérez vos informations personnelles et préférences" },
-  { path: "/settings/banque", title: "Comptes Bancaires", subtitle: "Gérez vos informations personnelles et préférences" },
   { path: "/settings/notifications", title: "Notifications", subtitle: "Gérez vos informations personnelles et préférences" },
   { path: "/settings/securite", title: "Sécurité", subtitle: "Gérez vos informations personnelles et préférences" },
   { path: "/settings/langue", title: "Langue & Devise", subtitle: "Gérez vos informations personnelles et préférences" },
@@ -44,7 +46,7 @@ export default function Header() {
     fetchNotifs();
     // Temps réel (optionnel mais propre)
     const channel = supabase
-      .channel('seller-notifications')
+      .channel(`seller-notifications-${user.id}`)
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'notifications',
         filter: `user_id=eq.${user.id}`
@@ -63,7 +65,7 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const current = pageTitles.find((p) => {
+  const current = [...pageTitles].sort((a, b) => b.path.length - a.path.length).find((p) => {
     if (p.path === "/") return location.pathname === "/";
     return location.pathname.startsWith(p.path);
   }) || pageTitles[pageTitles.length - 1];
@@ -94,7 +96,7 @@ export default function Header() {
         {/* Exchange Rate Badge */}
         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-green-200 bg-green-50 whitespace-nowrap">
           <span className="text-[#10B981] text-xs">⊙</span>
-          <span className="text-xs font-semibold text-[#10B981]">1 NGN = {liveRate.toFixed(2)} FCFA</span>
+          <span className="text-xs font-semibold text-[#10B981]">1 NGN = {liveRate ? liveRate.toFixed(2) : "..."} FCFA</span>
         </div>
 
         {/* Notifications */}
