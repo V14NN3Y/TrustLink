@@ -71,6 +71,8 @@ create table profiles (
   kyc_address_url text, -- Document upload
   kyc_business_verified boolean default false,
   kyc_business_url text, -- Document upload
+  -- Notification frequency
+  notification_frequency text default 'realtime',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -149,6 +151,39 @@ create table exchange_rates (
 -- Taux initial NGN → XOF
 insert into exchange_rates (from_currency, to_currency, rate)
 values ('NGN', 'XOF', 0.89);
+
+-- ============================================
+-- ESCROW CONFIG (configuration du pont escrow)
+-- ============================================
+create table escrow_config (
+  id uuid primary key default uuid_generate_v4(),
+  spread_pct numeric(5,2) not null default 3.0,
+  min_amount_xof numeric(12,2) not null default 500,
+  release_delay_hours integer not null default 72,
+  auto_release boolean not null default false,
+  updated_by uuid references profiles(id),
+  updated_at timestamptz default now()
+);
+
+insert into escrow_config (spread_pct, min_amount_xof, release_delay_hours, auto_release)
+values (3.0, 500, 72, false);
+
+-- ============================================
+-- HUBS (configuration des hubs logistiques)
+-- ============================================
+create table hubs (
+  code text primary key,
+  name text not null,
+  country text not null,
+  active boolean not null default true,
+  created_at timestamptz default now()
+);
+
+insert into hubs (code, name, country, active) values
+  ('LOS', 'Lagos', 'Nigeria', true),
+  ('ABJ', 'Abuja', 'Nigeria', true),
+  ('COT', 'Cotonou', 'Bénin', true),
+  ('PNV', 'Porto-Novo', 'Bénin', false);
 
 -- ============================================
 -- WISHLISTS
@@ -385,6 +420,20 @@ alter table messages enable row level security;
 alter table notifications enable row level security;
 alter table admin_logs enable row level security;
 alter table notification_preferences enable row level security;
+alter table escrow_config enable row level security;
+alter table hubs enable row level security;
+
+-- ============================================
+-- HELPER FUNCTION (évite la récursion RLS)
+-- ============================================
+create or replace function is_admin(user_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from profiles where id = user_id and role = 'admin');
+$$;
 
 -- ============================================
 -- POLICIES RLS
@@ -396,13 +445,9 @@ create policy "Users can view their own profile"
 create policy "Users can update their own profile"
   on profiles for update using (auth.uid() = id);
 create policy "Admins can view all profiles"
-  on profiles for select using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
-  );
+  on profiles for select using (is_admin(auth.uid()));
 create policy "Admins can update all profiles"
-  on profiles for update using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
-  );
+  on profiles for update using (is_admin(auth.uid()));
 
 -- PRODUCTS
 create policy "Anyone can view approved products"
@@ -417,7 +462,7 @@ create policy "Sellers can delete their own products"
   on products for delete using (seller_id = auth.uid());
 create policy "Admins can manage all products"
   on products for all using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    is_admin(auth.uid())
   );
 
 -- CATEGORIES
@@ -425,7 +470,7 @@ create policy "Anyone can view categories"
   on categories for select using (true);
 create policy "Admins can manage categories"
   on categories for all using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    is_admin(auth.uid())
   );
 
 -- EXCHANGE RATES
@@ -433,7 +478,7 @@ create policy "Anyone can view exchange rates"
   on exchange_rates for select using (true);
 create policy "Admins can manage exchange rates"
   on exchange_rates for all using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    is_admin(auth.uid())
   );
 
 -- WISHLISTS
@@ -465,7 +510,7 @@ create policy "Buyers can confirm or dispute their own delivered orders"
   );
 create policy "Admins can manage all orders"
   on orders for all using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    is_admin(auth.uid())
   );
 
 -- ORDER ITEMS
@@ -481,7 +526,7 @@ create policy "Sellers can view their own order items"
   on order_items for select using (seller_id = auth.uid());
 create policy "Admins can manage all order items"
   on order_items for all using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    is_admin(auth.uid())
   );
 
 -- DELIVERY VIDEOS
@@ -491,7 +536,7 @@ create policy "Buyers can view their own videos"
   on delivery_videos for select using (buyer_id = auth.uid());
 create policy "Admins can view and review all videos"
   on delivery_videos for all using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    is_admin(auth.uid())
   );
 
 -- DISPUTES
@@ -501,7 +546,7 @@ create policy "Buyers can create disputes"
   on disputes for insert with check (buyer_id = auth.uid());
 create policy "Admins can manage all disputes"
   on disputes for all using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    is_admin(auth.uid())
   );
 
 -- REVIEWS
@@ -513,13 +558,13 @@ create policy "Buyers can manage their own reviews"
 -- DISPATCHES
 create policy "Admins can manage dispatches"
   on dispatches for all using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    is_admin(auth.uid())
   );
 
 -- DISPATCH ORDERS
 create policy "Admins can manage dispatch orders"
   on dispatch_orders for all using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    is_admin(auth.uid())
   );
 create policy "Sellers can view dispatch orders for their orders"
   on dispatch_orders for select using (
@@ -531,7 +576,7 @@ create policy "Sellers can view their own payouts"
   on payouts for select using (seller_id = auth.uid());
 create policy "Admins can manage all payouts"
   on payouts for all using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    is_admin(auth.uid())
   );
 
 -- MESSAGES
@@ -553,17 +598,33 @@ create policy "Users can manage their own preferences"
   on notification_preferences for all using (user_id = auth.uid());
 create policy "Admins can view all preferences"
   on notification_preferences for select using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    is_admin(auth.uid())
+  );
+
+-- ESCROW CONFIG
+create policy "Anyone can view escrow config"
+  on escrow_config for select using (true);
+create policy "Admins can manage escrow config"
+  on escrow_config for all using (
+    is_admin(auth.uid())
+  );
+
+-- HUBS
+create policy "Anyone can view hubs"
+  on hubs for select using (true);
+create policy "Admins can manage hubs"
+  on hubs for all using (
+    is_admin(auth.uid())
   );
 
 -- ADMIN LOGS
 create policy "Admins can view all logs"
   on admin_logs for select using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    is_admin(auth.uid())
   );
 create policy "Admins can insert logs"
   on admin_logs for insert with check (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+    is_admin(auth.uid())
   );
 
 -- PRODUCT IMAGES
@@ -612,19 +673,26 @@ create index idx_notif_prefs_user_id on notification_preferences(user_id);
 
 -- Auto-create profile on signup
 create or replace function handle_new_user()
-returns trigger as $$
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
 begin
-  insert into profiles (id, email, role, full_name)
+  insert into public.profiles (id, email, role, full_name)
   values (
     new.id,
     new.email,
-    coalesce((new.raw_user_meta_data->>'role')::user_role, 'buyer'),
+    coalesce(
+      nullif(new.raw_user_meta_data->>'role', '')::user_role,
+      'buyer'::user_role
+    ),
     new.raw_user_meta_data->>'full_name'
   )
   on conflict (id) do nothing;
   return new;
 end;
-$$ language plpgsql security definer;
+$$;
 
 create trigger on_auth_user_created
   after insert on auth.users
@@ -654,3 +722,40 @@ create trigger set_updated_at_orders
 create trigger set_updated_at_order_items
   before update on order_items
   for each row execute function update_updated_at();
+
+-- ============================================
+-- STORAGE RLS (à exécuter APRÈS création des buckets dans le Dashboard)
+-- ============================================
+create policy "Public can view avatars"
+  on storage.objects for select
+  using ( bucket_id = 'avatars' );
+
+create policy "Authenticated users can upload avatars"
+  on storage.objects for insert
+  with check ( bucket_id = 'avatars' and auth.role() = 'authenticated' );
+
+create policy "Users can update own avatars"
+  on storage.objects for update
+  using ( bucket_id = 'avatars' and auth.uid() = owner );
+
+create policy "Authenticated users can upload delivery videos"
+  on storage.objects for insert
+  with check ( bucket_id = 'delivery-videos' and auth.role() = 'authenticated' );
+
+create policy "Owners and admins can view delivery videos"
+  on storage.objects for select
+  using (
+    bucket_id = 'delivery-videos'
+    and ( auth.uid() = owner or is_admin(auth.uid()) )
+  );
+
+create policy "Anyone can view product images"
+  on storage.objects for select
+  using ( bucket_id = 'product-images' );
+
+create policy "Sellers can upload product images"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'product-images'
+    and exists (select 1 from profiles where id = auth.uid() and role = 'seller')
+  );
