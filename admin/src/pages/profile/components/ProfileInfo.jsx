@@ -3,23 +3,63 @@ import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function ProfileInfo() {
-  const { profile, user } = useAuth();
-  const [draft, setDraft] = useState({
-    name: profile?.full_name || '',
-    email: profile?.email || user?.email || '',
-    phone: profile?.phone || '',
-    role: profile?.role || 'admin',
-  });
+  const { profile, user, refreshProfile } = useAuth();
+  const [draft, setDraft] = useState({ ...profile, email: profile?.email || user?.email || '' });
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const fileRef = useRef(null);
+  const selectedFileRef = useRef(null);
 
   async function handleSave() {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ full_name: draft.name, phone: draft.phone })
-      .eq('id', user.id);
-    if (!error) { setEditing(false); setSaved(true); setTimeout(() => setSaved(false), 3000); }
+    setSaving(true);
+    setUploadError('');
+    try {
+      let avatar_url = profile?.avatar_url;
+      const file = selectedFileRef.current;
+      if (file) {
+        const ext = file.name.split('.').pop() || 'png';
+        const filePath = `avatars/${user.id}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, file, { upsert: true });
+        if (uploadErr) {
+          console.error("Erreur upload avatar:", uploadErr);
+          setUploadError("Erreur lors de l'upload de la photo. Vérifie que le bucket 'avatars' existe dans Supabase Storage.");
+          setSaving(false);
+          return;
+        }
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
+        avatar_url = publicUrl;
+      }
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ full_name: draft.full_name, phone: draft.phone, avatar_url })
+        .eq('id', user.id);
+      if (updateError) {
+        setUploadError("Erreur lors de la sauvegarde du profil.");
+        setSaving(false);
+        return;
+      }
+      selectedFileRef.current = null;
+      setDraft(d => ({ ...d, avatar: undefined, avatar_url }));
+      setEditing(false);
+      setSaved(true);
+      await supabase.from('admin_logs').insert({
+        admin_id: user.id, action: 'profile_updated',
+        resource_type: 'profile', resource_id: user.id,
+      });
+      await refreshProfile();
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      console.error("Erreur inattendue:", err);
+      setUploadError("Une erreur inattendue est survenue.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const fields = [
@@ -42,8 +82,14 @@ export default function ProfileInfo() {
 
       <div className="flex items-center gap-5 mb-8">
         <div className="relative">
-          <div className="w-20 h-20 rounded-full bg-trustblue flex items-center justify-center">
-            {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : <span className="font-bold text-white text-2xl" style={{ fontFamily: 'Poppins, sans-serif' }}>AD</span>}
+          <div className="w-20 h-20 rounded-full bg-trustblue flex items-center justify-center overflow-hidden">
+            {draft.avatar?.startsWith('blob:') ? (
+              <img src={draft.avatar} alt="" className="w-full h-full object-cover" />
+            ) : profile.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="font-bold text-white text-2xl" style={{ fontFamily: 'Poppins, sans-serif' }}>AD</span>
+            )}
           </div>
           {editing && (
             <button onClick={() => fileRef.current?.click()} className="absolute -bottom-1 -right-1 w-7 h-7 bg-blue-100 border-2 border-white rounded-full flex items-center justify-center cursor-pointer">
@@ -53,7 +99,10 @@ export default function ProfileInfo() {
         </div>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => {
           const f = e.target.files?.[0];
-          if (f) setDraft(d => ({ ...d, avatar: URL.createObjectURL(f) }));
+          if (f) {
+            selectedFileRef.current = f;
+            setDraft(d => ({ ...d, avatar: URL.createObjectURL(f) }));
+          }
         }} />
         <div>
           <p className="font-bold text-slate-800 text-lg" style={{ fontFamily: 'Poppins, sans-serif' }}>{profile.full_name}</p>
@@ -79,10 +128,15 @@ export default function ProfileInfo() {
           <i className="ri-checkbox-circle-line" />Profil mis à jour avec succès
         </div>
       )}
+      {uploadError && (
+        <div className="animate-fade-in bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 text-red-700 text-sm flex items-center gap-2 mb-4">
+          <i className="ri-error-warning-line" />{uploadError}
+        </div>
+      )}
       {editing && (
         <div className="flex gap-3">
-          <button onClick={() => { setDraft({ full_name: profile?.full_name || '', email: profile?.email || user?.email || '', phone: profile?.phone || '', role: profile?.role || 'admin' }); setEditing(false); }} className="px-6 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-semibold text-sm cursor-pointer">Annuler</button>
-          <button onClick={handleSave} className="px-6 py-2.5 bg-trustblue text-white rounded-xl font-semibold text-sm cursor-pointer">Sauvegarder</button>
+          <button onClick={() => { selectedFileRef.current = null; setDraft({ ...profile, email: profile?.email || user?.email || '', avatar: undefined }); setEditing(false); setUploadError(''); }} className="px-6 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-semibold text-sm cursor-pointer">Annuler</button>
+          <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 bg-trustblue text-white rounded-xl font-semibold text-sm cursor-pointer disabled:opacity-50">{saving ? 'Sauvegarde...' : 'Sauvegarder'}</button>
         </div>
       )}
     </div>

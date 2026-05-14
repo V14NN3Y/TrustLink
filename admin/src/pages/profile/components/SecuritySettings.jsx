@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { formatDateTime } from '@/components/base/DataTransformer';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function SecuritySettings() {
-  const [sessions, setSessions] = useState([]); // TODO: charger via supabase.auth.admin.listUserSessions()
+  const { logout } = useAuth();
   const [showPwdForm, setShowPwdForm] = useState(false);
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [pwdSaved, setPwdSaved] = useState(false);
-  const [twoFA, setTwoFA] = useState(true);
 
   async function handlePwdSave() {
     if (!next || next.length < 8) { setError('Min 8 caractères'); return; }
@@ -20,6 +19,11 @@ export default function SecuritySettings() {
     setPwdSaved(true); setShowPwdForm(false);
     setCurrent(''); setNext(''); setConfirm('');
     setTimeout(() => setPwdSaved(false), 3000);
+  }
+
+  async function handleLogout() {
+    await logout();
+    window.location.href = '/login';
   }
 
   return (
@@ -53,40 +57,22 @@ export default function SecuritySettings() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-slate-800 text-base" style={{ fontFamily: 'Poppins, sans-serif' }}>Authentification à 2 facteurs</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Renforcez la sécurité de votre compte</p>
-          </div>
-          <button onClick={() => setTwoFA(v => !v)} className={`relative rounded-full cursor-pointer w-12 h-6 transition-colors ${twoFA ? 'bg-trustblue' : 'bg-slate-200'}`}>
-            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${twoFA ? 'translate-x-6' : 'translate-x-0.5'}`} />
-          </button>
-        </div>
+        <h3 className="font-semibold text-slate-800 text-base mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Session</h3>
+        <button onClick={handleLogout} className="w-full py-3 bg-red-50 border border-red-200 text-red-600 rounded-xl font-semibold text-sm cursor-pointer hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
+          <i className="ri-logout-box-line" />Me déconnecter
+        </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-slate-800 text-base" style={{ fontFamily: 'Poppins, sans-serif' }}>Sessions actives</h3>
-          {sessions.filter(s => !s.current).length > 0 && (
-            <button onClick={() => setSessions(prev => prev.filter(s => s.current))} className="text-xs text-red-500 hover:underline cursor-pointer">Déconnecter tout</button>
-          )}
-        </div>
-        <div className="space-y-3">
-          {sessions.map(s => (
-            <div key={s.id} className={`flex items-center gap-3 p-3 rounded-xl ${s.current ? 'bg-blue-50 border border-blue-100' : 'bg-slate-50'}`}>
-              <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center flex-shrink-0">
-                <i className={s.device.includes('iOS') || s.device.includes('Safari') ? 'ri-smartphone-line text-slate-500' : 'ri-computer-line text-slate-500'} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-800 truncate">{s.device}</p>
-                <p className="text-xs text-slate-500">{s.location} · {formatDateTime(s.last_active)}</p>
-              </div>
-              {s.current
-                ? <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full flex-shrink-0">Actuelle</span>
-                : <button onClick={() => setSessions(prev => prev.filter(x => x.id !== s.id))} className="text-xs text-red-500 hover:underline cursor-pointer flex-shrink-0">Révoquer</button>
-              }
-            </div>
-          ))}
+      <div className="bg-white rounded-2xl border border-red-100 p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-2xl bg-red-100 flex items-center justify-center flex-shrink-0">
+            <i className="ri-user-unfollow-line text-red-600 text-lg" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-red-800 text-base" style={{ fontFamily: 'Poppins, sans-serif' }}>Supprimer le compte</h3>
+            <p className="text-xs text-red-600/80 mt-1">Cette action est irréversible. Toutes les données associées seront définitivement supprimées.</p>
+            <p className="text-xs text-slate-500 mt-2">Contacte le super administrateur pour demander la suppression de ton compte.</p>
+          </div>
         </div>
       </div>
     </div>

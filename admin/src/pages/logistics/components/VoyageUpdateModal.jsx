@@ -1,35 +1,51 @@
 import { useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/lib/AuthContext';
 
 const STEPS = [
   { key: 'preparing', label: 'Préparation', icon: 'ri-archive-line' },
   { key: 'in_transit', label: 'En transit', icon: 'ri-truck-line' },
-  { key: 'customs', label: 'Douane', icon: 'ri-building-2-line' },
-  { key: 'arrived', label: 'Arrivé', icon: 'ri-map-pin-line' },
-  { key: 'completed', label: 'Complété', icon: 'ri-check-double-line' },
+  { key: 'delivered', label: 'Livré', icon: 'ri-check-double-line' },
 ];
 
 export default function VoyageUpdateModal({ voyage, onClose, onUpdate }) {
+  const { user } = useAuth();
   const [newStatus, setNewStatus] = useState(voyage.status);
   const [customsAgent, setCustomsAgent] = useState(voyage.customs_agent || '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const hasChanges = newStatus !== voyage.status || customsAgent !== (voyage.customs_agent || '');
-  const showAgent = newStatus === 'customs' || newStatus === 'arrived';
+  const showAgent = false;
 
-  function handleSave() {
-    if (!hasChanges) return;
+  async function handleSave() {
+    if (!hasChanges || !user || saving) return;
     setSaving(true);
-    setTimeout(() => {
-      const updated = {
-        ...voyage, status: newStatus,
-        customs_agent: customsAgent || undefined,
-        actual_arrival: (newStatus === 'arrived' || newStatus === 'completed') && !voyage.actual_arrival
-          ? new Date().toISOString() : voyage.actual_arrival,
-      };
-      setSaving(false); setSaved(true);
+    const updates = {
+      status: newStatus,
+      customs_agent: customsAgent || null,
+      actual_arrival: newStatus === 'delivered' && !voyage.actual_arrival
+        ? new Date().toISOString() : voyage.actual_arrival,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase
+      .from('dispatches')
+      .update(updates)
+      .eq('id', voyage.id);
+    if (!error) {
+      await supabase.from('admin_logs').insert({
+        admin_id: user.id,
+        action: 'dispatch_status_updated',
+        resource_type: 'dispatch',
+        resource_id: voyage.id,
+        old_value: { status: voyage.status },
+        new_value: { status: newStatus },
+      });
+      const updated = { ...voyage, ...updates };
+      setSaved(true);
       setTimeout(() => onUpdate(updated), 1200);
-    }, 700);
+    }
+    setSaving(false);
   }
 
   return (
@@ -44,7 +60,7 @@ export default function VoyageUpdateModal({ voyage, onClose, onUpdate }) {
         <div className="p-6 space-y-6">
           <div>
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 block">Nouveau statut</label>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {STEPS.map((step, i) => {
                 const currentIdx = STEPS.findIndex(s => s.key === newStatus);
                 const isPast = i < currentIdx;

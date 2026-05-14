@@ -13,11 +13,11 @@ export function useSupabaseDashboard() {
         .from('orders')
         .select('*', { count: 'exact', head: true });
       if (e1) throw e1;
-      // Escrow volume (sum of total_amount)
+      // Escrow volume (paid/processing/in_transit/delivered only)
       const { data: escrowData, error: e2 } = await supabase
         .from('orders')
         .select('total_amount')
-        .not('total_amount', 'is', null);
+        .in('status', ['paid', 'processing', 'in_transit', 'delivered', 'confirmed']);
       if (e2) throw e2;
       const escrowVolume = escrowData?.reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0) || 0;
       // Active sellers
@@ -64,26 +64,26 @@ export function useSupabaseDashboard() {
       const { count: activeVoyages, error: e9 } = await supabase
         .from('dispatches')
         .select('*', { count: 'exact', head: true })
-        .not('status', 'in', '("completed","cancelled")');
+        .not('status', 'in', '("delivered","cancelled")');
       if (e9) throw e9;
       // Success rate = confirmed orders / total non-cancelled
-      const { count: confirmedOrders } = await supabase
+      const { count: confirmedOrders, error: e10 } = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'confirmed');
-      const { count: nonCancelledOrders } = await supabase
+      const { count: nonCancelledOrders, error: e11 } = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
         .not('status', 'eq', 'cancelled');
       const successRate = nonCancelledOrders && nonCancelledOrders > 0
         ? Number(((confirmedOrders || 0) / nonCancelledOrders * 100).toFixed(1))
-        : 94.2;
+        : 0;
       // Volume par mois (6 derniers mois)
-      const { data: monthlyData, error: e10 } = await supabase
+      const { data: monthlyData, error: e12 } = await supabase
         .from('orders')
         .select('total_amount, created_at')
         .gte('created_at', new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000).toISOString());
-      if (e10) throw e10;
+      if (e12) throw e12;
       // Grouper par mois côté JS :
       const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
       const volumeByMonth = {};
@@ -108,8 +108,9 @@ export function useSupabaseDashboard() {
         volumeData,
       });
     } catch (err) {
-      console.error('Dashboard stats error:', err);
-      setError(err.message);
+      const msg = err?.message || err?.error_description || err?.details || 'Erreur inconnue';
+      console.error('Dashboard stats error:', msg, err);
+      setError(msg);
     } finally {
       setLoading(false);
     }

@@ -3,8 +3,8 @@ import { supabase } from '@/lib/supabaseClient';
 import { formatNGN, formatXOF } from '@/components/base/DataTransformer';
 
 export default function CatalogueInspection({ products, onUpdate }) {
-  const pending = products.filter(p => p.status === 'pending_review');
-  const currentIdx = 0;
+  const pending = products.filter(p => p.status === 'PENDING_REVIEW');
+  const [currentIdx, setCurrentIdx] = useState(0);
   const [imgIdx, setImgIdx] = useState(0);
   const [swipeDir, setSwipeDir] = useState(null);
 

@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
 
 export function useSupabaseActivity() {
   const [activity, setActivity] = useState([]);
-  const [hubStats, setHubStats] = useState({ Lagos: { orders: 0, volume_xof: 0, on_time_pct: 95 }, Abuja: { orders: 0, volume_xof: 0, on_time_pct: 95 } });
+  const [hubStats, setHubStats] = useState({ Lagos: { orders: 0, volume_xof: 0, on_time_pct: 0 }, Abuja: { orders: 0, volume_xof: 0, on_time_pct: 0 } });
   useEffect(() => {
     async function fetch() {
       // Activité récente depuis admin_logs
@@ -26,7 +26,7 @@ export function useSupabaseActivity() {
       const { data: orders } = await supabase
         .from('orders')
         .select('shipping_city, total_amount');
-      const stats = { Lagos: { orders: 0, volume_xof: 0, on_time_pct: 92 }, Abuja: { orders: 0, volume_xof: 0, on_time_pct: 96 } };
+      const stats = { Lagos: { orders: 0, volume_xof: 0, on_time_pct: 0 }, Abuja: { orders: 0, volume_xof: 0, on_time_pct: 0 } };
       (orders || []).forEach(o => {
         const city = o.shipping_city?.includes('Lagos') ? 'Lagos' : o.shipping_city?.includes('Abuja') ? 'Abuja' : null;
         if (city) {

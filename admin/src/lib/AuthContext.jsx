@@ -47,19 +47,21 @@ export const AuthProvider = ({ children }) => {
       .eq('id', authUser.id)
       .single();
     if (error || !data) {
+      console.error('[Auth] loadProfile error:', error?.message || 'Aucun profil trouvé');
       setAuthError({ type: 'user_not_registered', message: 'Profil non trouvé dans la base' });
       setIsAuthenticated(false);
       setIsLoadingAuth(false);
       setAuthChecked(true);
-      return;
+      return { success: false, error: 'Profil non trouvé dans la base' };
     }
     // Sécurité : seuls les admins peuvent utiliser l'app admin
     if (data.role !== 'admin') {
+      console.error('[Auth] Accès refusé, rôle:', data.role);
       setAuthError({ type: 'not_admin', message: 'Accès réservé aux administrateurs' });
       setIsAuthenticated(false);
       setIsLoadingAuth(false);
       setAuthChecked(true);
-      return;
+      return { success: false, error: 'Accès réservé aux administrateurs' };
     }
     setUser(authUser);
     setProfile(data);
@@ -67,11 +69,13 @@ export const AuthProvider = ({ children }) => {
     setAuthError(null);
     setIsLoadingAuth(false);
     setAuthChecked(true);
+    return { success: true };
   };
   const login = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    await loadProfile(data.user);
+    const result = await loadProfile(data.user);
+    if (!result.success) throw new Error(result.error);
     return data;
   };
   const register = async ({ email, password, name }) => {
@@ -94,15 +98,25 @@ export const AuthProvider = ({ children }) => {
     setProfile(null);
     setIsAuthenticated(false);
   };
-  const checkUserAuth = async () => {
-    // Déjà géré par onAuthStateChange
-  };
-  const checkAppState = async () => {
-    // Non utilisé avec Supabase direct
+  const refreshProfile = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+      if (data) {
+        setProfile(data);
+        setUser(session.user);
+      }
+    }
   };
   const navigateToLogin = () => {
     window.location.href = '/login';
   };
+  const checkUserAuth = async () => {};
+  const checkAppState = async () => {};
   return (
     <AuthContext.Provider value={{
       user,
@@ -116,6 +130,7 @@ export const AuthProvider = ({ children }) => {
       login,
       register,
       logout,
+      refreshProfile,
       navigateToLogin,
       checkUserAuth,
       checkAppState,

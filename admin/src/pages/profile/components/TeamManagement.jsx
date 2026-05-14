@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/lib/AuthContext';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import StatusBadge from '@/components/base/StatusBadge';
 
 const ROLES = ['Super Admin', 'Modérateur', 'Support', 'Analyste', 'Lecture seule'];
 
 export default function TeamManagement() {
+  const { user } = useAuth();
   const { users, loading } = useSupabaseUsers();
   const [members, setMembers] = useState([]);
   const [editingId, setEditingId] = useState(null);
@@ -18,8 +21,12 @@ export default function TeamManagement() {
     setMembers(users.filter(u => u.role === 'admin'));
   }, [users]);
 
-  function handleInvite() {
-    if (!inviteEmail) return;
+  async function handleInvite() {
+    if (!inviteEmail || !user) return;
+    await supabase.from('admin_logs').insert({
+      admin_id: user.id, action: 'team_invite_sent',
+      resource_type: 'user', new_value: { email: inviteEmail, role: inviteRole },
+    });
     const newMember = {
       id: `admin-${Date.now()}`, name: inviteEmail.split('@')[0],
       email: inviteEmail, role: inviteRole,

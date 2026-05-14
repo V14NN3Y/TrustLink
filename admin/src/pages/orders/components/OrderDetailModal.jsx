@@ -1,12 +1,14 @@
 import { useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/lib/AuthContext';
 import { JOURNEY_STEPS } from '@/constants/orderStatuses';
 import StatusBadge from '@/components/base/StatusBadge';
-import { supabase } from '@/lib/supabaseClient';
 import { formatXOF, formatNGN, formatDate } from '@/components/base/DataTransformer';
 
 const ALL_STATUSES = ['pending', 'paid', 'processing', 'in_transit', 'delivered', 'confirmed', 'disputed', 'cancelled', 'refunded'];
 
 export default function OrderDetailModal({ order, onClose, onUpdate }) {
+  const { user } = useAuth();
   const [tab, setTab] = useState('info');
   const [editStep, setEditStep] = useState(order.journey_step);
   const [editStatus, setEditStatus] = useState(order.status);
@@ -85,7 +87,14 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
   setTimeout(() => setSaved(false), 2000);
 }
 
-  function handleDisputeConfirm() {
+  async function handleDisputeConfirm() {
+    if (!user) return;
+    await supabase.from('orders').update({ status: 'delivered' }).eq('id', order.id);
+    await supabase.from('admin_logs').insert({
+      admin_id: user.id, action: 'dispute_resolved_from_order',
+      resource_type: 'order', resource_id: order.id,
+      old_value: { status: 'disputed' }, new_value: { status: 'delivered' },
+    });
     onUpdate({ ...order, status: 'delivered' });
     setDisputePhase('done');
     setTimeout(() => onClose(), 1500);

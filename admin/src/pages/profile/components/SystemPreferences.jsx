@@ -1,43 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
 import { StorageManager } from '@/lib/storage';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { formatXOF, formatNGN } from '@/components/base/DataTransformer';
 
-const HUBS_CONFIG = [
-  { code: 'LOS', name: 'Lagos', country: 'Nigeria' },
-  { code: 'ABJ', name: 'Abuja', country: 'Nigeria' },
-  { code: 'COT', name: 'Cotonou', country: 'Bénin' },
-  { code: 'PNV', name: 'Porto-Novo', country: 'Bénin' },
-];
-
 export default function SystemPreferences() {
   const { user } = useAuth();
   const { rate, setRate } = useExchangeRate();
   const [ngnXofRate, setNgnXofRate] = useState(String(rate));
-  const [hubs, setHubs] = useState({ LOS: true, ABJ: true, COT: true, PNV: false });
+  const [hubs, setHubs] = useState([]);
   const [saved, setSaved] = useState(false);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
+
+  useEffect(() => {
+    supabase.from('hubs').select('*').order('code')
+      .then(({ data }) => { if (data) setHubs(data); });
+  }, []);
 
   const rateNum = parseFloat(ngnXofRate);
   const rateValid = !isNaN(rateNum) && rateNum > 0;
 
   async function handleSave() {
-    if (rateValid) {
-      setRate(rateNum);
-      // Persister dans Supabase
-      await supabase
-        .from('exchange_rates')
-        .update({ rate: rateNum, updated_by: user.id, updated_at: new Date().toISOString() })
-        .eq('from_currency', 'NGN')
-        .eq('to_currency', 'XOF');
+    if (rateValid) setRate(rateNum);
+    for (const hub of hubs) {
+      await supabase.from('hubs').update({ active: hub.active }).eq('code', hub.code);
     }
-    setSaved(true); setTimeout(() => setSaved(false), 3000);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
   }
 
   function handleReset() {
     StorageManager.reset();
+  }
+
+  function toggleHub(code) {
+    setHubs(prev => prev.map(h => h.code === code ? { ...h, active: !h.active } : h));
   }
 
   return (
@@ -67,7 +65,7 @@ export default function SystemPreferences() {
       <div className="bg-white rounded-2xl border border-slate-100 p-5">
         <h3 className="font-semibold text-slate-800 text-base mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Hubs actifs</h3>
         <div className="space-y-3">
-          {HUBS_CONFIG.map(hub => (
+          {hubs.map(hub => (
             <div key={hub.code} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
@@ -79,10 +77,10 @@ export default function SystemPreferences() {
                 </div>
               </div>
               <button
-                onClick={() => setHubs(prev => ({ ...prev, [hub.code]: !prev[hub.code] }))}
-                className={`relative rounded-full cursor-pointer w-10 h-5 transition-colors ${hubs[hub.code] ? 'bg-trustblue' : 'bg-slate-200'}`}
+                onClick={() => toggleHub(hub.code)}
+                className={`relative rounded-full cursor-pointer flex-shrink-0 w-11 h-6 transition-colors ${hub.active ? 'bg-trustblue' : 'bg-slate-200'}`}
               >
-                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${hubs[hub.code] ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${hub.active ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
             </div>
           ))}
@@ -102,7 +100,6 @@ export default function SystemPreferences() {
         Sauvegarder les paramètres système
       </button>
 
-      {/* ZONE DE DANGER - DEV ONLY */}
       <div className="mt-12 pt-8 border-t border-slate-100">
         <div className="bg-red-50/50 border border-red-100 rounded-2xl p-6">
           <div className="flex items-start gap-4 mb-6">

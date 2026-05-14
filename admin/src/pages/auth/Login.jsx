@@ -18,7 +18,16 @@ export default function Login() {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Identifiants invalides. Veuillez réessayer.');
+      const msg = err?.message || '';
+      if (msg.includes('Invalid login credentials')) {
+        setError('Email ou mot de passe incorrect. Vérifie tes identifiants.');
+      } else if (msg.includes('Email not confirmed')) {
+        setError('Email non confirmé. Vérifie ta boîte de réception.');
+      } else if (msg.includes('rate limit')) {
+        setError('Trop de tentatives. Réessaie dans quelques minutes.');
+      } else {
+        setError('Identifiants invalides. Veuillez réessayer.');
+      }
     } finally {
       setLoading(false);
     }
@@ -103,7 +112,7 @@ export default function Login() {
         </div>
         
         <p className="text-center text-slate-600 text-xs mt-8">
-          &copy; 2024 TrustLink EcoSystem. Tous droits réservés.
+          &copy; 2026 TrustLink EcoSystem. Tous droits réservés.
         </p>
       </div>
     </div>

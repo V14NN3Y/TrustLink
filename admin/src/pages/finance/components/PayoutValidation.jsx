@@ -13,6 +13,7 @@ const STATUS_TO_DB = {
 export default function PayoutValidation({ payouts, onRefresh }) {
   const [selected, setSelected] = useState(null);
   const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState('');
 
   async function handleAction(payout, uiStatus) {
     setUpdating(true);
@@ -28,8 +29,9 @@ export default function PayoutValidation({ payouts, onRefresh }) {
     setUpdating(false);
     if (error) {
       console.error('Erreur mise à jour payout:', error);
-      alert('Erreur lors de la mise à jour');
+      setError("Erreur lors de la mise à jour");
     } else {
+      setError('');
       setSelected(null);
       onRefresh?.();
     }
@@ -45,6 +47,11 @@ export default function PayoutValidation({ payouts, onRefresh }) {
         <h3 className="font-semibold text-slate-800 text-base" style={{ fontFamily: 'Poppins, sans-serif' }}>Validation Payouts</h3>
         <p className="text-xs text-slate-500 mt-0.5">{payouts.filter(p => p.status === 'PENDING_REVIEW').length} en attente</p>
       </div>
+      {error && (
+        <div className="px-5 py-2 bg-red-50 border-b border-red-100 text-xs text-red-600 flex items-center gap-2">
+          <i className="ri-error-warning-line" />{error}
+        </div>
+      )}
       <div className="divide-y divide-slate-50">
         {payouts.map(payout => {
           const isOpen = selected === payout.id;

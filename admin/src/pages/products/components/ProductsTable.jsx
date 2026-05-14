@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import StatusBadge from '@/components/base/StatusBadge';
@@ -17,6 +18,27 @@ export default function ProductsTable() {
       p.seller_name.toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchSearch;
   });
+
+  async function handleModerate(product, newStatus) {
+    updateProduct(product.id, newStatus);
+    const { data: { user: admin } } = await supabase.auth.getUser();
+    if (!admin) return;
+    await supabase.from('admin_logs').insert({
+      admin_id: admin.id, action: `product_${newStatus.toLowerCase()}`,
+      resource_type: 'product', resource_id: product.id,
+      old_value: { status: 'pending_review' }, new_value: { status: newStatus.toLowerCase() },
+    });
+    const { data: prod } = await supabase
+      .from('products').select('seller_id').eq('id', product.id).single();
+    if (prod?.seller_id) {
+      await supabase.from('notifications').insert({
+        user_id: prod.seller_id,
+        type: newStatus === 'APPROVED' ? 'product_approved' : 'product_rejected',
+        title: `Produit "${product.name}" ${newStatus === 'APPROVED' ? 'approuvé' : 'rejeté'}`,
+        resource_type: 'product', resource_id: product.id,
+      });
+    }
+  }
   if (loading) return (
     <div className="py-20 text-center text-sm text-slate-400">Chargement...</div>
   );
@@ -89,14 +111,14 @@ export default function ProductsTable() {
                       {p.status === 'PENDING_REVIEW' && (
                         <>
                           <button
-                            onClick={() => updateProduct(p.id, 'APPROVED')}
+                            onClick={() => handleModerate(p, 'APPROVED')}
                             className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-emerald-50 cursor-pointer"
                             title="Approuver"
                           >
                             <i className="ri-checkbox-circle-line text-emerald-600" />
                           </button>
                           <button
-                            onClick={() => updateProduct(p.id, 'REJECTED')}
+                            onClick={() => handleModerate(p, 'REJECTED')}
                             className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-red-50 cursor-pointer"
                             title="Rejeter"
                           >

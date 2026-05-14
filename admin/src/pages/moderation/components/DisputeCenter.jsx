@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/lib/AuthContext';
 import StatusBadge from '@/components/base/StatusBadge';
 import { formatDateTime, formatXOF } from '@/components/base/DataTransformer';
 
@@ -10,28 +12,74 @@ const BUBBLE_STYLE = {
 };
 
 export default function DisputeCenter({ disputes, onUpdate }) {
+  const { user } = useAuth();
   const [selected, setSelected] = useState(disputes[0]);
   const [message, setMessage] = useState('');
   const [videoExpanded, setVideoExpanded] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [resolveAction, setResolveAction] = useState(null);
+  const [sending, setSending] = useState(false);
   const chatRef = useRef(null);
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
-  }, [selected?.messages.length]);
+  }, [selected?.messages?.length]);
 
-  function sendMessage() {
-    if (!message.trim() || !selected) return;
-    const newMsg = { id: Date.now(), role: 'ADMIN', author: 'Admin TrustLink', content: message.trim(), timestamp: new Date().toISOString() };
-    const updated = { ...selected, messages: [...selected.messages, newMsg] };
-    onUpdate(updated); setSelected(updated); setMessage('');
+  async function sendMessage() {
+    if (!message.trim() || !selected || !user || sending) return;
+    setSending(true);
+    const { error } = await supabase.from('messages').insert({
+      sender_id: user.id,
+      receiver_id: selected.buyer_id,
+      subject: `Litige #${selected.order_ref}`,
+      content: message.trim(),
+    });
+    if (!error) {
+      const newMsg = { id: Date.now(), role: 'ADMIN', author: user.email || 'Admin', content: message.trim(), timestamp: new Date().toISOString() };
+      const updated = { ...selected, messages: [...(selected.messages || []), newMsg] };
+      onUpdate(updated); setSelected(updated); setMessage('');
+    }
+    setSending(false);
   }
 
-  function handleResolve(action) {
+  async function handleResolve(action) {
     if (!resolving) { setResolving(true); setResolveAction(action); return; }
-    const updated = { ...selected, status: 'RESOLVED', resolution: action === 'refund' ? "Remboursement total accordé à l'acheteur." : 'Paiement forcé au vendeur validé.' };
-    onUpdate(updated); setSelected(updated); setResolving(false); setResolveAction(null);
+    if (!selected || !user) return;
+    const newStatus = action === 'refund' ? 'resolved_refund' : 'resolved_no_refund';
+    const orderStatus = action === 'refund' ? 'refunded' : 'confirmed';
+    const resolutionText = action === 'refund'
+      ? "Remboursement total accordé à l'acheteur."
+      : 'Paiement forcé au vendeur validé.';
+
+    await supabase.from('disputes').update({
+      status: newStatus,
+      resolved_by: user.id,
+      resolution_notes: resolutionText,
+      resolved_at: new Date().toISOString(),
+    }).eq('id', selected.id);
+
+    await supabase.from('orders').update({ status: orderStatus }).eq('id', selected.order_id);
+
+    await supabase.from('notifications').insert({
+      user_id: selected.buyer_id,
+      type: 'dispute_update',
+      title: `Litige résolu : ${resolutionText}`,
+      resource_type: 'dispute',
+      resource_id: selected.id,
+    });
+
+    await supabase.from('admin_logs').insert({
+      admin_id: user.id,
+      action: 'dispute_resolved',
+      resource_type: 'dispute',
+      resource_id: selected.id,
+      old_value: { status: 'open' },
+      new_value: { status: newStatus },
+    });
+
+    const updated = { ...selected, status: 'RESOLVED', resolution: resolutionText };
+    onUpdate(updated); setSelected(updated);
+    setResolving(false); setResolveAction(null);
   }
 
   if (!selected) return null;
@@ -86,7 +134,7 @@ export default function DisputeCenter({ disputes, onUpdate }) {
           </div>
 
           <div ref={chatRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-            {selected.messages.map(msg => (
+            {(selected.messages || []).map(msg => (
               <div key={msg.id} className={`flex flex-col ${ROLE_ALIGN[msg.role]}`}>
                 <span className="text-xs text-slate-400 mb-1 px-1">{msg.author} · {formatDateTime(msg.timestamp)}</span>
                 <div className={`max-w-xs px-4 py-2.5 ${BUBBLE_STYLE[msg.role]}`}>
@@ -109,7 +157,7 @@ export default function DisputeCenter({ disputes, onUpdate }) {
               )}
               <div className="flex gap-2">
                 <input value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} placeholder="Message admin…" className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-trustblue" />
-                <button onClick={sendMessage} className="w-9 h-9 bg-trustblue text-white rounded-xl flex items-center justify-center cursor-pointer">
+                <button onClick={sendMessage} disabled={sending} className="w-9 h-9 bg-trustblue text-white rounded-xl flex items-center justify-center cursor-pointer disabled:opacity-50">
                   <i className="ri-send-plane-line" />
                 </button>
               </div>

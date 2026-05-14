@@ -68,7 +68,7 @@ export function useSupabaseLogistics() {
     const { data: ordersData } = await supabase
       .from('orders')
       .select(`
-        id, ref, status, shipping_city, total_amount, created_at, updated_at,
+        id, status, shipping_city, total_amount, created_at, updated_at,
         order_items (
           id, quantity, subtotal,
           product:products (name),

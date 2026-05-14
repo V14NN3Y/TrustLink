@@ -15,6 +15,10 @@ const PAGE_TITLES = {
   '/profile': 'Profil & Paramètres',
   '/users': 'Utilisateurs',
   '/products': 'Catalogue Produits',
+  '/messages': 'Messagerie',
+  '/notifications': 'Notifications',
+  '/admin-logs': 'Historique',
+  '/delivery-videos': 'Vidéos réception',
 };
 
 const NOTIF_ICONS = {
@@ -34,7 +38,7 @@ export default function TopHeader() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [showRateEdit, setShowRateEdit] = useState(false);
   const [tempRate, setTempRate] = useState(rate);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { notifications, markAsRead, markAllAsRead } = useSupabaseNotifications(user?.id);
   const notifRef = useRef(null);
   const rateRef = useRef(null);
@@ -56,28 +60,15 @@ export default function TopHeader() {
 
   async function handleRateSave() {
     const newRate = parseFloat(tempRate);
-    setRate(newRate); // met à jour localStorage
+    setRate(newRate);
     setShowRateEdit(false);
 
-    // Persister dans Supabase
     const { data: { user: adminUser } } = await supabase.auth.getUser();
-
-    await supabase
-      .from('exchange_rates')
-      .update({
-        rate: newRate,
-        updated_by: adminUser.id,
-        updated_at: new Date().toISOString()
-      })
-      .eq('from_currency', 'NGN')
-      .eq('to_currency', 'XOF');
-
-    // Admin log
     await supabase.from('admin_logs').insert({
       admin_id: adminUser.id,
       action: 'exchange_rate_updated',
       resource_type: 'exchange_rate',
-      old_value: { rate: rate },
+      old_value: { rate },
       new_value: { rate: newRate },
     });
   }
@@ -172,8 +163,12 @@ export default function TopHeader() {
           )}
         </div>
 
-        <button onClick={() => navigate('/profile')} className="w-10 h-10 rounded-full bg-trustblue flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity">
-          <span style={{ fontFamily: 'Poppins, sans-serif' }} className="font-bold text-white text-sm">AD</span>
+        <button onClick={() => navigate('/profile')} className="w-10 h-10 rounded-full bg-trustblue flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <span style={{ fontFamily: 'Poppins, sans-serif' }} className="font-bold text-white text-sm">AD</span>
+          )}
         </button>
       </div>
     </header>

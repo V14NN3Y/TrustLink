@@ -1,18 +1,22 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/lib/AuthContext';
 import { formatDateTime } from '@/components/base/DataTransformer';
 import { NOTIFICATION_ICONS, NOTIFICATION_COLORS } from '@/constants/notifications';
 
 export default function AdminNotificationsPage() {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
   async function fetchNotifications() {
+    if (!user) return;
     setLoading(true);
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(100);
     if (!error && data) setNotifications(data);
@@ -20,12 +24,13 @@ export default function AdminNotificationsPage() {
   }
 
   useEffect(() => {
+    if (!user) return;
     fetchNotifications();
     const channel = supabase
       .channel('admin-notifications')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications' },
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
         (payload) => {
           setNotifications((prev) => [payload.new, ...prev]);
         }

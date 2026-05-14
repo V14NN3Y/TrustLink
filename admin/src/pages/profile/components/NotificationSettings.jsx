@@ -1,37 +1,57 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/lib/AuthContext';
 
-function NotifToggle({ label, description, value, onChange, icon }) {
-  return (
-    <div className="flex items-start justify-between gap-4 py-3">
-      <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <i className={`${icon} text-trustblue text-sm`} />
-        </div>
-        <div>
-          <p className="text-sm font-medium text-slate-800">{label}</p>
-          <p className="text-xs text-slate-500 mt-0.5">{description}</p>
-        </div>
-      </div>
-      <button onClick={onChange} className={`relative rounded-full cursor-pointer flex-shrink-0 w-11 h-6 transition-colors ${value ? 'bg-trustblue' : 'bg-slate-200'}`}>
-        <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-5' : 'translate-x-0.5'}`} />
-      </button>
-    </div>
-  );
-}
+const NOTIF_TYPES = [
+  { key: 'new_order', type: 'new_order', label: 'Nouvelles commandes', description: 'Notification à chaque nouvelle commande escrow', icon: 'ri-shopping-bag-3-line' },
+  { key: 'dispute', type: 'dispute_update', label: 'Litiges', description: "Alerte immédiate en cas d'ouverture de litige", icon: 'ri-error-warning-line' },
+  { key: 'payout', type: 'payment_received', label: 'Demandes de payout', description: 'Notification pour chaque payout en attente', icon: 'ri-bank-line' },
+  { key: 'voyage_update', type: 'order_update', label: 'Mises à jour voyages', description: 'Statut des voyages en cours', icon: 'ri-truck-line' },
+  { key: 'moderation', type: 'product_approved', label: 'Produits à modérer', description: 'Nouveaux produits en attente de validation', icon: 'ri-shield-star-line' },
+];
 
 export default function NotificationSettings() {
-  const [notifs, setNotifs] = useState({ new_order: true, dispute: true, payout: true, voyage_update: false, moderation: true, rate_change: false });
+  const { user } = useAuth();
+  const [enabled, setEnabled] = useState({});
   const [frequency, setFrequency] = useState('realtime');
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const NOTIFS = [
-    { key: 'new_order', label: 'Nouvelles commandes', description: 'Notification à chaque nouvelle commande escrow', icon: 'ri-shopping-bag-3-line' },
-    { key: 'dispute', label: 'Litiges', description: "Alerte immédiate en cas d'ouverture de litige", icon: 'ri-error-warning-line' },
-    { key: 'payout', label: 'Demandes de payout', description: 'Notification pour chaque payout en attente', icon: 'ri-bank-line' },
-    { key: 'voyage_update', label: 'Mises à jour voyages', description: 'Statut des voyages en cours', icon: 'ri-truck-line' },
-    { key: 'moderation', label: 'Produits à modérer', description: 'Nouveaux produits en attente de validation', icon: 'ri-shield-star-line' },
-    { key: 'rate_change', label: 'Changement de taux', description: 'Variation significative du taux NGN/XOF', icon: 'ri-exchange-line' },
-  ];
+  useEffect(() => {
+    if (!user) return;
+    Promise.all([
+      supabase.from('notification_preferences').select('type, enabled').eq('user_id', user.id).eq('channel', 'email'),
+      supabase.from('profiles').select('notification_frequency').eq('id', user.id).single(),
+    ]).then(([prefsRes, profileRes]) => {
+      const prefs = {};
+      NOTIF_TYPES.forEach(n => { prefs[n.key] = false; });
+      prefsRes.data?.forEach(p => {
+        const match = NOTIF_TYPES.find(n => n.type === p.type);
+        if (match) prefs[match.key] = p.enabled;
+      });
+      setEnabled(prefs);
+      if (profileRes.data?.notification_frequency) setFrequency(profileRes.data.notification_frequency);
+      setLoading(false);
+    });
+  }, [user]);
+
+  async function handleSave() {
+    if (!user) return;
+    const rows = NOTIF_TYPES.map(n => ({
+      user_id: user.id,
+      type: n.type,
+      channel: 'email',
+      enabled: enabled[n.key],
+    }));
+    for (const row of rows) {
+      await supabase.from('notification_preferences').upsert(row, { onConflict: 'user_id, type, channel' });
+    }
+    await supabase.from('profiles').update({ notification_frequency: frequency }).eq('id', user.id);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  }
+
+  if (loading) return null;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-6">
@@ -48,8 +68,21 @@ export default function NotificationSettings() {
         {frequency !== 'realtime' && <p className="text-xs text-amber-600 mt-2"><i className="ri-information-line mr-1" />Les alertes critiques sont toujours en temps réel.</p>}
       </div>
       <div className="divide-y divide-slate-50">
-        {NOTIFS.map(n => (
-          <NotifToggle key={n.key} label={n.label} description={n.description} value={notifs[n.key]} onChange={() => setNotifs(prev => ({ ...prev, [n.key]: !prev[n.key] }))} icon={n.icon} />
+        {NOTIF_TYPES.map(n => (
+          <div key={n.key} className="flex items-center justify-between gap-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                <i className={`${n.icon} text-trustblue text-sm`} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-800">{n.label}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{n.description}</p>
+              </div>
+            </div>
+            <button onClick={() => setEnabled(prev => ({ ...prev, [n.key]: !prev[n.key] }))} className={`relative rounded-full cursor-pointer flex-shrink-0 w-11 h-6 transition-colors ${enabled[n.key] ? 'bg-trustblue' : 'bg-slate-200'}`}>
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${enabled[n.key] ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
         ))}
       </div>
       {saved && (
@@ -57,7 +90,7 @@ export default function NotificationSettings() {
           <i className="ri-checkbox-circle-line" />Préférences sauvegardées
         </div>
       )}
-      <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 3000); }} className="w-full mt-4 py-2.5 bg-trustblue text-white rounded-xl font-semibold text-sm cursor-pointer">
+      <button onClick={handleSave} className="w-full mt-4 py-2.5 bg-trustblue text-white rounded-xl font-semibold text-sm cursor-pointer">
         Sauvegarder les préférences
       </button>
     </div>

@@ -5,6 +5,17 @@ import { formatXOF, formatNGN, formatDate } from '@/components/base/DataTransfor
 
 const ITEMS_PER_PAGE = 8;
 const ALL_STATUSES = ['pending', 'paid', 'processing', 'in_transit', 'delivered', 'confirmed', 'disputed', 'cancelled', 'refunded'];
+const VALID_TRANSITIONS = {
+  pending: ['paid', 'cancelled'],
+  paid: ['processing', 'cancelled'],
+  processing: ['in_transit', 'cancelled'],
+  in_transit: ['delivered'],
+  delivered: ['confirmed', 'disputed'],
+  disputed: ['refunded', 'confirmed'],
+  confirmed: ['refunded'],
+  cancelled: [],
+  refunded: [],
+};
 
 export default function OrdersTable({ orders, onSelect, onUpdate }) {
   const [search, setSearch] = useState('');
@@ -165,7 +176,7 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
                     </button>
                     {dropdownId === order.id && (
                       <div className="absolute top-8 left-0 z-20 bg-white border border-slate-100 rounded-xl py-1 min-w-max animate-fade-in">
-                        {ALL_STATUSES.map(s => (
+                        {VALID_TRANSITIONS[order.status]?.map(s => (
                           <button key={s} onClick={() => handleStatusChange(order, s)} className={`w-full text-left px-4 py-2 text-xs hover:bg-slate-50 cursor-pointer ${s === order.status ? 'font-semibold text-trustblue' : 'text-slate-700'}`}>{s}</button>
                         ))}
                       </div>
