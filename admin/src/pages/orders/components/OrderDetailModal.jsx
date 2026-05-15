@@ -7,6 +7,15 @@ import { formatXOF, formatNGN, formatDate } from '@/components/base/DataTransfor
 
 const ALL_STATUSES = ['pending', 'paid', 'processing', 'in_transit', 'delivered', 'confirmed', 'disputed', 'cancelled', 'refunded'];
 
+function InfoField({ label, value }) {
+  return (
+    <div>
+      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">{label}</label>
+      <p className="text-sm text-slate-700 px-3 py-2.5 bg-slate-50 rounded-xl">{value}</p>
+    </div>
+  );
+}
+
 export default function OrderDetailModal({ order, onClose, onUpdate }) {
   const { user } = useAuth();
   const [tab, setTab] = useState('info');
@@ -132,29 +141,28 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
 
         <div className="flex-1 overflow-y-auto p-6">
           {tab === 'info' && (
-            <div className="grid grid-cols-2 gap-4">
-                 {[
-                  { label: 'Acheteur', value: order.buyer_name },
-                  { label: 'Vendeur', value: `${order.seller_name} (${order.seller_id})` },
-                  { label: 'Hub origine', value: order.hub_origin },
-                  { label: 'Voyage', value: order.voyage_id || '—' },
-                  { label: 'Groupement', value: order.group_id ? `${order.group_id.slice(0, 8)}...` : '—' },
-                  { label: 'Montant XOF', value: formatXOF(order.amount_xof) },
-                  { label: 'Montant NGN', value: formatNGN(order.amount_ngn) },
-                  { label: 'Crée le', value: formatDate(order.created_at) },
-                  { label: 'Etape', value: order.journey_step },
-                ].map(f => (
-                  <div key={f.label}>
-                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">{f.label}</label>
-                    <p className="text-sm text-slate-700 px-3 py-2.5 bg-slate-50 rounded-xl">{f.value}</p>
+            <div>
+              <div className="grid grid-cols-2 gap-4">
+                <InfoField label="Acheteur" value={order.buyer_name} />
+                <InfoField label="Vendeur" value={`${order.seller_name} (${order.seller_id})`} />
+                <InfoField label="Hub origine" value={order.hub_origin} />
+                <InfoField label="Voyage" value={order.voyage_id || '—'} />
+                <InfoField label="Groupement" value={order.group_id ? `${order.group_id.slice(0, 8)}...` : '—'} />
+                <InfoField label="Montant XOF" value={formatXOF(order.amount_xof)} />
+                <InfoField label="Montant NGN" value={formatNGN(order.amount_ngn)} />
+                <InfoField label="Crée le" value={formatDate(order.created_at)} />
+                <InfoField label="Etape" value={order.journey_step} />
+                {order.dispute_reason && (
+                  <div className="col-span-2">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">Motif du litige</label>
+                    <p className="text-sm text-slate-700 px-3 py-2.5 bg-red-50 rounded-xl border border-red-100">{order.dispute_reason}</p>
                   </div>
-                ))}
-              {order.dispute_reason && (
-                <div className="col-span-2">
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">Motif du litige</label>
-                  <p className="text-sm text-slate-700 px-3 py-2.5 bg-red-50 rounded-xl border border-red-100">{order.dispute_reason}</p>
-                </div>
-              )}
+                )}
+              </div>
+              <button onClick={() => window.open(`/invoice/${order.id}`, '_blank')}
+                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                <i className="ri-printer-line" /> Facture
+              </button>
             </div>
           )}
 

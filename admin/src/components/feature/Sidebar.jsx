@@ -13,9 +13,19 @@ const navItems = [
   { path: '/notifications', label: 'Notifications', icon: 'ri-notification-3-line', exact: false },
   { path: '/admin-logs', label: 'Historique', icon: 'ri-history-line', exact: false },
   { path: '/delivery-videos', label: 'Vidéos réception', icon: 'ri-video-line', exact: false },
+  { path: '/categories', label: 'Catégories', icon: 'ri-folder-2-line', exact: false },
+  { path: '/reviews', label: 'Avis clients', icon: 'ri-star-line', exact: false },
+  { path: '/coupons', label: 'Coupons', icon: 'ri-percent-line', exact: false },
+  { path: '/questions', label: 'Questions', icon: 'ri-question-answer-line', exact: false },
+  { path: '/stock-notifications', label: 'Stock alertes', icon: 'ri-stock-line', exact: false },
+  { path: '/reports', label: 'Rapports', icon: 'ri-file-chart-line', exact: false },
+  { path: '/analytics', label: 'Analytiques', icon: 'ri-bar-chart-2-line', exact: false },
+  { path: '/maintenance', label: 'Maintenance', icon: 'ri-shield-flash-line', exact: false },
+  { path: '/announcements', label: 'Annonces', icon: 'ri-megaphone-line', exact: false },
+  { path: '/activity-calendar', label: 'Activité', icon: 'ri-calendar-line', exact: false },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onToggle }) {
   const { profile } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -26,11 +36,18 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 w-64 h-screen bg-white border-r border-slate-100 z-30 flex flex-col">
+    <>
+      {isOpen && <div className="fixed inset-0 bg-black/30 z-30 lg:hidden" onClick={onToggle} />}
+      <aside className={`fixed left-0 top-0 w-64 h-screen bg-white border-r border-slate-100 z-40 flex flex-col transition-transform duration-200 ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
       <div className="px-6 py-5 border-b border-slate-100">
-        <Link to="/" className="flex items-center gap-3">
-          <img src="/TrustLink_Logo_Orange.png" alt="TrustLink" className="h-8 w-auto" />
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-3">
+            <img src="/TrustLink_Logo_Orange.png" alt="TrustLink" className="h-8 w-auto" />
+          </Link>
+          <button onClick={onToggle} className="lg:hidden w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-50 cursor-pointer">
+            <i className="ri-close-line text-slate-500 text-xl" />
+          </button>
+        </div>
         <div className="flex items-center gap-1.5 mt-3">
           <span className="live-dot" />
           <span className="text-xs text-slate-500" style={{ fontFamily: 'Inter, sans-serif' }}>Système opérationnel</span>
@@ -76,5 +93,6 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }

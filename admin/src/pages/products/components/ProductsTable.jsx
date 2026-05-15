@@ -4,6 +4,7 @@ import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import StatusBadge from '@/components/base/StatusBadge';
 import { formatXOF, formatDate } from '@/components/base/DataTransformer';
+import VariantModal from './VariantModal';
 const STATUSES = ['', 'PENDING_REVIEW', 'APPROVED', 'REJECTED'];
 export default function ProductsTable() {
   const { rate } = useExchangeRate();
@@ -11,6 +12,7 @@ export default function ProductsTable() {
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
+  const [variantProduct, setVariantProduct] = useState(null);
   const filtered = products.filter(p => {
     const matchStatus = !statusFilter || p.status === statusFilter;
     const matchSearch = !search ||
@@ -71,14 +73,14 @@ export default function ProductsTable() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-100">
-                {['Produit', 'Vendeur', 'Catégorie', 'Prix XOF', 'Statut', 'Soumis le', 'Actions'].map(h => (
+                {['Produit', 'Vendeur', 'Catégorie', 'Prix XOF', 'Statut', 'Soumis le', 'Variantes', 'Actions'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-slate-400">Aucun produit trouvé</td></tr>
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-slate-400">Aucun produit trouvé</td></tr>
               ) : filtered.map(p => (
                 <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50">
                   <td className="px-4 py-3">
@@ -99,6 +101,11 @@ export default function ProductsTable() {
                   <td className="px-4 py-3 text-sm font-semibold text-slate-800">{formatXOF(p.price_xof)}</td>
                   <td className="px-4 py-3"><StatusBadge status={p.status} /></td>
                   <td className="px-4 py-3 text-xs text-slate-500">{formatDate(p.submitted_at)}</td>
+                  <td className="px-4 py-3">
+                    <button onClick={() => setVariantProduct(p)} className="text-xs font-semibold text-trustblue hover:underline cursor-pointer flex items-center gap-1">
+                      <i className="ri-list-check text-sm" /> Variantes
+                    </button>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button
@@ -178,6 +185,13 @@ export default function ProductsTable() {
             )}
           </div>
         </div>
+      )}
+      {variantProduct && (
+        <VariantModal
+          productId={variantProduct.id}
+          productName={variantProduct.name}
+          onClose={() => setVariantProduct(null)}
+        />
       )}
     </>
   );

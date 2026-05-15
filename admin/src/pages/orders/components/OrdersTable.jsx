@@ -26,6 +26,8 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
   const [dropdownId, setDropdownId] = useState(null);
   const [flashId, setFlashId] = useState(null);
   const dropdownRef = useRef(null);
+  const [selected, setSelected] = useState(new Set());
+  const bulkActions = ['paid', 'processing', 'in_transit', 'delivered', 'cancelled'];
 
   useEffect(() => {
     function handler(e) {
@@ -136,10 +138,62 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
         </div>
       </div>
 
+      {selected.size > 0 && (
+        <div className="mx-5 mt-4 p-3 bg-trustblue/5 border border-trustblue/20 rounded-xl flex items-center justify-between animate-fade-in">
+          <span className="text-sm font-semibold text-trustblue">{selected.size} commande{selected.size > 1 ? 's' : ''} sélectionnée{selected.size > 1 ? 's' : ''}</span>
+          <div className="flex items-center gap-2">
+            <select onChange={e => {
+              const status = e.target.value;
+              if (!status) return;
+              selected.forEach(id => {
+                const o = orders.find(o => o.id === id);
+                if (o) handleStatusChange(o, status);
+              });
+              setSelected(new Set());
+              e.target.value = '';
+            }} className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-trustblue bg-white cursor-pointer">
+              <option value="">Changer statut</option>
+              {bulkActions.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <button onClick={() => {
+              const selectedOrders = orders.filter(o => selected.has(o.id));
+              const csv = [
+                ['Ref', 'Produit', 'Acheteur', 'Vendeur', 'Hub', 'Montant XOF', 'Montant NGN', 'Statut', 'Date'].join(','),
+                ...selectedOrders.map(o => [o.ref, o.product, o.buyer_name, o.seller_name, o.hub_origin, o.amount_xof, o.amount_ngn, o.status, o.created_at].join(','))
+              ].join('\n');
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a'); a.href = url; a.download = `commandes_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+              URL.revokeObjectURL(url);
+            }} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 bg-white cursor-pointer">
+              <i className="ri-download-2-line" />Export CSV
+            </button>
+            <button onClick={() => setSelected(new Set())} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-lg cursor-pointer">
+              <i className="ri-close-line" />Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-100">
+              <th className="px-4 py-3 w-10">
+                <input type="checkbox" checked={paginated.length > 0 && paginated.every(o => selected.has(o.id))}
+                  onChange={e => {
+                    if (e.target.checked) {
+                      setSelected(prev => new Set([...prev, ...paginated.map(o => o.id)]));
+                    } else {
+                      setSelected(prev => {
+                        const next = new Set(prev);
+                        paginated.forEach(o => next.delete(o.id));
+                        return next;
+                      });
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-slate-300 text-trustblue focus:ring-trustblue cursor-pointer" />
+              </th>
               {['Réf / Voyage', 'Produit / Acheteur', 'Vendeur', 'Hub', 'Montant', 'Statut', 'Date', ''].map(h => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap" style={{ fontFamily: 'Inter, sans-serif' }}>{h}</th>
               ))}
@@ -147,9 +201,17 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
           </thead>
           <tbody>
             {paginated.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-slate-400">Aucune commande trouvée</td></tr>
+              <tr><td colSpan={9} className="px-4 py-12 text-center text-sm text-slate-400">Aucune commande trouvée</td></tr>
             ) : paginated.map(order => (
-              <tr key={order.id} className={`border-b border-slate-50 hover:bg-slate-50 transition-colors ${flashId === order.id ? 'bg-emerald-50' : ''}`}>
+              <tr key={order.id} className={`border-b border-slate-50 hover:bg-slate-50 transition-colors ${flashId === order.id ? 'bg-emerald-50' : ''} ${selected.has(order.id) ? 'bg-blue-50/50' : ''}`}>
+                <td className="px-4 py-3">
+                  <input type="checkbox" checked={selected.has(order.id)}
+                    onChange={e => {
+                      if (e.target.checked) setSelected(prev => new Set([...prev, order.id]));
+                      else setSelected(prev => { const next = new Set(prev); next.delete(order.id); return next; });
+                    }}
+                    className="w-4 h-4 rounded border-slate-300 text-trustblue focus:ring-trustblue cursor-pointer" />
+                </td>
                 <td className="px-4 py-3">
                   <p className="text-sm font-semibold text-slate-800" style={{ fontFamily: 'Inter, sans-serif' }}>{order.ref}</p>
                   {order.voyage_id && <p className="text-xs text-slate-400">{order.voyage_id}</p>}

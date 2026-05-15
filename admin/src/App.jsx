@@ -20,6 +20,16 @@ import ProductsPage from '@/pages/products/page';
 import MessagesPage from '@/pages/messages/page';
 import DeliveryVideosPage from '@/pages/delivery-videos/page';
 import NotificationsPage from '@/pages/notifications/page';
+import CategoriesPage from '@/pages/categories/page';
+import ReviewsPage from '@/pages/reviews/page';
+import CouponsPage from '@/pages/coupons/page';
+import QuestionsPage from '@/pages/questions/page';
+import StockNotificationsPage from '@/pages/stock-notifications/page';
+import ReportsPage from '@/pages/reports/page';
+import AnalyticsPage from '@/pages/analytics/page';
+import MaintenancePage from '@/pages/maintenance/page';
+import AnnouncementsPage from '@/pages/announcements/page';
+import ActivityCalendarPage from '@/pages/activity-calendar/page';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, isAuthenticated, authError } = useAuth();
@@ -81,6 +91,16 @@ const AuthenticatedApp = () => {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/delivery-videos" element={<DeliveryVideosPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/reviews" element={<ReviewsPage />} />
+            <Route path="/coupons" element={<CouponsPage />} />
+            <Route path="/questions" element={<QuestionsPage />} />
+            <Route path="/stock-notifications" element={<StockNotificationsPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/maintenance" element={<MaintenancePage />} />
+            <Route path="/announcements" element={<AnnouncementsPage />} />
+            <Route path="/activity-calendar" element={<ActivityCalendarPage />} />
             <Route path="*" element={<PageNotFound />} />
           </Routes>
         </AdminLayout>

@@ -3,8 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
-import { formatDateTime } from '@/components/base/DataTransformer';
-import { useSupabaseNotifications } from '@/hooks/useSupabaseNotifications';
+import NotificationBadge from './NotificationBadge';
 
 const PAGE_TITLES = {
   '/': 'Dashboard',
@@ -19,35 +18,28 @@ const PAGE_TITLES = {
   '/notifications': 'Notifications',
   '/admin-logs': 'Historique',
   '/delivery-videos': 'Vidéos réception',
+  '/coupons': 'Coupons',
+  '/questions': 'Questions',
+  '/stock-notifications': 'Stock Alertes',
+  '/reports': 'Rapports',
+  '/analytics': 'Analytiques',
+  '/maintenance': 'Maintenance',
+  '/announcements': 'Annonces Système',
+  '/activity-calendar': 'Calendrier d\'activité',
 };
 
-const NOTIF_ICONS = {
-  order_update: 'ri-shopping-bag-3-line',
-  new_message: 'ri-message-3-line',
-  product_approved: 'ri-checkbox-circle-line',
-  product_rejected: 'ri-close-circle-line',
-  dispute_update: 'ri-error-warning-line',
-  new_order: 'ri-shopping-bag-3-line',
-  payment_received: 'ri-bank-line',
-};
-
-export default function TopHeader() {
+export default function TopHeader({ onSearchOpen, onMenuToggle }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { rate, setRate } = useExchangeRate();
-  const [showNotifs, setShowNotifs] = useState(false);
   const [showRateEdit, setShowRateEdit] = useState(false);
   const [tempRate, setTempRate] = useState(rate);
   const { user, profile } = useAuth();
-  const { notifications, markAsRead, markAllAsRead } = useSupabaseNotifications(user?.id);
-  const notifRef = useRef(null);
   const rateRef = useRef(null);
   const title = PAGE_TITLES[location.pathname] || 'TrustLink Admin';
-  const unread = notifications.filter(n => !n.is_read).length;
 
   useEffect(() => {
     function handleClick(e) {
-      if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifs(false);
       if (rateRef.current && !rateRef.current.contains(e.target)) setShowRateEdit(false);
     }
     document.addEventListener('mousedown', handleClick);
@@ -75,7 +67,10 @@ export default function TopHeader() {
 
   return (
     <header className="glass-header sticky top-0 z-20 w-full px-6 py-3 flex items-center justify-between">
-      <div>
+      <div className="flex items-center gap-3">
+        <button onClick={onMenuToggle} className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-50 cursor-pointer">
+          <i className="ri-menu-line text-lg text-slate-600" />
+        </button>
         <h2 style={{ fontFamily: 'Poppins, sans-serif' }} className="font-semibold text-slate-800 text-lg leading-tight">{title}</h2>
         <p className="text-xs text-slate-500 mt-0.5" style={{ fontFamily: 'Inter, sans-serif' }}>
           {new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}
@@ -83,6 +78,13 @@ export default function TopHeader() {
       </div>
 
       <div className="flex items-center gap-4">
+        <button onClick={onSearchOpen} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-slate-100 cursor-pointer gap-1.5" title="Rechercher (⌘K)">
+          <i className="ri-search-line text-lg text-slate-600" />
+          <span className="hidden sm:inline text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">⌘K</span>
+        </button>
+
+        <NotificationBadge />
+
         <div className="relative" ref={rateRef}>
           <button
             onClick={() => setShowRateEdit(v => !v)}
@@ -122,42 +124,6 @@ export default function TopHeader() {
                     Appliquer
                   </button>
                 </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="relative" ref={notifRef}>
-          <button onClick={() => setShowNotifs(v => !v)} className="relative w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-50 cursor-pointer">
-            <i className="ri-notification-3-line text-slate-600 text-xl" />
-            {unread > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">{unread}</span>
-            )}
-          </button>
-          {showNotifs && (
-            <div className="absolute right-0 top-12 w-80 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 animate-fade-in overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                <h3 className="font-semibold text-slate-800 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Notifications</h3>
-                {unread > 0 && (
-                  <button onClick={markAllAsRead} className="text-xs text-trustblue hover:underline cursor-pointer">
-                    Tout marquer lu
-                  </button>
-                )}
-              </div>
-              <div className="max-h-80 overflow-y-auto">
-                {notifications.map(n => (
-                  <div key={n.id} className={`flex items-start gap-3 px-4 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 cursor-pointer ${!n.is_read ? 'bg-blue-50/30' : ''}`}
-                    onClick={() => markAsRead(n.id)}>
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${!n.is_read ? 'bg-trustblue text-white' : 'bg-slate-100 text-slate-500'}`}>
-                      <i className={`${NOTIF_ICONS[n.type]} text-sm`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-xs leading-relaxed ${!n.is_read ? 'text-slate-800 font-medium' : 'text-slate-600'}`}>{n.title}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{formatDateTime(n.created_at)}</p>
-                    </div>
-                    {!n.is_read && <span className="w-2 h-2 rounded-full bg-trustblue flex-shrink-0 mt-1" />}
-                  </div>
-                ))}
               </div>
             </div>
           )}
