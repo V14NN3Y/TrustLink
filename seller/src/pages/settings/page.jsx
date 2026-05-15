@@ -215,6 +215,59 @@ export default function SettingsPage() {
     }));
     return map;
   });
+  const [notifSaving, setNotifSaving] = useState(false);
+  const [notifSavedMsg, setNotifSavedMsg] = useState(false);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    supabase.from('notification_preferences').select('type, channel, enabled').eq('user_id', profile.id).then(({ data }) => {
+      if (!data) return;
+      const typeLabelMap = {
+        'new_order': 'Nouvelle commande reçue',
+        'dispute_update': 'Mise à jour du statut KYC',
+        'order_update': 'Commande livrée',
+      };
+      const newNotifs = { ...notifs };
+      data.forEach(p => {
+        const label = typeLabelMap[p.type];
+        if (label && newNotifs[label]) {
+          newNotifs[label] = { ...newNotifs[label], [p.channel]: p.enabled };
+        }
+      });
+      setNotifs(newNotifs);
+    });
+  }, [profile?.id]);
+
+  const saveNotifPrefs = async () => {
+    if (!profile?.id) return;
+    setNotifSaving(true);
+    const typeMap = {
+      'Nouvelle commande reçue': 'new_order',
+      'Commande prête à expédier': 'order_update',
+      'Commande livrée': 'order_update',
+      'Connexion depuis un nouvel appareil': 'new_message',
+      'Mise à jour du statut KYC': 'dispute_update',
+    };
+    try {
+      for (const [label, channels] of Object.entries(notifs)) {
+        const type = typeMap[label];
+        if (!type) continue;
+        for (const channel of ['email', 'sms', 'push']) {
+          await supabase.from('notification_preferences').upsert(
+            { user_id: profile.id, type, channel, enabled: channels[channel] ?? false },
+            { onConflict: 'user_id, type, channel' }
+          );
+        }
+      }
+      setNotifSavedMsg(true);
+      setTimeout(() => setNotifSavedMsg(false), 3000);
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la sauvegarde des préférences");
+    } finally {
+      setNotifSaving(false);
+    }
+  };
   const [langForm, setLangForm] = useState({ lang: "English", devise: "Naira nigérian (₦)", timezone: "Africa/Lagos (GMT+1)" });
 
   const pwMismatch = passwords.next && passwords.confirm && passwords.next !== passwords.confirm;
@@ -533,6 +586,19 @@ export default function SettingsPage() {
                   </div>
                 ))}
               </div>
+              {notifSavedMsg && (
+                <div className="mt-3 p-3 rounded-lg text-sm font-inter flex items-center gap-2" style={{ backgroundColor: '#DCFCE7', color: '#15803D' }}>
+                  <i className="ri-checkbox-circle-line"></i> Préférences sauvegardées !
+                </div>
+              )}
+              <button
+                onClick={saveNotifPrefs}
+                disabled={notifSaving}
+                className="mt-3 px-5 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50"
+                style={{ backgroundColor: "#125C8D" }}
+              >
+                {notifSaving ? 'Sauvegarde...' : 'Sauvegarder les préférences'}
+              </button>
             </div>
           )}
 

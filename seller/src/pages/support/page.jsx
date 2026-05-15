@@ -17,25 +17,73 @@ const KYC_CONFIG = [
   { key: "bank", label: "Bancaire", flag: null, icon: "ri-bank-line", detail: "RIB bancaire" },
 ];
 
+const KYC_URL_MAP = {
+  identity: { urlField: 'kyc_identity_url', verifiedField: 'kyc_identity_verified' },
+  address: { urlField: 'kyc_address_url', verifiedField: 'kyc_address_verified' },
+  activity: { urlField: 'kyc_business_url', verifiedField: 'kyc_business_verified' },
+};
+
+const uploadKycDocument = async (user, file, key) => {
+  const fileExt = file.name.split('.').pop();
+  const path = `kyc/${user.id}/${key}_${Date.now()}.${fileExt}`;
+  const { error: uploadErr } = await supabase.storage
+    .from('avatars')
+    .upload(path, file, { upsert: true });
+  if (uploadErr) throw uploadErr;
+  const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+  const cfg = KYC_URL_MAP[key];
+  await supabase.from('profiles').update({ [cfg.urlField]: publicUrl }).eq('id', user.id);
+  return publicUrl;
+};
+
 export default function SupportPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("kyc");
   const [kycSteps, setKycSteps] = useState([]);
   const [profile, setProfile] = useState(null);
+  const [uploadingKey, setUploadingKey] = useState(null);
 
-  useEffect(() => {
+  const loadKycStatus = () => {
     if (!user) return;
-    supabase.from('profiles').select('kyc_identity_verified, kyc_address_verified, kyc_business_verified').eq('id', user.id).single()
+    supabase.from('profiles').select('kyc_identity_verified, kyc_address_verified, kyc_business_verified, kyc_identity_url, kyc_address_url, kyc_business_url').eq('id', user.id).single()
       .then(({ data }) => {
         setProfile(data);
         if (data) {
-          setKycSteps(KYC_CONFIG.map(k => ({
-            ...k,
-            status: !k.flag ? 'not_started' : data[k.flag] ? 'verified' : 'not_started',
-          })));
+          setKycSteps(KYC_CONFIG.map(k => {
+            const fields = KYC_URL_MAP[k.key];
+            const isVerified = fields ? data[fields.verifiedField] : false;
+            const hasDoc = fields ? !!data[fields.urlField] : false;
+            return {
+              ...k,
+              status: !k.flag ? 'not_started' : isVerified ? 'verified' : hasDoc ? 'pending' : 'not_started',
+            };
+          }));
         }
       });
-  }, [user]);
+  };
+
+  useEffect(() => { loadKycStatus(); }, [user]);
+
+  const handleKycUpload = async (key) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,.pdf';
+    input.onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file || !user) return;
+      setUploadingKey(key);
+      try {
+        await uploadKycDocument(user, file, key);
+        loadKycStatus();
+      } catch (err) {
+        console.error(err);
+        alert("Erreur lors de l'upload du document KYC");
+      } finally {
+        setUploadingKey(null);
+      }
+    };
+    input.click();
+  };
 
   const kycCompletion = kycSteps.length > 0
     ? Math.round((kycSteps.filter(s => s.status === "verified").length / kycSteps.length) * 100)
@@ -140,9 +188,14 @@ export default function SupportPage() {
                       </div>
                       <p className="text-xs text-gray-400">{step.detail}</p>
                     </div>
-                    {step.status === "not_started" && (
-                      <button className="text-[10px] font-semibold text-[#125C8D] border border-[#125C8D]/30 px-2 py-1 rounded-lg whitespace-nowrap hover:bg-[#125C8D]/5">
-                        <i className="ri-upload-2-line mr-0.5"></i>Soumettre
+                    {(step.status === "not_started" || step.status === "pending") && (
+                      <button
+                        onClick={() => handleKycUpload(step.key)}
+                        disabled={uploadingKey === step.key}
+                        className="text-[10px] font-semibold text-[#125C8D] border border-[#125C8D]/30 px-2 py-1 rounded-lg whitespace-nowrap hover:bg-[#125C8D]/5 disabled:opacity-50 cursor-pointer"
+                      >
+                        <i className="ri-upload-2-line mr-0.5"></i>
+                        {uploadingKey === step.key ? 'Upload...' : step.status === 'pending' ? 'Remplacer' : 'Soumettre'}
                       </button>
                     )}
                   </div>

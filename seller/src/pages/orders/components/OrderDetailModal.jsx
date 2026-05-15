@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import OrderStatusBadge from "./OrderStatusBadge";
 
 const normalFlow = ["paid", "processing", "in_transit", "delivered", "confirmed"];
@@ -34,11 +36,34 @@ const MiniQR = ({ code }) => {
   );
 };
 
-export default function OrderDetailModal({ order, onClose }) {
+const sellerUpdatable = ["paid", "processing", "in_transit"];
+
+export default function OrderDetailModal({ order, onClose, onStatusUpdate }) {
+  const [updating, setUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState(null);
+
   if (!order) return null;
   const isTerminal = terminalStatuses.includes(order.status);
   const currentIdx = normalFlow.indexOf(order.status);
   const safeCurrentIdx = currentIdx >= 0 ? currentIdx : -1;
+
+  const updateItemStatus = async (newStatus) => {
+    setUpdating(true);
+    setUpdateError(null);
+    try {
+      const { error } = await supabase
+        .from("order_items")
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq("order_id", order.order_id);
+      if (error) throw error;
+      if (onStatusUpdate) onStatusUpdate();
+      onClose();
+    } catch (err) {
+      setUpdateError(err.message || "Erreur lors de la mise à jour");
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4" onClick={onClose}>
@@ -184,17 +209,44 @@ export default function OrderDetailModal({ order, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="bg-gray-50 rounded-b-2xl px-6 py-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 bg-[#125C8D]/10 rounded-lg">
-            <i className="ri-information-line text-[#125C8D]"></i>
-            <span className="text-sm font-semibold text-[#125C8D]">Lecture seule — Admin gère les statuts</span>
+        <div className="bg-gray-50 rounded-b-2xl px-6 py-4">
+          {!isTerminal && sellerUpdatable.includes(order.status) && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Mettre à jour le statut</p>
+              <div className="flex gap-2 flex-wrap">
+                {order.status === "paid" && (
+                  <button onClick={() => updateItemStatus("processing")} disabled={updating}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 cursor-pointer transition-colors">
+                    <i className="ri-loader-2-line"></i>Marquer en traitement
+                  </button>
+                )}
+                {order.status === "processing" && (
+                  <button onClick={() => updateItemStatus("in_transit")} disabled={updating}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 cursor-pointer transition-colors">
+                    <i className="ri-truck-line"></i>Marquer en transit
+                  </button>
+                )}
+                {order.status === "in_transit" && (
+                  <button onClick={() => updateItemStatus("delivered")} disabled={updating}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 cursor-pointer transition-colors">
+                    <i className="ri-map-pin-line"></i>Marquer livré
+                  </button>
+                )}
+              </div>
+              {updateError && <p className="text-xs text-red-500 mt-2">{updateError}</p>}
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 px-4 py-2 bg-[#125C8D]/10 rounded-lg">
+              <i className="ri-information-line text-[#125C8D]"></i>
+              <span className="text-sm font-semibold text-[#125C8D]">
+                {isTerminal ? 'Statut final' : sellerUpdatable.includes(order.status) ? 'Vous pouvez mettre à jour' : 'Admin gère les statuts'}
+              </span>
+            </div>
+            <button onClick={onClose} className="py-2.5 px-4 rounded-lg text-sm font-semibold text-gray-700 border border-gray-200 hover:bg-gray-100 cursor-pointer whitespace-nowrap transition-colors">
+              Fermer
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="py-2.5 px-4 rounded-lg text-sm font-semibold text-gray-700 border border-gray-200 hover:bg-gray-100 cursor-pointer whitespace-nowrap transition-colors"
-          >
-            <i className="ri-printer-line mr-1.5"></i>Imprimer
-          </button>
         </div>
       </div>
     </div>

@@ -172,7 +172,7 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
-      {detailOrder && <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} />}
+      {detailOrder && <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} onStatusUpdate={() => refetch()} />}
       {showQR && <QRBordereau order={showQR} onClose={() => setShowQR(null)} />}
     </DashboardLayout>
   );

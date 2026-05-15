@@ -21,6 +21,10 @@ export default function Sidebar() {
     { path: "/catalog", icon: "ri-store-2-line", label: "Catalogue" },
     { path: "/reviews", icon: "ri-star-line", label: "Avis" },   // <-- AJOUT
     { path: "/stats", icon: "ri-bar-chart-line", label: "Statistiques" },
+    { path: "/payouts", icon: "ri-bank-line", label: "Paiements" },
+    { path: "/questions", icon: "ri-question-answer-line", label: "Questions" },
+    { path: "/help", icon: "ri-information-line", label: "Centre d'aide" },
+    { path: "/activity", icon: "ri-history-line", label: "Activité" },
     { path: "/support", icon: "ri-customer-service-2-line", label: "Support & KYC" },
     { path: "/messages", icon: "ri-message-3-line", label: "Messages" },
   ];

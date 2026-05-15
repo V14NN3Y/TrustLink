@@ -4,6 +4,7 @@ import { queryClientInstance } from "@/lib/query-client";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/lib/AuthContext";
 import AppRoutes from "@/router/index.jsx";
+import "@/lib/i18n";
 
 function App() {
   return (

@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
+import { t, setLocale, getLocale } from "@/lib/i18n";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const pageTitles = [
   { path: "/catalog/new", title: "Nouveau Produit", subtitle: "Ajoutez un produit à votre catalogue" },
@@ -29,6 +31,7 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const liveRate = useExchangeRate();
+  const { currency, setCurrency } = useCurrency();
   const { user } = useAuth();
   const [notifCount, setNotifCount] = useState(0);
   useEffect(() => {
@@ -82,15 +85,28 @@ export default function Header() {
 
       {/* Right side */}
       <div className="flex items-center gap-3">
-        {/* Search */}
-        <div className="relative hidden md:flex items-center">
-          <i className="ri-search-line absolute left-3 text-gray-400 text-sm"></i>
-          <input
-            type="text"
-            placeholder="Rechercher commandes, produits..."
-            className="bg-gray-50 border border-gray-200 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-600 outline-none w-56 focus:border-[#125C8D] transition-colors"
-            style={{ fontFamily: "'Inter', sans-serif" }}
-          />
+        {/* Language Toggle */}
+        <div className="hidden md:flex items-center bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+          <button onClick={() => setLocale('fr')}
+            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${getLocale() === 'fr' ? 'bg-[#125C8D] text-white' : 'text-gray-500 hover:text-gray-700'}`}>
+            FR
+          </button>
+          <button onClick={() => setLocale('en')}
+            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${getLocale() === 'en' ? 'bg-[#125C8D] text-white' : 'text-gray-500 hover:text-gray-700'}`}>
+            EN
+          </button>
+        </div>
+
+        {/* Currency Toggle */}
+        <div className="hidden md:flex items-center bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+          <button onClick={() => setCurrency('NGN')}
+            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${currency === 'NGN' ? 'bg-[#10B981] text-white' : 'text-gray-500 hover:text-gray-700'}`}>
+            NGN
+          </button>
+          <button onClick={() => setCurrency('XOF')}
+            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${currency === 'XOF' ? 'bg-[#10B981] text-white' : 'text-gray-500 hover:text-gray-700'}`}>
+            FCFA
+          </button>
         </div>
 
         {/* Exchange Rate Badge */}

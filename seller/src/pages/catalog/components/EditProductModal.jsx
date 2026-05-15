@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
+import VariantsEditor from "./VariantsEditor";
 
 export default function EditProductModal({ product, onClose, onSave }) {
   const rate = useExchangeRate();
@@ -106,6 +107,9 @@ export default function EditProductModal({ product, onClose, onSave }) {
                 <img src={form.image} alt="Preview" className="w-full h-full object-cover object-top" />
               </div>
             )}
+          </div>
+          <div className="border-t border-gray-100 pt-4 mt-4">
+            <VariantsEditor productId={product.id} />
           </div>
         </div>
         <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100">

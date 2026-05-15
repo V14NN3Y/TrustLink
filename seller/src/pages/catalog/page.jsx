@@ -3,19 +3,32 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import ProductCard from "./components/ProductCard";
 import EditProductModal from "./components/EditProductModal";
+import ImportCSVModal from "./components/ImportCSVModal";
 import { useAuth } from "@/lib/AuthContext";
 import { useSellerProducts } from "@/hooks/useSellerProducts";
+import { useSellerLog } from "@/hooks/useSellerLog";
+import { useCurrency } from "@/hooks/useCurrency";
 import { supabase } from "@/lib/supabaseClient";
+import { exportToCSV } from "@/lib/export";
+import { t } from "@/lib/i18n";
+
 export default function CatalogPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { products, loading, refetch } = useSellerProducts(user?.id);
+  const { logAction } = useSellerLog();
+  const { formatPrice } = useCurrency();
   const [view, setView] = useState("grid");
   const [filterStatus, setFilterStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
   const [deletingProduct, setDeletingProduct] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [quickEditId, setQuickEditId] = useState(null);
+  const [editValues, setEditValues] = useState({ name: "", price: "" });
+  const [savingQuick, setSavingQuick] = useState(false);
+
   const handleSaveProduct = async (updated) => {
     const { error } = await supabase
       .from("products")
@@ -45,8 +58,10 @@ export default function CatalogPage() {
       }
     }
     setEditingProduct(null);
+    logAction("edit_product", { product_id: updated.id, product_name: updated.name });
     refetch();
   };
+
   const handleDeleteProduct = async () => {
     if (!deletingProduct) return;
     setDeleting(true);
@@ -57,9 +72,43 @@ export default function CatalogPage() {
       alert("Erreur lors de la suppression : " + error.message);
       return;
     }
+    logAction("delete_product", { product_id: deletingProduct.id, product_name: deletingProduct.name });
     setDeletingProduct(null);
     refetch();
   };
+
+  const startQuickEdit = (product) => {
+    setQuickEditId(product.id);
+    setEditValues({ name: product.name, price: String(product.price_fcfa) });
+  };
+
+  const cancelQuickEdit = () => {
+    setQuickEditId(null);
+    setEditValues({ name: "", price: "" });
+  };
+
+  const saveQuickEdit = async (productId) => {
+    setSavingQuick(true);
+    const price = parseFloat(editValues.price);
+    if (!editValues.name.trim() || isNaN(price) || price <= 0) {
+      alert("Veuillez entrer un nom valide et un prix supérieur à 0.");
+      setSavingQuick(false);
+      return;
+    }
+    const { error } = await supabase
+      .from("products")
+      .update({ name: editValues.name.trim(), price })
+      .eq("id", productId);
+    setSavingQuick(false);
+    if (error) {
+      alert("Erreur : " + error.message);
+      return;
+    }
+    logAction("quick_edit_product", { product_id: productId, name: editValues.name, price });
+    setQuickEditId(null);
+    refetch();
+  };
+
   const filtered = products.filter((p) => {
     const matchStatus = filterStatus === "all" || p.status === filterStatus;
     const matchSearch =
@@ -68,8 +117,33 @@ export default function CatalogPage() {
       (p.category || "").toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchSearch;
   });
+
   const totalStock = products.reduce((sum, p) => sum + (p.stock_total || 0), 0);
   const totalSales = products.reduce((sum, p) => sum + (p.sales_count || 0), 0);
+
+  const handleExport = () => {
+    exportToCSV(
+      filtered,
+      "produits",
+      [
+        { label: "Nom", accessor: (p) => p.name },
+        { label: "Categorie", accessor: (p) => p.category },
+        { label: "Prix FCFA", accessor: (p) => p.price_fcfa },
+        { label: "Stock", accessor: (p) => p.stock_total },
+        { label: "Statut", accessor: (p) => p.status },
+      ]
+    );
+    logAction("export_products_csv", { count: filtered.length });
+  };
+
+  const statusLabels = {
+    all: "Tous",
+    approved: "Approuvés",
+    pending_review: "En révision",
+    rejected: "Rejetés",
+    draft: "Brouillons",
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -79,13 +153,15 @@ export default function CatalogPage() {
       </DashboardLayout>
     );
   }
+
   return (
     <DashboardLayout>
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
         {[
           { label: "Produits total", value: products.length, icon: "ri-store-2-line", color: "text-[#125C8D]", bg: "bg-[#125C8D]/10" },
           { label: "Actifs", value: products.filter((p) => p.status === "approved").length, icon: "ri-checkbox-circle-line", color: "text-[#10B981]", bg: "bg-[#10B981]/10" },
+          { label: "Brouillons", value: products.filter((p) => p.status === "draft").length, icon: "ri-file-edit-line", color: "text-gray-500", bg: "bg-gray-100" },
           { label: "Stock total", value: totalStock, icon: "ri-stack-line", color: "text-amber-600", bg: "bg-amber-50" },
           { label: "Ventes totales", value: totalSales, icon: "ri-bar-chart-line", color: "text-[#FF6A00]", bg: "bg-[#FF6A00]/10" },
         ].map((s) => (
@@ -106,20 +182,20 @@ export default function CatalogPage() {
           <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
           <input
             type="text"
-            placeholder="Rechercher un produit..."
+            placeholder={t("Rechercher un produit...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full border border-gray-200 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-700 outline-none focus:border-[#125C8D] transition-colors"
           />
         </div>
         <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
-          {["all", "approved", "pending_review", "rejected"].map((s) => (
+          {["all", "approved", "pending_review", "rejected", "draft"].map((s) => (
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap cursor-pointer transition-all ${filterStatus === s ? "bg-white text-[#125C8D] shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
             >
-              {s === "all" ? "Tous" : s === "approved" ? "Approuvés" : s === "pending_review" ? "En révision" : "Rejetés"}
+              {statusLabels[s]}
             </button>
           ))}
         </div>
@@ -137,6 +213,19 @@ export default function CatalogPage() {
             <i className="ri-list-check text-sm"></i>
           </button>
         </div>
+        <button
+          onClick={handleExport}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-[#125C8D] border border-[#125C8D] cursor-pointer whitespace-nowrap hover:bg-[#125C8D]/5 transition-colors"
+        >
+          <i className="ri-download-line"></i>Export CSV
+        </button>
+        <button
+          onClick={() => setImportOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white cursor-pointer whitespace-nowrap hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: "#10B981" }}
+        >
+          <i className="ri-upload-line"></i>Import CSV
+        </button>
         <button
           onClick={() => navigate("/catalog/new")}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white cursor-pointer whitespace-nowrap hover:opacity-90 transition-opacity"
@@ -160,7 +249,7 @@ export default function CatalogPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-[#F9FAFB] border-b border-gray-100">
-                  {["Produit", "Catégorie", "Prix NGN", "Prix FCFA", "Stock", "Statut", "Actions"].map((h) => (
+                  {[t("Produit"), t("Catégorie"), t("Prix"), t("Stock"), t("Statut"), t("Actions")].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">{h}</th>
                   ))}
                 </tr>
@@ -169,44 +258,90 @@ export default function CatalogPage() {
                 {filtered.map((product) => (
                   <tr key={product.id} className="border-b border-gray-100 last:border-0 hover:bg-[#F9FAFB] transition-all">
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                          {product.image ? (
-                            <img src={product.image} alt={product.name} className="w-full h-full object-cover object-top" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">N/A</div>
-                          )}
+                      {quickEditId === product.id ? (
+                        <input
+                          value={editValues.name}
+                          onChange={(e) => setEditValues(v => ({ ...v, name: e.target.value }))}
+                          className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-semibold text-gray-900 outline-none focus:border-[#125C8D]"
+                        />
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                            {product.image ? (
+                              <img src={product.image} alt={product.name} className="w-full h-full object-cover object-top" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">N/A</div>
+                            )}
+                          </div>
+                          <span className="text-xs font-semibold text-gray-900">{product.name}</span>
                         </div>
-                        <span className="text-xs font-semibold text-gray-900">{product.name}</span>
-                      </div>
+                      )}
                     </td>
                     <td className="px-4 py-3"><span className="text-xs text-gray-500">{product.category || "—"}</span></td>
-                    <td className="px-4 py-3"><span className="text-xs font-bold text-[#125C8D]">₦{(product.price_ngn || 0).toLocaleString()}</span></td>
-                    <td className="px-4 py-3"><span className="text-xs text-gray-500">{(product.price_fcfa || 0).toLocaleString()} F</span></td>
+                    <td className="px-4 py-3">
+                      {quickEditId === product.id ? (
+                        <input
+                          type="number"
+                          value={editValues.price}
+                          onChange={(e) => setEditValues(v => ({ ...v, price: e.target.value }))}
+                          className="w-28 border border-gray-300 rounded px-2 py-1 text-xs font-bold text-gray-900 outline-none focus:border-[#125C8D]"
+                        />
+                      ) : (
+                        <span className="text-xs font-bold text-[#125C8D]">{formatPrice(product.price_fcfa)}</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3"><span className="text-xs font-medium text-gray-700">{product.stock_total}</span></td>
                     <td className="px-4 py-3">
                       <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
                         product.status === "approved" ? "bg-green-50 text-[#10B981]" :
                         product.status === "pending_review" ? "bg-amber-50 text-amber-600" :
+                        product.status === "draft" ? "bg-gray-100 text-gray-500" :
                         "bg-gray-100 text-gray-400"
                       }`}>
-                        {product.status === "approved" ? "Approuvé" : product.status === "pending_review" ? "En révision" : "Rejeté"}
+                        {product.status === "approved" ? "Approuvé" : product.status === "pending_review" ? "En révision" : product.status === "draft" ? "Brouillon" : "Rejeté"}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => setEditingProduct(product)}
-                          className="text-xs font-semibold text-[#125C8D] border border-[#125C8D]/30 px-2.5 py-1.5 rounded-lg hover:bg-[#125C8D]/5 cursor-pointer whitespace-nowrap transition-colors"
-                        >
-                          <i className="ri-pencil-line mr-1"></i>Modifier
-                        </button>
-                        <button
-                          onClick={() => setDeletingProduct(product)}
-                          className="text-xs font-semibold text-red-500 border border-red-200 px-2.5 py-1.5 rounded-lg hover:bg-red-50 cursor-pointer whitespace-nowrap transition-colors"
-                        >
-                          <i className="ri-delete-bin-line mr-1"></i>Supprimer
-                        </button>
+                        {quickEditId === product.id ? (
+                          <>
+                            <button
+                              onClick={() => saveQuickEdit(product.id)}
+                              disabled={savingQuick}
+                              className="text-xs font-semibold text-white bg-[#125C8D] px-2.5 py-1.5 rounded-lg hover:opacity-90 cursor-pointer whitespace-nowrap transition-colors disabled:opacity-50"
+                            >
+                              {savingQuick ? "..." : "Save"}
+                            </button>
+                            <button
+                              onClick={cancelQuickEdit}
+                              className="text-xs font-semibold text-gray-500 border border-gray-200 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer whitespace-nowrap transition-colors"
+                            >
+                              Annuler
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => startQuickEdit(product)}
+                              className="text-xs font-semibold text-gray-500 border border-gray-200 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer whitespace-nowrap transition-colors"
+                              title="Modification rapide"
+                            >
+                              <i className="ri-pencil-line"></i>
+                            </button>
+                            <button
+                              onClick={() => setEditingProduct(product)}
+                              className="text-xs font-semibold text-[#125C8D] border border-[#125C8D]/30 px-2.5 py-1.5 rounded-lg hover:bg-[#125C8D]/5 cursor-pointer whitespace-nowrap transition-colors"
+                            >
+                              <i className="ri-settings-4-line mr-1"></i>Modifier
+                            </button>
+                            <button
+                              onClick={() => setDeletingProduct(product)}
+                              className="text-xs font-semibold text-red-500 border border-red-200 px-2.5 py-1.5 rounded-lg hover:bg-red-50 cursor-pointer whitespace-nowrap transition-colors"
+                            >
+                              <i className="ri-delete-bin-line mr-1"></i>Supprimer
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -221,6 +356,10 @@ export default function CatalogPage() {
           <i className="ri-inbox-line text-4xl mb-3 block"></i>
           <p className="text-sm">Aucun produit trouvé</p>
         </div>
+      )}
+      {/* Import CSV Modal */}
+      {importOpen && (
+        <ImportCSVModal onClose={() => setImportOpen(false)} onImported={() => { refetch(); logAction("import_products_csv", {}); }} />
       )}
       {/* Edit Modal */}
       {editingProduct && (

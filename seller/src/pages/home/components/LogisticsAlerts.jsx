@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabaseClient";
 
 const alertConfig = {
   critical: {
@@ -31,18 +33,38 @@ const alertConfig = {
 };
 export default function LogisticsAlerts({ orders = [] }) {
   const navigate = useNavigate();
-  const alerts = orders
-    .filter((o) => o.status === "processing" || o.status === "paid")
-    .slice(0, 4)
+  const [dispatchAlerts, setDispatchAlerts] = useState([]);
+
+  useEffect(() => {
+    supabase.from("dispatches").select("dispatch_code, status, driver_name, created_at").order("created_at", { ascending: false }).limit(5).then(({ data }) => {
+      if (data) {
+        setDispatchAlerts(data.map((d) => ({
+          id: d.dispatch_code,
+          order_id: d.dispatch_code,
+          type: d.status === "in_transit" ? "info" : d.status === "cancelled" ? "critical" : "warning",
+          message: `Voyage ${d.dispatch_code} — ${d.status === "preparing" ? "En préparation" : d.status === "in_transit" ? "En transit" : d.status === "delivered" ? "Livré" : "Annulé"}${d.driver_name ? ` (${d.driver_name})` : ""}`,
+          deadline: new Date(d.created_at).toLocaleDateString("fr-FR"),
+        })));
+      }
+    });
+  }, []);
+
+  const orderAlerts = orders
+    .filter((o) => o.status === "processing" || o.status === "paid" || o.status === "in_transit")
+    .slice(0, 3)
     .map((o) => ({
       id: o.items?.[0]?.item_id || o.id,
       order_id: o.id,
-      type: o.status === "paid" ? "info" : "warning",
+      type: o.status === "paid" ? "info" : o.status === "in_transit" ? "info" : "warning",
       message: o.status === "paid"
         ? `Commande ${o.id} — En attente de traitement`
+        : o.status === "in_transit"
+        ? `Commande ${o.id} — En transit`
         : `Commande ${o.id} — En cours de préparation`,
       deadline: new Date(o.created_at).toLocaleDateString("fr-FR"),
     }));
+
+  const alerts = [...dispatchAlerts, ...orderAlerts].slice(0, 6);
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5">
       <div className="flex items-center justify-between mb-4">
