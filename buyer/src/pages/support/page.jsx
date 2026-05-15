@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { useMessages } from '@/hooks/useMessages';
+import { formatRelative } from '@/utils/format';
 const SUBJECTS = [
   { icon: 'ri-shopping-bag-line', label: 'Problème de commande' },
   { icon: 'ri-shield-check-line', label: 'Paiement / Escrow' },
@@ -16,15 +17,6 @@ const QUICK_LINKS = [
   { icon: 'ri-question-line', label: 'Centre d\'aide / FAQ', to: '/faq' },
   { icon: 'ri-shopping-bag-line', label: 'Mes commandes', to: '/account' },
 ];
-function formatRelative(dateStr) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'À l\'instant';
-  if (mins < 60) return `Il y a ${mins} min`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `Il y a ${hours}h`;
-  return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-}
 // ─── Nouveau message ──────────────────────────────────────────────────────────
 function NewMessageForm({ onSent, onCancel }) {
   const [selectedSubject, setSelectedSubject] = useState('');

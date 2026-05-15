@@ -11,6 +11,7 @@ import Help from '@/pages/help/page';
 import Support from '@/pages/support/page';
 import Legal from '@/pages/legal/page';
 import Returns from '@/pages/returns/page';
+import InvoicePage from '@/pages/invoice/page';
 import NotFound from '@/pages/NotFound';
 import Header from '@/components/feature/Header';
 import Footer from '@/components/feature/Footer';
@@ -49,6 +50,7 @@ export default function AppRoutes() {
             <Route path="/account" element={<Account />} />
             <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/notifications" element={<Notifications />} /> 
+            <Route path="/invoice/:id" element={<InvoicePage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -1,12 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useProduct } from '@/hooks/useProduct';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useReviews } from '@/hooks/useReviews';
 import { formatPrice, renderStars } from '@/utils/format';
+import { addRecentlyViewed } from '@/lib/storage';
+import LazyImage from '@/components/base/LazyImage';
 import ProductCard from '@/pages/home/components/ProductCard';
 import ReviewsSection from './components/ReviewsSection';
+import ProductQA from './components/ProductQA';
+import StockNotification from './components/StockNotification';
 import { useProducts } from '@/hooks/useProducts';
 export default function ProductPage() {
   const { id } = useParams();
@@ -21,6 +25,11 @@ export default function ProductPage() {
   const [selectedColor, setSelectedColor] = useState('');
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+
+  useEffect(() => {
+    if (product?.id) addRecentlyViewed(product.id);
+  }, [product?.id]);
+
   if (isLoading) {
     return (
       <div className="pt-24 pb-12">
@@ -115,10 +124,11 @@ export default function ProductPage() {
               className="rounded-xl overflow-hidden w-full"
               style={{ backgroundColor: '#F8FAFC', height: '420px' }}
             >
-              <img
+              <LazyImage
                 src={product.images[selectedImage] || product.images[0]}
                 alt={product.name}
-                className="w-full h-full object-cover object-top"
+                className="w-full h-full"
+                style={{ objectFit: 'cover', objectPosition: 'top' }}
               />
             </div>
             {product.images.length > 1 && (
@@ -142,9 +152,15 @@ export default function ProductPage() {
           {/* Info */}
           <div>
             {/* Seller */}
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <i className="ri-store-2-line text-sm" style={{ color: '#6B7280' }}></i>
               <span className="text-sm font-inter" style={{ color: '#6B7280' }}>{product.seller}</span>
+              {product.seller_rating > 0 && (
+                <span className="flex items-center gap-1 text-xs font-poppins font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#D97706' }}>
+                  <i className="ri-star-fill" style={{ fontSize: '10px' }}></i>
+                  {product.seller_rating}
+                </span>
+              )}
               <span
                 className="text-xs font-poppins font-bold px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: '#DCFCE7', color: '#15803D' }}
@@ -188,6 +204,13 @@ export default function ProductPage() {
                 </span>
               )}
             </div>
+            {/* Delivery info */}
+            {product.delivery_min_days && product.delivery_max_days && (
+              <p className="text-xs font-inter mb-2" style={{ color: '#6B7280' }}>
+                <i className="ri-truck-line mr-1"></i>
+                Livré en {product.delivery_min_days}-{product.delivery_max_days} jours
+              </p>
+            )}
             {/* Stock warning */}
             {product.stock <= 5 && product.stock > 0 && (
               <p className="text-xs font-inter mb-2" style={{ color: '#D97706' }}>
@@ -199,6 +222,11 @@ export default function ProductPage() {
               <p className="text-xs font-inter mb-2 font-semibold" style={{ color: '#DC2626' }}>
                 Rupture de stock
               </p>
+            )}
+            {product.stock === 0 && (
+              <div className="mb-4">
+                <StockNotification productId={product.id} />
+              </div>
             )}
             <hr className="border-gray-100 my-4" />
             {/* Sizes */}
@@ -333,6 +361,8 @@ export default function ProductPage() {
             )}
           </div>
         </div>
+        {/* Questions & Answers */}
+        <ProductQA productId={product.id} />
         {/* Similar products */}
         {similar.length > 0 && (
           <section className="mt-12">
@@ -346,7 +376,7 @@ export default function ProductPage() {
             </div>
           </section>
         )}
-        <ReviewsSection productId={product.id} />  {/* Est-ce bien placer? */}
+        <ReviewsSection productId={product.id} />
       </div>
     </div>
   );

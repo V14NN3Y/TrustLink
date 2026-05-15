@@ -25,7 +25,6 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
         await confirmDeliveryWithVideo({
           orderId: order.id,
           videoFilePath,
-          isDefective: false,
         });
         onConfirmed?.();
         onClose();

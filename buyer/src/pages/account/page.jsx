@@ -6,6 +6,7 @@ import { useProfile } from '@/hooks/useProfile';
 import SettingsTab from './components/SettingsTab';
 import { useDisputes } from '@/hooks/useDisputes';
 import DisputeModal from './components/DisputeModal';
+import ConfirmDeliveryModal from './components/ConfirmDeliveryModal';
 import { Link } from 'react-router-dom';
 import { formatPrice } from '@/utils/format';
 
@@ -54,7 +55,7 @@ export default function Account() {
     loadWishlistProducts();
   }, [loadWishlistProducts]);
 
-  const { orders, loading: ordersLoading, confirmDelivery, reload: reloadOrders } = useOrders();
+  const { orders, loading: ordersLoading, reload: reloadOrders } = useOrders();
   const { disputes, loading: disputesLoading } = useDisputes();
   const [disputeOrder, setDisputeOrder] = useState(null);
   const filteredOrders = orderFilter === 'all' ? orders : orders.filter((o) => o.status === orderFilter);

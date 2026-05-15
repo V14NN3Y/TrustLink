@@ -87,15 +87,7 @@ export default function ResetPassword() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-800"
-              placeholder="
--
--
--
--
--
--
--
-- "
+              placeholder="Confirmez votre mot de passe"
             />
           </div>
           <button

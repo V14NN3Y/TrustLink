@@ -24,12 +24,12 @@ export function useDisputes() {
     useEffect(() => {
         loadDisputes();
     }, [loadDisputes]);
-    const openDispute = useCallback(async ({ orderId, reason, videoBlob }) => {
+    const openDispute = useCallback(async ({ orderId, reason, videoBlob, videoFilePath }) => {
         if (!user?.id) throw new Error('Non connecté');
         setSubmitting(true);
         setError(null);
         try {
-            const result = await createDispute({ orderId, buyerId: user.id, reason, videoBlob });
+            const result = await createDispute({ orderId, buyerId: user.id, reason, videoBlob, videoFilePath });
             await loadDisputes();
             return result;
         } catch (err) {

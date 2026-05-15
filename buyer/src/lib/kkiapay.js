@@ -1,15 +1,6 @@
-/**
- * KkiaPay payment integration helper.
- * Uses the KkiaPay Web SDK loaded from https://cdn.kkiapay.me/k.js
- */
-
-const API_KEY = import.meta.env.VITE_KKIAPAY_API_KEY;
+const PUBLIC_KEY = import.meta.env.VITE_KKIAPAY_PUBLIC_KEY;
 const SANDBOX = import.meta.env.VITE_KKIAPAY_SANDBOX !== 'false';
 
-/**
- * Initialise et ouvre la modale de paiement KkiaPay.
- * Retourne une Promise qui résout avec les données de paiement ou rejecte en cas d'erreur/annulation.
- */
 export const openKkiapayPayment = ({ amount, email, phone, name, orderId }) => {
   return new Promise((resolve, reject) => {
     if (typeof KKIAPAY === 'undefined') {
@@ -17,8 +8,8 @@ export const openKkiapayPayment = ({ amount, email, phone, name, orderId }) => {
       return;
     }
 
-    if (!API_KEY) {
-      reject(new Error('Clé API KkiaPay non configurée. Contactez un administrateur.'));
+    if (!PUBLIC_KEY) {
+      reject(new Error('Clé publique KkiaPay non configurée. Contactez un administrateur.'));
       return;
     }
 
@@ -28,7 +19,7 @@ export const openKkiapayPayment = ({ amount, email, phone, name, orderId }) => {
       amount: Math.round(amount),
       callback: callbackUrl,
       position: 'right',
-      key: API_KEY,
+      key: PUBLIC_KEY,
       sandbox: SANDBOX,
       email: email || '',
       phone: phone || '',
@@ -36,7 +27,6 @@ export const openKkiapayPayment = ({ amount, email, phone, name, orderId }) => {
       reason: `Commande TrustLink ${orderId?.substring(0, 8).toUpperCase() || ''}`,
     });
 
-    // Écouter les événements KkiaPay
     const handleSuccess = (data) => {
       KKIAPAY.removeEvent('success', handleSuccess);
       KKIAPAY.removeEvent('closed', handleClosed);
@@ -69,18 +59,4 @@ export const openKkiapayPayment = ({ amount, email, phone, name, orderId }) => {
 
     KKIAPAY.open();
   });
-};
-
-/**
- * Vérifie le statut d'un paiement KkiaPay via l'API.
- * Nécessite un backend pour cacher la clé API secrète.
- */
-export const verifyKkiapayPayment = async (transactionId) => {
-  const response = await fetch(`https://api.kkiapay.me/api/v1/transactions/${transactionId}/verify`, {
-    headers: {
-      'Content-Type': 'application/json',
-      'X-API-KEY': API_KEY,
-    },
-  });
-  return response.json();
 };

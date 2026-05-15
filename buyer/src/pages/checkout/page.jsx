@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/lib/AuthContext';
-import { createOrder } from '@/lib/supabase/orders';
+import { createOrder, updateOrdersAfterPayment } from '@/lib/supabase/orders';
 import { openKkiapayPayment } from '@/lib/kkiapay';
 import { formatPrice } from '@/utils/format';
 const CITIES = ['Cotonou', 'Porto-Novo', 'Parakou', 'Abomey-Calavi', 'Bohicon'];
@@ -14,11 +14,16 @@ const PAYMENT_METHODS = [
 ];
 const STEPS = ['Adresse', 'Paiement', 'Confirmation'];
 const DELIVERY = 2500;
+const GUEST_KEY = 'trustlink_guest_info';
 export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [guestMode, setGuestMode] = useState(false);
+  const [guestInfo, setGuestInfo] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(GUEST_KEY) || '{}'); } catch { return {}; }
+  });
   const [address, setAddress] = useState({
     firstName: '',
     lastName: '',
@@ -30,6 +35,11 @@ export default function Checkout() {
   const [orderData, setOrderData] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  useEffect(() => {
+    if (guestInfo?.email) {
+      localStorage.setItem(GUEST_KEY, JSON.stringify(guestInfo));
+    }
+  }, [guestInfo]);
   const handleStep1 = (e) => {
     e.preventDefault();
     setStep(2);
@@ -39,13 +49,12 @@ export default function Checkout() {
     setSubmitError(null);
     try {
       const groupId = await createOrder({
-        buyerId: user.id,
+        buyerId: user?.id || guestInfo.email,
         items,
         address,
         paymentMethod: payMethod,
         totalAmount: totalPrice + DELIVERY,
       });
-      await clearCart();
       const sellerCount = [...new Set(items.map(item => item.seller_id))].length;
       const newOrderData = {
         groupId,
@@ -58,9 +67,9 @@ export default function Checkout() {
         try {
           const result = await openKkiapayPayment({
             amount: totalPrice + DELIVERY,
-            email: profile?.email || user?.email || '',
+            email: profile?.email || user?.email || guestInfo.email || '',
             phone: address.phone || profile?.phone || '',
-            name: profile?.full_name || `${address.firstName} ${address.lastName}`.trim() || 'Client TrustLink',
+            name: profile?.full_name || `${address.firstName} ${address.lastName}`.trim() || guestInfo.name || 'Client TrustLink',
             orderId: groupId,
           });
           if (result.cancelled) {
@@ -69,15 +78,22 @@ export default function Checkout() {
             return;
           }
           if (result.success) {
+            await updateOrdersAfterPayment({
+              groupId,
+              paymentReference: result.transactionId,
+            });
             newOrderData.paymentReference = result.transactionId;
             newOrderData.kkiapayData = result.data;
           }
         } catch (err) {
           console.error('Erreur KkiaPay:', err);
           setSubmitError(`Erreur de paiement : ${err.message}. La commande a été créée, contactez le support.`);
+          setSubmitting(false);
+          return;
         }
       }
 
+      await clearCart();
       setOrderData(newOrderData);
       setStep(3);
     } catch (err) {
@@ -93,6 +109,38 @@ export default function Checkout() {
         <h1 className="text-2xl font-poppins font-bold mb-6 text-center" style={{ color: '#111827' }}>
           Finaliser ma commande
         </h1>
+
+        {!user && !guestMode && (
+          <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
+            <p className="text-sm font-poppins font-medium mb-2" style={{ color: '#111827' }}>Vous avez déjà un compte ?</p>
+            <div className="flex gap-2">
+              <Link to="/login" className="px-4 py-2 text-xs font-poppins font-semibold rounded-lg border border-[#125C8D] text-[#125C8D]">Se connecter</Link>
+              <span className="text-xs font-inter self-center text-gray-400">ou</span>
+              <button onClick={() => setGuestMode(true)}
+                className="px-4 py-2 text-xs font-poppins font-semibold rounded-lg text-white cursor-pointer"
+                style={{ backgroundColor: '#FF6A00' }}>Continuer en tant qu'invité</button>
+            </div>
+          </div>
+        )}
+
+        {!user && guestMode && (
+          <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
+            <h3 className="text-sm font-poppins font-semibold mb-3" style={{ color: '#111827' }}>Informations invité</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-poppins font-medium mb-1" style={{ color: '#111827' }}>Nom complet</label>
+                <input required value={guestInfo.name || ''} onChange={(e) => setGuestInfo(i => ({ ...i, name: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-inter outline-none focus:border-[#125C8D]" placeholder="Kouassi Mensah" />
+              </div>
+              <div>
+                <label className="block text-xs font-poppins font-medium mb-1" style={{ color: '#111827' }}>Email</label>
+                <input required type="email" value={guestInfo.email || ''} onChange={(e) => setGuestInfo(i => ({ ...i, email: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-inter outline-none focus:border-[#125C8D]" placeholder="kouassi@email.com" />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stepper */}
         <div className="flex items-center justify-center mb-10 gap-0">
           {STEPS.map((s, idx) => {
@@ -115,6 +163,7 @@ export default function Checkout() {
             );
           })}
         </div>
+
         {/* Step 1 — Adresse */}
         {step === 1 && (
           <form onSubmit={handleStep1} className="bg-white border border-gray-100 rounded-xl p-6">
@@ -154,6 +203,7 @@ export default function Checkout() {
             </button>
           </form>
         )}
+
         {/* Step 2 — Paiement */}
         {step === 2 && (
           <div className="bg-white border border-gray-100 rounded-xl p-6">
@@ -220,6 +270,7 @@ export default function Checkout() {
             </div>
           </div>
         )}
+
         {/* Step 3 — Confirmation */}
         {step === 3 && orderData && (
           <div className="bg-white border border-gray-100 rounded-xl p-8 text-center">

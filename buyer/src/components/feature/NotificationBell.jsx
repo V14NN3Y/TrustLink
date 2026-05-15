@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/lib/AuthContext';
+import { formatRelative } from '@/utils/format';
 const TYPE_CONFIG = {
     order_update: { icon: 'ri-shopping-bag-line', color: '#125C8D', bg: '#EBF4FB' },
     new_message: { icon: 'ri-message-3-line', color: '#7C3AED', bg: '#F5F3FF' },
@@ -10,15 +11,6 @@ const TYPE_CONFIG = {
     dispute_update: { icon: 'ri-shield-check-line', color: '#D97706', bg: '#FEF3C7' },
     new_order: { icon: 'ri-store-2-line', color: '#FF6A00', bg: '#FFF3EC' },
 };
-function formatRelative(dateStr) {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'À l\'instant';
-    if (mins < 60) return `${mins} min`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h`;
-    return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-}
 export default function NotificationBell() {
     const { isAuthenticated } = useAuth();
     const { notifications, unreadCount, markRead, markAllRead } = useNotifications();

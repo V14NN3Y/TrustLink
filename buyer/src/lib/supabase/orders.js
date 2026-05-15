@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabaseClient';
  * Sauvegarde aussi l'adresse dans le profil buyer si elle n'existe pas.
  */
 export const createOrder = async ({ buyerId, items, address, paymentMethod, totalAmount }) => {
-  // Sauvegarder l'adresse dans le profil buyer
   if (address.district || address.city || address.phone) {
     await supabase
       .from('profiles')
@@ -17,53 +16,60 @@ export const createOrder = async ({ buyerId, items, address, paymentMethod, tota
       .eq('id', buyerId);
   }
 
-  // 1. Générer un group_id unique pour lier les commandes de ce panier
   const groupId = crypto.randomUUID();
-  // 2. Grouper les items par seller_id
   const itemsBySeller = items.reduce((acc, item) => {
     const sellerId = item.seller_id;
     if (!acc[sellerId]) acc[sellerId] = [];
     acc[sellerId].push(item);
     return acc;
   }, {});
-  // 3. Créer une commande par vendeur
-  const sellerIds = Object.keys(itemsBySeller);
-  for (const sellerId of sellerIds) {
-    const sellerItems = itemsBySeller[sellerId];
-    const sellerTotal = sellerItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        buyer_id: buyerId,
-        group_id: groupId,
+
+  const createdOrderIds = [];
+  try {
+    const sellerIds = Object.keys(itemsBySeller);
+    for (const sellerId of sellerIds) {
+      const sellerItems = itemsBySeller[sellerId];
+      const sellerTotal = sellerItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          buyer_id: buyerId,
+          group_id: groupId,
+          status: 'pending',
+          shipping_address_line1: address.district,
+          shipping_city: address.city,
+          shipping_country: 'Bénin',
+          total_amount: sellerTotal,
+          currency: 'XOF',
+          notes: `Paiement via ${paymentMethod}`,
+        })
+        .select('id')
+        .single();
+      if (orderError) throw orderError;
+      createdOrderIds.push(order.id);
+
+      const orderItems = sellerItems.map((item) => ({
+        order_id: order.id,
+        seller_id: sellerId,
+        product_id: item.productId,
+        product_name: item.name,
+        product_price: item.price,
+        quantity: item.quantity,
+        subtotal: item.price * item.quantity,
         status: 'pending',
-        shipping_address_line1: address.district,
-        shipping_city: address.city,
-        shipping_country: 'Bénin',
-        total_amount: sellerTotal,
-        currency: 'XOF',
-        notes: `Paiement via ${paymentMethod}`,
-      })
-      .select('id')
-      .single();
-    if (orderError) throw orderError;
-    // Créer les order_items pour ce vendeur
-    const orderItems = sellerItems.map((item) => ({
-      order_id: order.id,
-      seller_id: sellerId,
-      product_id: item.productId,
-      product_name: item.name,
-      product_price: item.price,
-      quantity: item.quantity,
-      subtotal: item.price * item.quantity,
-      status: 'pending',
-    }));
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(orderItems);
-    if (itemsError) throw itemsError;
+      }));
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+      if (itemsError) throw itemsError;
+    }
+    return groupId;
+  } catch (err) {
+    if (createdOrderIds.length > 0) {
+      await supabase.from('orders').delete().in('id', createdOrderIds);
+    }
+    throw err;
   }
-  return groupId;
 };
 /**
  * Fetch toutes les commandes d'un buyer, consolidées par group_id.
@@ -178,4 +184,15 @@ export const fetchOrderById = async (orderId) => {
     .maybeSingle();
   if (error) throw error;
   return data;
+};
+
+export const updateOrdersAfterPayment = async ({ groupId, paymentReference }) => {
+  const updateData = { status: 'paid', updated_at: new Date().toISOString() };
+  if (paymentReference) updateData.payment_reference = paymentReference;
+
+  const { error } = await supabase
+    .from('orders')
+    .update(updateData)
+    .eq('group_id', groupId);
+  if (error) throw error;
 };

@@ -36,7 +36,7 @@ export function useOrders() {
       .channel('buyer-orders-realtime')
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'orders' },
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `buyer_id=eq.${user.id}` },
         () => {
           loadOrders();
         }

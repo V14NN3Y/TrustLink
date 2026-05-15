@@ -1,6 +1,7 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
+import { toast } from '@/components/ui/use-toast';
 export default function VideoRecorder({ orderId, onRecorded }) {
 const [recording, setRecording] = useState(false);
 const [previewUrl, setPreviewUrl] = useState(null);
@@ -46,7 +47,7 @@ const startRecording = async () => {
                     onRecorded && onRecorded(fileName); // Retourne le chemin relatif
                 } catch (err) {
                     console.error('Erreur upload vidéo:', err);
-                    alert('Erreur lors de l\'envoi de la vidéo. Réessayez.');
+                    toast({ title: 'Erreur', description: 'Erreur lors de l\'envoi de la vidéo. Réessayez.', variant: 'destructive' });
                 } finally {
                     setUploading(false);
                 }
@@ -60,7 +61,7 @@ const startRecording = async () => {
         timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
     } catch (err) {
         console.error('Caméra refusée:', err);
-        alert('Impossible d\'accéder à la caméra. Autorisez l\'accès dans les paramètres de votre navigateur.');
+        toast({ title: 'Caméra refusée', description: 'Autorisez l\'accès à la caméra dans les paramètres de votre navigateur.', variant: 'destructive' });
     }
 };
 const stopRecording = () => {

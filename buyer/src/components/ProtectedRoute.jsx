@@ -1,4 +1,4 @@
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 const DefaultFallback = () => (
   <div className="fixed inset-0 flex items-center justify-center">
@@ -10,11 +10,13 @@ export default function ProtectedRoute({
   redirectTo = '/login',
 }) {
   const { isAuthenticated, isLoadingAuth, authChecked } = useAuth();
+  const location = useLocation();
   if (isLoadingAuth || !authChecked) {
     return fallback;
   }
   if (!isAuthenticated) {
-    return <Navigate to={redirectTo} replace />;
+    const redirectParam = `?redirect=${encodeURIComponent(location.pathname + location.search)}`;
+    return <Navigate to={`${redirectTo}${redirectParam}`} replace />;
   }
   return <Outlet />;
 }

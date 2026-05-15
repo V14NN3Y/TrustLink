@@ -15,6 +15,8 @@ export const fetchProducts = async ({ category, search } = {}) => {
       seller_id,
       category_id,
       created_at,
+      delivery_min_days,
+      delivery_max_days,
       product_images (
         url,
         is_primary,
@@ -27,13 +29,14 @@ export const fetchProducts = async ({ category, search } = {}) => {
       ),
       profiles!seller_id (
         full_name,
-        business_name
+        business_name,
+        seller_rating,
+        seller_sales
       )
     `)
     .eq('status', 'approved')
     .order('created_at', { ascending: false });
   if (category) {
-    // On filtre par slug de catégorie
     const { data: cat } = await supabase
       .from('categories')
       .select('id')
@@ -46,7 +49,6 @@ export const fetchProducts = async ({ category, search } = {}) => {
   }
   const { data, error } = await query;
   if (error) throw error;
-  // Normaliser pour correspondre à la structure attendue par les composants
   return (data || []).map(normalizeProduct);
 };
 /**
@@ -64,6 +66,8 @@ export const fetchProductById = async (id) => {
       seller_id,
       category_id,
       created_at,
+      delivery_min_days,
+      delivery_max_days,
       product_images (
         url,
         is_primary,
@@ -76,7 +80,9 @@ export const fetchProductById = async (id) => {
       ),
       profiles!seller_id (
         full_name,
-        business_name
+        business_name,
+        seller_rating,
+        seller_sales
       )
     `)
     .eq('id', id)
@@ -102,7 +108,6 @@ export const fetchCategories = async () => {
  * expected by ProductCard, ProductPage, etc.
  */
 const normalizeProduct = (p) => {
-  // Trier les images : primary d'abord, puis par sort_order
   const sortedImages = [...(p.product_images || [])].sort((a, b) => {
     if (a.is_primary && !b.is_primary) return -1;
     if (!a.is_primary && b.is_primary) return 1;
@@ -114,19 +119,23 @@ const normalizeProduct = (p) => {
     name: p.name,
     description: p.description || '',
     price: Number(p.price),
-    originalPrice: null,       // pas dans le schéma, à ajouter plus tard si besoin
-    discount: null,            // idem
-    isNew: false,              // idem
-    rating: 0,                 // sera calculé depuis reviews plus tard
-    sales: 0,                  // idem
+    originalPrice: null,
+    discount: null,
+    isNew: false,
+    rating: 0,
+    sales: 0,
     stock: p.stock_quantity,
     seller: p.profiles?.business_name || p.profiles?.full_name || 'Vendeur TrustLink',
     seller_id: p.seller_id,
+    seller_rating: p.profiles?.seller_rating || 0,
+    seller_sales: p.profiles?.seller_sales || 0,
+    delivery_min_days: p.delivery_min_days || null,
+    delivery_max_days: p.delivery_max_days || null,
     category: p.categories?.slug || '',
     categoryName: p.categories?.name || '',
     images: images.length > 0 ? images : ['https://readdy.ai/api/search-image?query=product+placeholder+clean+white+background+minimal&width=400&height=400&seq=placeholder1&orientation=squarish'],
     variants: {
-      sizes: [],   // à implémenter avec une table product_variants plus tard
+      sizes: [],
       colors: [],
     },
   };

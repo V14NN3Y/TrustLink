@@ -5,6 +5,7 @@ import HeroBanner from './components/HeroBanner';
 import CategoryBar from './components/CategoryBar';
 import TrustBanner from './components/TrustBanner';
 import ProductGrid from './components/ProductGrid';
+import RecentlyViewed from './components/RecentlyViewed';
 export default function Home() {
   const [searchParams] = useSearchParams();
   const [sort, setSort] = useState('popular');
@@ -15,7 +16,6 @@ export default function Home() {
     const result = [...products];
     if (sort === 'price_asc') result.sort((a, b) => a.price - b.price);
     else if (sort === 'price_desc') result.sort((a, b) => b.price - a.price);
-    // 'popular' → ordre par défaut (created_at desc depuis Supabase)
     return result;
   }, [products, sort]);
   const showHero = !search && !category;
@@ -37,6 +37,7 @@ export default function Home() {
         isLoading={isLoading}
         error={error}
       />
+      {showHero && <RecentlyViewed />}
     </div>
   );
 }

@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 export default function Login() {
   const { loginWithEmail, loginWithGoogle, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -11,7 +13,7 @@ export default function Login() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   if (isAuthenticated) {
-    navigate('/', { replace: true });
+    navigate(redirectTo, { replace: true });
     return null;
   }
 
@@ -25,7 +27,7 @@ export default function Login() {
       setLoading(false);
       return;
     }
-    navigate('/', { replace: true });
+    navigate(redirectTo, { replace: true });
   };
 
   const handleGoogleLogin = async () => {
@@ -82,15 +84,7 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-800"
-              placeholder="
--
--
--
--
--
--
--
-- "
+              placeholder="Entrez votre mot de passe"
             />
           </div>
           <div className="flex items-center justify-between">

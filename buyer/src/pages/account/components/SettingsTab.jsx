@@ -3,17 +3,42 @@ import { useProfile } from '@/hooks/useProfile';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
+import SavedPayments from './SavedPayments';
 
 const CITIES = ['Cotonou', 'Porto-Novo', 'Parakou', 'Abomey-Calavi', 'Bohicon'];
 
 export default function SettingsTab() {
-  const { profile, loading, saving, saveSuccess, saveProfile } = useProfile();
+  const { profile, loading, saving, saveSuccess, saveProfile, reload } = useProfile();
   const { rate } = useExchangeRate();
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   
   const [form, setForm] = useState({
     fullName: '', phone: '', addressLine1: '', city: '',
   });
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+    setUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const path = `avatars/${user.id}/${Date.now()}.${fileExt}`;
+      const { error: uploadErr } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true });
+      if (uploadErr) throw uploadErr;
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
+      if (refreshProfile) await refreshProfile();
+      if (reload) await reload();
+    } catch (err) {
+      console.error('Erreur upload avatar:', err);
+      alert("Erreur lors de l'upload de la photo");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
   
   const [passwordForm, setPasswordForm] = useState({
     current: '', new: '', confirm: '',
@@ -25,6 +50,37 @@ export default function SettingsTab() {
   const [notifs, setNotifs] = useState({
     orders: true, escrow: true, promo: false, newsletter: false, sms: true,
   });
+  const [notifSaved, setNotifSaved] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from('notification_preferences').select('type, enabled').eq('user_id', user.id).then(({ data }) => {
+      if (data) {
+        const prefs = { orders: true, escrow: true, promo: false, newsletter: false, sms: true };
+        const typeMap = { order_update: 'orders', dispute_update: 'escrow', new_message: 'sms' };
+        data.forEach(p => {
+          const key = typeMap[p.type] || p.type;
+          if (key in prefs) prefs[key] = p.enabled;
+        });
+        setNotifs(prefs);
+      }
+    });
+  }, [user]);
+
+  const saveNotifPrefs = async () => {
+    if (!user?.id) return;
+    const typeMap = { orders: 'order_update', escrow: 'dispute_update', promo: 'product_approved', newsletter: 'new_message', sms: 'new_message' };
+    for (const [key, enabled] of Object.entries(notifs)) {
+      const type = typeMap[key];
+      if (!type) continue;
+      await supabase.from('notification_preferences').upsert(
+        { user_id: user.id, type, channel: key === 'sms' ? 'sms' : 'email', enabled },
+        { onConflict: 'user_id, type, channel' }
+      );
+    }
+    setNotifSaved(true);
+    setTimeout(() => setNotifSaved(false), 3000);
+  };
 
   useEffect(() => {
     if (profile) {
@@ -95,6 +151,39 @@ export default function SettingsTab() {
     <div>
       <h1 className="text-xl font-poppins font-bold mb-5" style={{ color: '#111827' }}>Paramètres du compte</h1>
       <div className="space-y-5">
+        {/* Photo de profil */}
+        <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #E5E7EB' }}>
+          <div className="flex items-center gap-2 mb-4">
+            <i className="ri-camera-line" style={{ color: '#125C8D' }}></i>
+            <h3 className="text-sm font-poppins font-semibold" style={{ color: '#111827' }}>Photo de profil</h3>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full overflow-hidden" style={{ backgroundColor: '#E1F0F9' }}>
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-lg font-bold" style={{ color: '#125C8D' }}>
+                    {(profile?.full_name || user?.email || '?').slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-white flex items-center justify-center">
+                <i className="ri-check-line text-white text-[8px] font-bold"></i>
+              </span>
+            </div>
+            <div>
+              <p className="text-sm font-poppins font-medium" style={{ color: '#111827' }}>{profile?.full_name || 'Mon profil'}</p>
+              <p className="text-xs font-inter" style={{ color: '#9CA3AF' }}>PNG ou JPG, max 5 Mo</p>
+              <input type="file" id="avatar-input-buyer" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+              <label htmlFor="avatar-input-buyer" className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                <i className="ri-upload-2-line text-xs"></i>
+                {uploadingAvatar ? 'Upload...' : 'Changer la photo'}
+              </label>
+            </div>
+          </div>
+        </div>
+
         {/* Profil & Adresse */}
         <form onSubmit={handleSave} className="bg-white rounded-xl p-5" style={{ border: '1px solid #E5E7EB' }}>
           <div className="flex items-center gap-2 mb-4">
@@ -204,6 +293,8 @@ export default function SettingsTab() {
           </p>
         </div>
 
+        <SavedPayments />
+
         {/* Notifications */}
         <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #E5E7EB' }}>
           <div className="flex items-center gap-2 mb-4">
@@ -234,6 +325,14 @@ export default function SettingsTab() {
               </button>
             </div>
           ))}
+          {notifSaved && (
+            <div className="mb-3 p-3 rounded-lg text-sm font-inter flex items-center gap-2" style={{ backgroundColor: '#DCFCE7', color: '#15803D' }}>
+              <i className="ri-checkbox-circle-line"></i> Préférences sauvegardées !
+            </div>
+          )}
+          <button onClick={saveNotifPrefs} className="mt-3 flex items-center gap-2 px-4 py-2 text-white text-xs font-poppins font-semibold rounded-lg" style={{ backgroundColor: '#125C8D' }}>
+            <i className="ri-save-line"></i>Sauvegarder les préférences
+          </button>
         </div>
 
         {/* Sécurité */}

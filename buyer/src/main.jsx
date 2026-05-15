@@ -2,9 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from '@/App';
 import '@/index.css';
-import { initDefaults } from '@/lib/storage';
-// Seed shared localStorage defaults (exchange rate, auth) if not already set
-initDefaults();
 
 const rootElement = document.getElementById('root');
 

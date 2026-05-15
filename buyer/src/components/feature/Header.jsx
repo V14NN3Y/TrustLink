@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
+import { useCurrency } from '@/hooks/useCurrency';
+import { t, setLocale, getLocale } from '@/lib/i18n';
 import NotificationBell from './NotificationBell';
 
 export default function Header() {
@@ -8,7 +10,9 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
   const { totalItems } = useCart();
+  const { currency, setCurrency } = useCurrency();
   const navigate = useNavigate();
+  const locale = getLocale();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -20,6 +24,10 @@ export default function Header() {
     e.preventDefault();
     if (query.trim()) navigate('/?search=' + encodeURIComponent(query.trim()));
   };
+
+  const toggleCurrency = () => setCurrency(currency === 'XOF' ? 'NGN' : 'XOF');
+
+  const toggleLocale = () => setLocale(locale === 'fr' ? 'en' : 'fr');
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 bg-white transition-all duration-300 ${scrolled ? 'shadow-sm' : 'border-b border-gray-100'}`}>
@@ -36,7 +44,7 @@ export default function Header() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Rechercher un produit, une marque..."
+                placeholder={t('nav.search')}
                 className="flex-1 px-5 py-2.5 text-sm outline-none font-inter"
                 style={{ color: '#111827' }}
               />
@@ -47,6 +55,23 @@ export default function Header() {
           </form>
 
           <div className="flex items-center gap-1">
+            {/* Currency toggle */}
+            <div className="flex items-center bg-gray-100 rounded-full p-0.5 mr-1">
+              <button onClick={() => setCurrency('XOF')}
+                className={`px-2 py-1 text-xs font-poppins font-semibold rounded-full transition-all cursor-pointer ${currency === 'XOF' ? 'bg-white text-[#125C8D] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                FCFA
+              </button>
+              <button onClick={() => setCurrency('NGN')}
+                className={`px-2 py-1 text-xs font-poppins font-semibold rounded-full transition-all cursor-pointer ${currency === 'NGN' ? 'bg-white text-[#125C8D] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                NGN
+              </button>
+            </div>
+            {/* Language toggle */}
+            <button onClick={toggleLocale}
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-xs font-poppins font-bold cursor-pointer"
+              style={{ color: '#6B7280' }}>
+              {locale === 'fr' ? 'FR' : 'EN'}
+            </button>
             <Link to="/wishlist" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
               <i className="ri-heart-line text-xl" style={{ color: '#6B7280' }}></i>
             </Link>
@@ -72,6 +97,22 @@ export default function Header() {
               <img src="/TrustLink_Logo_Bleu-Fonce.png" alt="TrustLink" className="h-8 w-auto" />
             </Link>
             <div className="flex items-center gap-1">
+              {/* Currency toggle (mobile) */}
+              <div className="flex items-center bg-gray-100 rounded-full p-0.5 mr-0.5">
+                <button onClick={() => setCurrency('XOF')}
+                  className={`px-1.5 py-0.5 text-[10px] font-poppins font-semibold rounded-full transition-all cursor-pointer ${currency === 'XOF' ? 'bg-white text-[#125C8D] shadow-sm' : 'text-gray-500'}`}>
+                  FCFA
+                </button>
+                <button onClick={() => setCurrency('NGN')}
+                  className={`px-1.5 py-0.5 text-[10px] font-poppins font-semibold rounded-full transition-all cursor-pointer ${currency === 'NGN' ? 'bg-white text-[#125C8D] shadow-sm' : 'text-gray-500'}`}>
+                  NGN
+                </button>
+              </div>
+              <button onClick={toggleLocale}
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-[10px] font-poppins font-bold cursor-pointer"
+                style={{ color: '#6B7280' }}>
+                {locale === 'fr' ? 'FR' : 'EN'}
+              </button>
               <Link to="/cart" className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100">
                 <i className="ri-shopping-cart-line text-lg" style={{ color: '#6B7280' }}></i>
                 {totalItems > 0 && (
@@ -88,7 +129,7 @@ export default function Header() {
           <div className="pb-2">
             <form onSubmit={handleSearch}>
               <div className="flex items-center border border-gray-200 rounded-full overflow-hidden">
-                <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher..." className="flex-1 px-4 py-2 text-sm outline-none font-inter" />
+                <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('nav.search')} className="flex-1 px-4 py-2 text-sm outline-none font-inter" />
                 <button type="submit" className="px-3 py-1.5 text-white rounded-full m-1" style={{ backgroundColor: '#125C8D' }}>
                   <i className="ri-search-line text-sm"></i>
                 </button>
@@ -100,7 +141,13 @@ export default function Header() {
 
       {menuOpen && (
         <div className="md:hidden bg-white border-t border-gray-100 px-4 pb-4">
-          {[['/', 'Boutique'], ['/account', 'Mon Compte'], ['/wishlist', 'Ma Wishlist'], ['/faq', 'FAQ'], ['/support', 'Support']].map(([to, label]) => (
+          {[
+            { to: '/', label: t('nav.home') },
+            { to: '/account', label: t('nav.account') },
+            { to: '/wishlist', label: t('nav.wishlist') },
+            { to: '/faq', label: t('support.faq') },
+            { to: '/support', label: t('nav.support') },
+          ].map(({ to, label }) => (
             <Link key={to} to={to} onClick={() => setMenuOpen(false)} className="block py-3 text-sm font-inter border-b border-gray-50 last:border-0" style={{ color: '#111827' }}>
               {label}
             </Link>

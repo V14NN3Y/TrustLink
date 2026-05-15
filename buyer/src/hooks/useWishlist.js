@@ -1,73 +1,66 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
+import { toast } from '@/components/ui/use-toast';
 import {
   fetchWishlistIds,
   fetchWishlistProducts,
   addToWishlist,
   removeFromWishlist,
 } from '@/lib/supabase/wishlist';
+
 export function useWishlist() {
   const { user, isAuthenticated } = useAuth();
-  const [items, setItems] = useState([]);       // liste d'IDs produits
-  const [products, setProducts] = useState([]); // produits complets
-  const [loading, setLoading] = useState(false);
-  const loadWishlist = useCallback(async () => {
-    if (!isAuthenticated || !user?.id) {
-      setItems([]);
-      return;
-    }
-    setLoading(true);
-    try {
-      const ids = await fetchWishlistIds(user.id);
-      setItems(ids);
-    } catch (err) {
-      console.error('Erreur chargement wishlist:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated, user?.id]);
-  const loadWishlistProducts = useCallback(async () => {
-    if (!isAuthenticated || !user?.id) return;
-    try {
-      const data = await fetchWishlistProducts(user.id);
-      setProducts(data);
-    } catch (err) {
-      console.error('Erreur chargement produits wishlist:', err);
-    }
-  }, [isAuthenticated, user?.id]);
-  useEffect(() => {
-    loadWishlist();
-  }, [loadWishlist]);
-  const toggle = useCallback(async (productId) => {
-    if (!isAuthenticated || !user?.id) {
-      alert('Veuillez vous connecter pour gérer votre wishlist');
-      return;
-    }
-    const isIn = items.includes(productId);
-    try {
-      if (isIn) {
+  const queryClient = useQueryClient();
+  const wishlistKey = ['wishlist', user?.id];
+
+  const { data: items = [] } = useQuery({
+    queryKey: wishlistKey,
+    queryFn: () => fetchWishlistIds(user.id),
+    enabled: !!user?.id,
+  });
+
+  const { data: products = [], isLoading } = useQuery({
+    queryKey: [...wishlistKey, 'products'],
+    queryFn: () => fetchWishlistProducts(user.id),
+    enabled: !!user?.id,
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async (productId) => {
+      if (items.includes(productId)) {
         await removeFromWishlist(user.id, productId);
-        setItems((prev) => prev.filter((id) => id !== productId));
-        setProducts((prev) => prev.filter((p) => p.id !== productId));
       } else {
         await addToWishlist(user.id, productId);
-        setItems((prev) => [...prev, productId]);
       }
-    } catch (err) {
-      console.error('Erreur toggle wishlist:', err);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: wishlistKey }),
+  });
+
+  const toggle = useCallback((productId) => {
+    if (!isAuthenticated || !user?.id) {
+      toast({ title: 'Connexion requise', description: 'Veuillez vous connecter pour gérer votre wishlist', variant: 'destructive' });
+      return;
     }
-  }, [isAuthenticated, user?.id, items]);
+    toggleMutation.mutate(productId);
+  }, [isAuthenticated, user?.id, toggleMutation]);
+
   const isWishlisted = useCallback(
     (productId) => items.includes(productId),
     [items]
   );
+
+  const loadWishlistProducts = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: [...wishlistKey, 'products'] });
+  }, [queryClient, wishlistKey]);
+
   return {
     items,
     products,
-    loading,
+    loading: isLoading,
     toggle,
     isWishlisted,
     loadWishlistProducts,
-    reload: loadWishlist,
+    reload: () => queryClient.invalidateQueries({ queryKey: wishlistKey }),
   };
 }

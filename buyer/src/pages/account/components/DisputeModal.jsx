@@ -12,18 +12,18 @@ const REASONS = [
 ];
 export default function DisputeModal({ order, onClose, onSuccess }) {
   const { openDispute, submitting } = useDisputes();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(order.videoFilePath ? 3 : 1);
   const [reason, setReason] = useState('');
   const [customReason, setCustomReason] = useState('');
-  const [videoBlob, setVideoBlob] = useState(null);
+  const [videoFilePath, setVideoFilePath] = useState(order.videoFilePath || null);
   const [error, setError] = useState(null);
   const handleSubmit = async () => {
     setError(null);
     const fullReason = reason === 'Autre' ? customReason.trim() : reason;
     if (!fullReason) { setError('Veuillez sélectionner un motif.'); return; }
-    if (!videoBlob) { setError('La vidéo de déballage est obligatoire.'); return; }
+    if (!videoFilePath) { setError('La vidéo de déballage est obligatoire.'); return; }
     try {
-      await openDispute({ orderId: order.id, reason: fullReason, videoBlob });
+      await openDispute({ orderId: order.id, reason: fullReason, videoFilePath });
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -103,10 +103,10 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
                   </p>
                 </div>
               </div>
-              <VideoRecorder onVideoRecorded={setVideoBlob} />
+              <VideoRecorder orderId={order.id} onRecorded={setVideoFilePath} />
               <div className="flex gap-3 mt-4">
                 <button onClick={() => setStep(1)} className="flex-1 py-2.5 text-sm font-poppins font-medium rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer" style={{ color: '#374151' }}>← Retour</button>
-                <button onClick={() => setStep(3)} disabled={!videoBlob} className="flex-1 py-2.5 text-sm font-poppins font-semibold rounded-lg text-white disabled:opacity-50 cursor-pointer" style={{ backgroundColor: '#125C8D' }}>Continuer →</button>
+                <button onClick={() => setStep(3)} disabled={!videoFilePath} className="flex-1 py-2.5 text-sm font-poppins font-semibold rounded-lg text-white disabled:opacity-50 cursor-pointer" style={{ backgroundColor: '#125C8D' }}>Continuer →</button>
               </div>
             </div>
           )}

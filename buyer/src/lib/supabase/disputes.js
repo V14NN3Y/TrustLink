@@ -1,7 +1,4 @@
 import { supabase } from '@/lib/supabaseClient';
-/**
- * Upload une vidéo dans le bucket delivery-videos et retourne l'URL publique.
- */
 const uploadDisputeVideo = async (blob, buyerId, orderId) => {
     const fileName = `disputes/${buyerId}/${orderId}/${Date.now()}.webm`;
     const { error: upErr } = await supabase.storage
@@ -13,15 +10,18 @@ const uploadDisputeVideo = async (blob, buyerId, orderId) => {
 };
 /**
  * Crée un litige + vidéo de déballage + passe la commande en status 'disputed'.
+ * Accepte soit un Blob (via videoBlob, upload automatique), soit un chemin déjà uploadé (via videoFilePath).
  */
-export const createDispute = async ({ orderId, buyerId, reason, videoBlob }) => {
+export const createDispute = async ({ orderId, buyerId, reason, videoBlob, videoFilePath }) => {
     let videoUrl = null;
     let videoId = null;
-    if (videoBlob) {
-        videoUrl = await uploadDisputeVideo(videoBlob, buyerId, orderId);
+    const resolvedPath = videoFilePath
+        ? supabase.storage.from('delivery-videos').getPublicUrl(videoFilePath).data.publicUrl
+        : (videoBlob ? await uploadDisputeVideo(videoBlob, buyerId, orderId) : null);
+    if (resolvedPath) {
         const { data: dv, error: dvErr } = await supabase
             .from('delivery_videos')
-            .insert({ order_id: orderId, buyer_id: buyerId, video_url: videoUrl })
+            .insert({ order_id: orderId, buyer_id: buyerId, video_url: resolvedPath })
             .select('id')
             .single();
         if (dvErr) throw dvErr;

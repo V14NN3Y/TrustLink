@@ -7,26 +7,23 @@ export function useDeliveryVideos() {
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState(null);
     const confirmDeliveryWithVideo = useCallback(
-        async ({ orderId, videoFilePath, isDefective = false }) => {
+        async ({ orderId, videoFilePath }) => {
             if (!user?.id) throw new Error('Non connecté');
             setUploading(true);
             setError(null);
             try {
-                // Créer l'enregistrement dans delivery_videos
                 const videoId = await createDeliveryVideoRecord({
                     orderId,
                     buyerId: user.id,
-                    videoUrl: videoFilePath, // Chemin relatif (bucket privé)
+                    videoUrl: videoFilePath,
                     durationSeconds: 0,
-                    isDefective: isDefective,
                 });
-                // Mettre à jour le statut de la commande
                 const { error } = await supabase
                     .from('orders')
-                    .update({ status: isDefective ? 'disputed' : 'confirmed', updated_at: new Date().toISOString() })
+                    .update({ status: 'confirmed', updated_at: new Date().toISOString() })
                     .eq('id', orderId);
                 if (error) throw error;
-                return { videoId, isDefective };
+                return { videoId };
             } catch (err) {
                 setError(err.message);
                 throw err;
