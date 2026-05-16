@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -6,6 +6,7 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
+  const isCheckingAuthRef = useRef(false);
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -23,9 +24,14 @@ export const AuthProvider = ({ children }) => {
     if (error) throw error;
     return data;
   };
-  const checkUserAuth = useCallback(async () => {
+  const checkUserAuth = useCallback(async ({ silent = false } = {}) => {
+    if (isCheckingAuthRef.current) return;
+    isCheckingAuthRef.current = true;
+
+    const shouldShowLoading = !silent || !authChecked || !isAuthenticated;
+
     try {
-      setIsLoadingAuth(true);
+      if (shouldShowLoading) setIsLoadingAuth(true);
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user) {
@@ -40,14 +46,18 @@ export const AuthProvider = ({ children }) => {
           }
         }
         if (!profileData) {
-          setAuthError({ type: 'profile_missing', message: 'Profil non créé. Réessayez.' });
-          setIsAuthenticated(false);
+          if (!silent) {
+            setAuthError({ type: 'profile_missing', message: 'Profil non créé. Réessayez.' });
+            setIsAuthenticated(false);
+          }
           return;
         }
         // Vérification rôle seller
         if (profileData?.role !== 'seller') {
-          setAuthError({ type: 'auth_required', message: 'Accès réservé aux vendeurs' });
-          setIsAuthenticated(false);
+          if (!silent) {
+            setAuthError({ type: 'auth_required', message: 'Accès réservé aux vendeurs' });
+            setIsAuthenticated(false);
+          }
           return;
         }
         setUser(session.user);
@@ -55,19 +65,24 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
         setAuthError(null);
       } else {
-        setUser(null);
-        setProfile(null);
-        setIsAuthenticated(false);
+        if (!silent) {
+          setUser(null);
+          setProfile(null);
+          setIsAuthenticated(false);
+        }
       }
     } catch (error) {
       console.error('Auth check failed:', error);
-      setAuthError({ type: 'auth_required', message: error.message });
-      setIsAuthenticated(false);
+      if (!silent) {
+        setAuthError({ type: 'auth_required', message: error.message });
+        setIsAuthenticated(false);
+      }
     } finally {
-      setIsLoadingAuth(false);
+      if (shouldShowLoading) setIsLoadingAuth(false);
       setAuthChecked(true);
+      isCheckingAuthRef.current = false;
     }
-  }, []);
+  }, [authChecked, isAuthenticated]);
   useEffect(() => {
     checkUserAuth();
 
@@ -75,7 +90,9 @@ export const AuthProvider = ({ children }) => {
       if (event === 'SIGNED_IN' && session?.user) {
         // Petit délai pour laisser le trigger créer le profil
         await new Promise(r => setTimeout(r, 300));
-        await checkUserAuth();
+        await checkUserAuth({ silent: true });
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+        await checkUserAuth({ silent: true });
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
@@ -85,7 +102,20 @@ export const AuthProvider = ({ children }) => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        checkUserAuth({ silent: true });
+      }
+    };
+
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+    };
   }, [checkUserAuth]);
   const login = async (email, password) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });

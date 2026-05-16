@@ -22,6 +22,7 @@ export default function NewProductPage() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
   const [exchangeRate, setExchangeRate] = useState(0.89);
 
   const [categories, setCategories] = useState([]);
@@ -87,8 +88,7 @@ export default function NewProductPage() {
       setSubmitting(false);
       navigate("/catalog");
     } catch (err) {
-      console.error("Erreur création produit:", err);
-      alert("Erreur lors de la création du produit");
+      setError(err.message || "Erreur lors de la création du produit");
       setSubmitting(false);
     }
   };
@@ -300,6 +300,11 @@ export default function NewProductPage() {
               >
                 <i className="ri-arrow-left-line mr-1"></i>Retour
               </button>
+              {error && (
+                <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-2">
+                  <i className="ri-error-warning-line mr-1"></i>{error}
+                </div>
+              )}
               <button
                 onClick={handleSubmit}
                 disabled={submitting || !canSubmit}

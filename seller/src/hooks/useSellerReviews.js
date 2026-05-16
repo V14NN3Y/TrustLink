@@ -30,7 +30,6 @@ export function useSellerReviews(sellerId) {
       .in("product_id", productIds)
       .order("created_at", { ascending: false });
     if (error) {
-      console.error("useSellerReviews error:", error);
       setReviews([]);
     } else {
       setReviews(data || []);

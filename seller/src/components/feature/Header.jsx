@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
-import { t, setLocale, getLocale } from "@/lib/i18n";
 import { useCurrency } from "@/hooks/useCurrency";
 
 const pageTitles = [
@@ -85,17 +84,7 @@ export default function Header() {
 
       {/* Right side */}
       <div className="flex items-center gap-3">
-        {/* Language Toggle */}
-        <div className="hidden md:flex items-center bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
-          <button onClick={() => setLocale('fr')}
-            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${getLocale() === 'fr' ? 'bg-[#125C8D] text-white' : 'text-gray-500 hover:text-gray-700'}`}>
-            FR
-          </button>
-          <button onClick={() => setLocale('en')}
-            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${getLocale() === 'en' ? 'bg-[#125C8D] text-white' : 'text-gray-500 hover:text-gray-700'}`}>
-            EN
-          </button>
-        </div>
+
 
         {/* Currency Toggle */}
         <div className="hidden md:flex items-center bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
@@ -206,7 +195,9 @@ export default function Header() {
         {/* Hub + Online */}
         <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
           <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse flex-shrink-0"></span>
-          <span className="text-xs font-medium text-gray-600 whitespace-nowrap hidden sm:inline">Lagos Hub · En ligne</span>
+          <span className="text-xs font-medium text-gray-600 whitespace-nowrap hidden sm:inline">
+            Lagos Hub · En ligne
+          </span>
         </div>
       </div>
     </header>

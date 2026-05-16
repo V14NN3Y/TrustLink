@@ -12,6 +12,32 @@ const sideNav = [
   { id: "langue", label: "Langue & Devise", icon: "ri-global-line" },
 ];
 
+function SectionTitle({ title, sub }) {
+  return (
+    <div className="mb-6">
+      <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>{title}</h2>
+      <p className="text-sm text-gray-400">{sub || 'Gérez vos informations personnelles et préférences'}</p>
+    </div>
+  );
+}
+
+function FieldRow({ label, value, onChange, type = "text" }) {
+  return (
+    <div>
+      <label className="text-xs text-gray-500 block mb-1">{label}</label>
+      <div className="relative">
+        <input
+          type={type}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#125C8D] bg-gray-50 transition-colors"
+          style={{ fontFamily: "'Inter', sans-serif" }}
+        />
+      </div>
+    </div>
+  );
+}
+
 const notifRows = [
   {
     section: "Commandes", items: [
@@ -35,24 +61,18 @@ export default function SettingsPage() {
   const { profile, logout, setProfile } = useAuth();
   const [active, setActive] = useState(section || "profile");
 
+  const [uploadMsg, setUploadMsg] = useState(null);
+
   const uploadToStorage = async (bucket, file, folderPath) => {
     if (!file || !profile?.id) return null;
-    const MAX_SIZE = 5 * 1024 * 1024;
-    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!ALLOWED.includes(file.type)) {
-      throw new Error('Format non autorisé (JPEG, PNG, WebP seulement)');
-    }
-    if (file.size > MAX_SIZE) {
-      throw new Error('Fichier trop volumineux (max 5 Mo)');
-    }
     const fileExt = file.name.split(".").pop();
     const path = `${folderPath}/${Date.now()}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(path, file, { upsert: true, contentType: file.type });
-    if (uploadError) throw uploadError;
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, { upsert: true, contentType: file.type });
+    if (uploadError) {
+      if (uploadError.message?.includes('bucket')) throw new Error('Le dossier de stockage n\'existe pas. Contactez l\'administration.');
+      throw uploadError;
+    }
     const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    // TEMP: vérifie que l'URL est bien générée
     return data?.publicUrl || null;
   };
 
@@ -262,46 +282,30 @@ export default function SettingsPage() {
       setNotifSavedMsg(true);
       setTimeout(() => setNotifSavedMsg(false), 3000);
     } catch (err) {
-      console.error(err);
-      alert("Erreur lors de la sauvegarde des préférences");
+      setUploadMsg({ type: 'error', text: err.message || "Erreur de sauvegarde" });
     } finally {
       setNotifSaving(false);
     }
   };
-  const [langForm, setLangForm] = useState({ lang: "English", devise: "Naira nigérian (₦)", timezone: "Africa/Lagos (GMT+1)" });
+  const currentLocale = typeof window !== 'undefined' ? localStorage.getItem('trustlink_seller_locale') || 'fr' : 'fr';
+  const currentCurrency = typeof window !== 'undefined' ? localStorage.getItem('trustlink_seller_currency') || 'NGN' : 'NGN';
+  const [langForm, setLangForm] = useState({
+    lang: currentLocale === 'fr' ? 'Français' : 'English',
+    devise: currentCurrency === 'NGN' ? "Naira nigérian (₦)" : "Franc CFA (FCFA)",
+    timezone: "Africa/Lagos (GMT+1)",
+  });
 
   const pwMismatch = passwords.next && passwords.confirm && passwords.next !== passwords.confirm;
 
-  const SectionTitle = ({ title, sub }) => (
-    <div className="mb-6">
-      <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>{title}</h2>
-      <p className="text-sm text-gray-400">Gérez vos informations personnelles et préférences</p>
-    </div>
-  );
-
-  const FieldRow = ({ label, value, onChange, type = "text" }) => (
-    <div>
-      <label className="text-xs text-gray-500 block mb-1">{label}</label>
-      <div className="relative">
-        <input
-          type={type}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#125C8D] bg-gray-50 transition-colors"
-          style={{ fontFamily: "'Inter', sans-serif" }}
-        />
-      </div>
-    </div>
-  );
+  // Cursor jump fix: moved SectionTitle and FieldRow outside component
 
   const [savedLangMsg, setSavedLangMsg] = useState(false);
 
   const handleSaveLang = async () => {
-    await supabase.from('profiles').update({
-      business_website: langForm.lang,
-      business_category: langForm.devise,
-      default_address_line2: langForm.timezone,
-    }).eq('id', user?.id);
+    const localeVal = langForm.lang === 'Français' ? 'fr' : 'en';
+    localStorage.setItem('trustlink_seller_locale', localeVal);
+    localStorage.setItem('trustlink_seller_currency', langForm.devise.includes('Naira') ? 'NGN' : 'XOF');
+    await supabase.from('profiles').update({ locale: localeVal }).eq('id', user?.id);
     setSavedLangMsg(true);
     setTimeout(() => setSavedLangMsg(false), 3000);
   };
@@ -340,6 +344,11 @@ export default function SettingsPage() {
           {/* Mon Profil */}
           {active === "profile" && (
             <div>
+              {uploadMsg && (
+                <div className={`mb-4 p-3 rounded-xl text-sm flex items-center gap-2 ${uploadMsg.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                  <i className={`${uploadMsg.type === 'success' ? 'ri-checkbox-circle-line' : 'ri-error-warning-line'}`} />{uploadMsg.text}
+                </div>
+              )}
               <SectionTitle title="Mon Profil" />
               {/* Photo */}
               <div className="bg-white rounded-xl border border-gray-100 p-6 mb-4">
@@ -372,16 +381,16 @@ export default function SettingsPage() {
                         if (!file) return;
                         try {
                           const url = await uploadToStorage("avatars", file, `profiles/${profile.id}`);
-                          if (!url) return;
+                          if (!url) throw new Error('URL non générée');
                           const { error } = await supabase
                             .from("profiles")
                             .update({ avatar_url: url })
                             .eq("id", profile.id);
                           if (error) throw error;
                           setProfile({ ...profile, avatar_url: url });
+                          setUploadMsg({ type: 'success', text: 'Photo mise à jour !' });
                         } catch (err) {
-                          console.error(err);
-                          alert("Erreur lors de l'upload de la photo");
+                          setUploadMsg({ type: 'error', text: err.message });
                         }
                       }}
                     />
@@ -473,16 +482,16 @@ export default function SettingsPage() {
                         if (!file) return;
                         try {
                           const url = await uploadToStorage("avatars", file, `shops/${profile.id}`);
-                          if (!url) return;
+                          if (!url) throw new Error('URL non générée');
                           const { error } = await supabase
                             .from("profiles")
                             .update({ business_logo_url: url })
                             .eq("id", profile.id);
                           if (error) throw error;
                           setProfile({ ...profile, business_logo_url: url });
+                          setUploadMsg({ type: 'success', text: 'Logo mis à jour !' });
                         } catch (err) {
-                          console.error(err);
-                          alert("Erreur lors de l'upload du logo");
+                          setUploadMsg({ type: 'error', text: err.message });
                         }
                       }}
                     />
@@ -659,7 +668,7 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-gray-800">Authentification par SMS</p>
-                      <p className="text-xs text-gray-400">+234 801 *** 5678</p>
+                      <p className="text-xs text-gray-400">{profile?.phone || 'Aucun numéro renseigné'}</p>
                     </div>
                   </div>
                   <label className="relative cursor-pointer">
@@ -672,26 +681,7 @@ export default function SettingsPage() {
               {/* Sessions */}
               <div className="bg-white rounded-xl border border-gray-100 p-6">
                 <h3 className="text-sm font-bold text-gray-800 mb-4">Sessions actives</h3>
-                <div className="space-y-3">
-                  {[
-                    { browser: "Chrome", os: "Windows 11", loc: "Lagos, Nigeria", sub: "Actif maintenant", current: true },
-                    { browser: "Safari", os: "iPhone 14", loc: "Lagos, Nigeria", sub: "Il y a 2 heures", current: false },
-                  ].map((s, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
-                      <div className="flex items-center gap-3">
-                        <i className={`${s.os.includes("iPhone") ? "ri-smartphone-line" : "ri-computer-line"} text-gray-500 text-base`}></i>
-                        <div>
-                          <p className="text-xs font-semibold text-gray-800">{s.browser} — {s.os}</p>
-                          <p className="text-[10px] text-gray-400">{s.loc} · {s.sub}</p>
-                        </div>
-                      </div>
-                      {s.current
-                        ? <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-[#10B981]/10 text-[#10B981]">Session actuelle</span>
-                        : <button className="text-xs font-semibold text-red-500 hover:underline cursor-pointer">Révoquer</button>
-                      }
-                    </div>
-                  ))}
-                </div>
+                <p className="text-xs text-gray-400">La gestion des sessions est assurée par votre fournisseur d'authentification.</p>
               </div>
             </div>
           )}
@@ -738,24 +728,28 @@ export default function SettingsPage() {
               {/* Exchange rates */}
               <div className="bg-white rounded-xl border border-gray-100 p-6">
                 <h3 className="text-sm font-bold text-gray-800 mb-4">Taux de change actuel</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  {[
-                    { pair: "NGN → FCFA", rate: "3.52", since: "Il y a 2 min" },
-                    { pair: "NGN → USD", rate: "0.00063", since: "Il y a 2 min" },
-                    { pair: "USD → FCFA", rate: "616.40", since: "Il y a 2 min" },
-                  ].map((r) => (
-                    <div key={r.pair} className="p-4 border border-gray-100 rounded-xl text-center">
-                      <p className="text-xs text-gray-400 mb-1">{r.pair}</p>
-                      <p className="text-xl font-bold text-gray-900">{r.rate}</p>
-                      <p className="text-[10px] text-gray-400 mt-1">{r.since}</p>
-                    </div>
-                  ))}
-                </div>
+                <ExchangeRateCard from="NGN" to="XOF" />
+                <ExchangeRateCard from="NGN" to="USD" />
+                <ExchangeRateCard from="USD" to="XOF" />
               </div>
             </div>
           )}
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+function ExchangeRateCard({ from, to }) {
+  const [rate, setRate] = useState(null);
+  useEffect(() => {
+    supabase.from('exchange_rates').select('rate, updated_at').eq('from_currency', from).eq('to_currency', to).maybeSingle()
+      .then(({ data }) => { if (data) setRate(data); });
+  }, [from, to]);
+  return (
+    <div className="flex items-center justify-between p-3 border border-gray-100 rounded-xl mb-2 last:mb-0">
+      <p className="text-xs font-medium text-gray-600">{from} → {to}</p>
+      <p className="text-sm font-bold text-gray-900">{rate ? Number(rate.rate).toFixed(4) : '—'}</p>
+    </div>
   );
 }

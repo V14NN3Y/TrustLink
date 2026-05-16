@@ -7,6 +7,7 @@ export default function MessagingSection() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [sendError, setSendError] = useState(null);
   const messagesEndRef = useRef(null);
   const [adminId, setAdminId] = useState(null);
   const [adminLoading, setAdminLoading] = useState(true);
@@ -58,9 +59,10 @@ export default function MessagingSection() {
   }, [messages]);
 
   const handleSend = async () => {
+    setSendError(null);
     if (!newMessage.trim() || !user?.id) return;
     if (!adminId) {
-      alert("Le service de messagerie est temporairement indisponible. Réessayez.");
+      setSendError("Aucun administrateur disponible pour le moment. Réessayez plus tard.");
       return;
     }
     const { error } = await supabase.from("messages").insert({
@@ -69,16 +71,17 @@ export default function MessagingSection() {
       subject: "Support",
       content: newMessage.trim(),
     });
-    if (!error) {
-      setNewMessage("");
-      // refresh
-      const { data } = await supabase
-        .from("messages")
-        .select("*")
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-        .order("created_at", { ascending: true });
-      if (data) setMessages(data);
+    if (error) {
+      setSendError(error.message);
+      return;
     }
+    setNewMessage("");
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .order("created_at", { ascending: true });
+    if (data) setMessages(data);
   };
   const formatTime = (iso) => {
     const d = new Date(iso);
@@ -130,6 +133,7 @@ export default function MessagingSection() {
             <div ref={messagesEndRef}></div>
           </div>
           <div className="px-4 py-3 border-t border-gray-100">
+            {sendError && <p className="text-xs text-red-500 mb-2 text-center">{sendError}</p>}
             <div className="flex gap-2">
               <input
                 type="text"

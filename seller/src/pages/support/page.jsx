@@ -76,8 +76,7 @@ export default function SupportPage() {
         await uploadKycDocument(user, file, key);
         loadKycStatus();
       } catch (err) {
-        console.error(err);
-        alert("Erreur lors de l'upload du document KYC");
+        alert(err.message || "Erreur lors de l'upload du document KYC");
       } finally {
         setUploadingKey(null);
       }

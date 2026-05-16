@@ -7,12 +7,15 @@ export function useSellerOrders(sellerId) {
   const [error, setError] = useState(null);
   const channelRef = useRef(null);
 
+  const mountedRef = useRef(true);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
+
   const fetchOrdersData = useCallback(async () => {
     if (!sellerId) {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
       return;
     }
-    setLoading(true);
+    if (mountedRef.current) setLoading(true);
     const { data: rateData } = await supabase
       .from("exchange_rates")
       .select("rate")
@@ -34,6 +37,7 @@ export function useSellerOrders(sellerId) {
       `)
       .eq("seller_id", sellerId)
       .order("created_at", { ascending: false });
+    if (!mountedRef.current) return;
     if (supaError) {
       setError(supaError.message);
       setOrders([]);
@@ -82,10 +86,9 @@ export function useSellerOrders(sellerId) {
         });
         return acc;
       }, {});
-      const formatted = Object.values(grouped);
-      setOrders(formatted);
+      if (mountedRef.current) setOrders(Object.values(grouped));
     }
-    setLoading(false);
+    if (mountedRef.current) setLoading(false);
   }, [sellerId]);
 
   useEffect(() => {
