@@ -72,7 +72,6 @@ export const AuthProvider = ({ children }) => {
         }
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
       if (!silent) {
         setAuthError({ type: 'auth_required', message: error.message });
         setIsAuthenticated(false);

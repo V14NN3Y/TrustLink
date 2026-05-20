@@ -43,7 +43,7 @@ export default function QRBordereau({ order, onClose }) {
           </button>
         </div>
 
-        <div className="flex justify-center mb-3">
+        <div data-qr className="flex justify-center mb-3">
           <MiniQR code={order.id} />
         </div>
 

@@ -12,7 +12,5 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  define: {
-    __BASE_PATH__: JSON.stringify('/'),
-  },
+
 });

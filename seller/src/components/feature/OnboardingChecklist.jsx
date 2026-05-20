@@ -26,9 +26,14 @@ export default function OnboardingChecklist() {
       product: false,
       first_order: false,
     };
-    supabase.from('products').select('id', { count: 'exact', head: true }).eq('seller_id', user.id).then(({ count }) => { checks.product = (count || 0) > 0; });
-    supabase.from('order_items').select('id', { count: 'exact', head: true }).eq('seller_id', user.id).then(({ count }) => { checks.first_order = (count || 0) > 0; });
-    setDone(checks);
+    Promise.all([
+      supabase.from('products').select('id', { count: 'exact', head: true }).eq('seller_id', user.id),
+      supabase.from('order_items').select('id', { count: 'exact', head: true }).eq('seller_id', user.id),
+    ]).then(([{ count: productCount }, { count: orderCount }]) => {
+      checks.product = (productCount || 0) > 0;
+      checks.first_order = (orderCount || 0) > 0;
+      setDone({ ...checks });
+    });
   }, [profile, user]);
 
   const allDone = Object.values(done).every(Boolean);

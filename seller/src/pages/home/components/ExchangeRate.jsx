@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabaseClient";
 
 export default function ExchangeRate() {
   const [ngnInput, setNgnInput] = useState(50000);
-  const [rate, setRate] = useState(0.89);
+  const [rate, setRate] = useState(null);
   useEffect(() => {
     const fetchRate = async () => {
       const { data } = await supabase
@@ -16,7 +16,7 @@ export default function ExchangeRate() {
     };
     fetchRate();
   }, []);
-  const fcfaResult = Math.round(ngnInput * rate);
+  const fcfaResult = rate ? Math.round(ngnInput * rate) : 0;
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5">
@@ -28,7 +28,7 @@ export default function ExchangeRate() {
       </div>
       <div className="flex items-center justify-center gap-2 bg-[#F9FAFB] rounded-lg p-2 mb-4">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Taux affiché</span>
-        <span className="text-sm font-bold text-[#125C8D]">1 NGN = {rate.toFixed(2)} XOF</span>
+        <span className="text-sm font-bold text-[#125C8D]">1 NGN = {rate ? rate.toFixed(2) : '...'} XOF</span>
       </div>
       <div className="flex items-center gap-2 mb-4">
         <div className="flex-1 border border-gray-200 rounded-lg p-3 bg-white">

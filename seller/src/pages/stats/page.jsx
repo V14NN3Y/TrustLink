@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import { useAuth } from "@/lib/AuthContext";
 import { useSellerOrders } from "@/hooks/useSellerOrders";
@@ -331,7 +331,7 @@ export default function StatsPage() {
             {orders.slice(0, 5).map((order) => (
               <div key={order.id} className="flex items-center justify-between p-3 bg-[#F9FAFB] rounded-lg cursor-pointer hover:bg-gray-100 transition-all" onClick={() => navigate("/orders")}>
                 <div>
-                  <p className="text-xs font-semibold text-gray-900">{order.product}</p>
+                  <p className="text-xs font-semibold text-gray-900">{order.items?.[0]?.product || "—"}</p>
                   <p className="text-[10px] text-gray-400">{order.id} · {order.buyer}</p>
                 </div>
                 <p className="text-xs font-bold text-[#125C8D] whitespace-nowrap">₦{(order.amount_ngn || 0).toLocaleString()}</p>

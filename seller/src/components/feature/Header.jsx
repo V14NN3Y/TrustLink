@@ -31,7 +31,7 @@ export default function Header() {
   const location = useLocation();
   const liveRate = useExchangeRate();
   const { currency, setCurrency } = useCurrency();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [notifCount, setNotifCount] = useState(0);
   useEffect(() => {
     const fetchNotifs = async () => {
@@ -196,7 +196,7 @@ export default function Header() {
         <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
           <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse flex-shrink-0"></span>
           <span className="text-xs font-medium text-gray-600 whitespace-nowrap hidden sm:inline">
-            Lagos Hub · En ligne
+            {profile?.default_city || "Hub"} · En ligne
           </span>
         </div>
       </div>

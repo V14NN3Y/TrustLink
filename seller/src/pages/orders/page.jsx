@@ -17,7 +17,7 @@ const tabs = [
 
 export default function OrdersPage() {
   const { user } = useAuth();
-  const { orders, loading } = useSellerOrders(user?.id);
+  const { orders, loading, refetch } = useSellerOrders(user?.id);
   const [activeStatus, setActiveStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [detailOrder, setDetailOrder] = useState(null);
@@ -25,7 +25,7 @@ export default function OrdersPage() {
 
   const filtered = orders.filter((o) => {
     if (activeStatus === "all") return true;
-    if (activeStatus === "processing") return o.status === "paid" || o.status === "processing";
+    if (activeStatus === "processing") return o.status === "processing";
     if (activeStatus === "delivered") return o.status === "delivered" || o.status === "confirmed";
     if (activeStatus === "disputed") return o.status === "disputed";
     if (activeStatus === "cancelled") return o.status === "cancelled" || o.status === "refunded";
@@ -43,7 +43,7 @@ export default function OrdersPage() {
   const totalAll = orders.reduce((sum, o) => sum + (o.amount_ngn || 0), 0);
   const tabCount = (val) => {
     if (val === "all") return orders.length;
-    if (val === "processing") return orders.filter((o) => o.status === "paid" || o.status === "processing").length;
+    if (val === "processing") return orders.filter((o) => o.status === "processing").length;
     if (val === "delivered") return orders.filter((o) => o.status === "delivered" || o.status === "confirmed").length;
     if (val === "disputed") return orders.filter((o) => o.status === "disputed").length;
     if (val === "cancelled") return orders.filter((o) => o.status === "cancelled" || o.status === "refunded").length;
@@ -124,7 +124,7 @@ export default function OrdersPage() {
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-sm font-medium text-gray-800">{order.buyer || "—"}</p>
-                    <p className="text-[10px] text-gray-400">{order.buyer_city || "—"}, Bénin</p>
+                    <p className="text-[10px] text-gray-400">{order.buyer_city || "—"}, {import.meta.env.VITE_DEFAULT_COUNTRY || "Bénin"}</p>
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-xs font-medium text-gray-700 max-w-[180px] truncate">{order.items?.[0]?.product || "—"}</p>

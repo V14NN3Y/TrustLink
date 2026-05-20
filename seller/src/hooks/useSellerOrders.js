@@ -22,11 +22,12 @@ export function useSellerOrders(sellerId) {
       .eq("from_currency", "NGN")
       .eq("to_currency", "XOF")
       .maybeSingle();
-    const rate = rateData?.rate || 0.89;
+    const rate = rateData?.rate;
     const { data, error: supaError } = await supabase
       .from("order_items")
       .select(`id,
         status,
+        dispatched_at,
         quantity,
         product_name,
         product_price,
@@ -36,6 +37,7 @@ export function useSellerOrders(sellerId) {
         product:product_id ( id, name )
       `)
       .eq("seller_id", sellerId)
+      .not('dispatched_at', 'is', null)
       .order("created_at", { ascending: false });
     if (!mountedRef.current) return;
     if (supaError) {

@@ -11,6 +11,7 @@ import { useCurrency } from "@/hooks/useCurrency";
 import { supabase } from "@/lib/supabaseClient";
 import { exportToCSV } from "@/lib/export";
 import { t } from "@/lib/i18n";
+import { toast } from "@/components/ui/use-toast";
 
 export default function CatalogPage() {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ export default function CatalogPage() {
       })
       .eq("id", updated.id);
     if (error) {
-      alert("Erreur lors de la mise à jour : " + error.message);
+      toast({ title: "Erreur", description: "Erreur lors de la mise à jour : " + error.message, variant: "destructive" });
       return;
     }
     if (updated.image) {
@@ -69,7 +70,7 @@ export default function CatalogPage() {
     const { error } = await supabase.from("products").delete().eq("id", deletingProduct.id);
     setDeleting(false);
     if (error) {
-      alert("Erreur lors de la suppression : " + error.message);
+      toast({ title: "Erreur", description: "Erreur lors de la suppression : " + error.message, variant: "destructive" });
       return;
     }
     logAction("delete_product", { product_id: deletingProduct.id, product_name: deletingProduct.name });
@@ -91,7 +92,7 @@ export default function CatalogPage() {
     setSavingQuick(true);
     const price = parseFloat(editValues.price);
     if (!editValues.name.trim() || isNaN(price) || price <= 0) {
-      alert("Veuillez entrer un nom valide et un prix supérieur à 0.");
+      toast({ title: "Erreur", description: "Veuillez entrer un nom valide et un prix supérieur à 0.", variant: "destructive" });
       setSavingQuick(false);
       return;
     }
@@ -101,7 +102,7 @@ export default function CatalogPage() {
       .eq("id", productId);
     setSavingQuick(false);
     if (error) {
-      alert("Erreur : " + error.message);
+      toast({ title: "Erreur", description: "Erreur : " + error.message, variant: "destructive" });
       return;
     }
     logAction("quick_edit_product", { product_id: productId, name: editValues.name, price });

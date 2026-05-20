@@ -16,7 +16,7 @@ export function useSellerProducts(sellerId) {
       .eq("from_currency", "NGN")
       .eq("to_currency", "XOF")
       .maybeSingle();
-    const rate = rateData?.rate || 0.89;
+    const rate = rateData?.rate;
     const { data, error } = await supabase
       .from("products")
       .select(`*, images:product_images(url, is_primary), category:categories(name)`)

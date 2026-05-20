@@ -60,8 +60,9 @@ export function useLocale() {
 let _currentLocale = typeof window !== 'undefined' ? localStorage.getItem('trustlink_seller_locale') || 'fr' : 'fr';
 
 export function t(path) {
+  const locale = typeof window !== 'undefined' ? localStorage.getItem('trustlink_seller_locale') || 'fr' : 'fr';
   const keys = path.split('.');
-  let val = locales[_currentLocale];
+  let val = locales[locale];
   for (const k of keys) {
     if (val && typeof val === 'object' && k in val) val = val[k];
     else return path;

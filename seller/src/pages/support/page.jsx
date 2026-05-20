@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/AuthContext";
 import DashboardLayout from "@/components/feature/DashboardLayout";
+import { toast } from "@/components/ui/use-toast";
 
 const statusConfig = {
   verified: { label: "Vérifié", color: "text-[#10B981]", bg: "bg-[#10B981]/5 border-[#10B981]/20", dot: "bg-[#10B981]" },
@@ -25,12 +26,12 @@ const KYC_URL_MAP = {
 
 const uploadKycDocument = async (user, file, key) => {
   const fileExt = file.name.split('.').pop();
-  const path = `kyc/${user.id}/${key}_${Date.now()}.${fileExt}`;
+  const path = `kyc-documents/${user.id}/${key}_${Date.now()}.${fileExt}`;
   const { error: uploadErr } = await supabase.storage
-    .from('avatars')
+    .from('kyc-documents')
     .upload(path, file, { upsert: true });
   if (uploadErr) throw uploadErr;
-  const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+  const { data: { publicUrl } } = supabase.storage.from('kyc-documents').getPublicUrl(path);
   const cfg = KYC_URL_MAP[key];
   await supabase.from('profiles').update({ [cfg.urlField]: publicUrl }).eq('id', user.id);
   return publicUrl;
@@ -76,7 +77,7 @@ export default function SupportPage() {
         await uploadKycDocument(user, file, key);
         loadKycStatus();
       } catch (err) {
-        alert(err.message || "Erreur lors de l'upload du document KYC");
+        toast({ title: "Erreur KYC", description: err.message || "Erreur lors de l'upload du document KYC", variant: "destructive" });
       } finally {
         setUploadingKey(null);
       }

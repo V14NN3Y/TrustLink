@@ -3,6 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
+import { toast } from "@/components/ui/use-toast";
+
+const STORE_DOMAIN = import.meta.env.VITE_DOMAIN || 'trustlink.ng';
+const CATEGORIES = ["Mode & Vêtements", "Electronique", "Alimentation", "Beauté & Cosmétiques", "Sports"];
+const LANGUAGES = ["English", "Français", "Yoruba", "Hausa", "Igbo"];
+const CURRENCIES = ["Naira nigérian (₦)", "Franc CFA (FCFA)", "Dollar US ($)"];
+const TIMEZONES = ["Africa/Lagos (GMT+1)", "Africa/Cotonou (GMT+1)", "Europe/Paris (GMT+2)", "UTC (GMT+0)"];
 
 const sideNav = [
   { id: "profile", label: "Mon Profil", icon: "ri-user-line" },
@@ -58,7 +65,7 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const [notifList, setNotifList] = useState([]);
   const { section } = useParams();
-  const { profile, logout, setProfile } = useAuth();
+  const { user, profile, logout, setProfile } = useAuth();
   const [active, setActive] = useState(section || "profile");
 
   const [uploadMsg, setUploadMsg] = useState(null);
@@ -85,7 +92,7 @@ export default function SettingsPage() {
       const { error: authError } = await supabase.auth.updateUser({ email: profileForm.email });
       if (authError) {
         setSavingProfile(false);
-        alert("Erreur mise à jour email : " + authError.message);
+        toast({ title: "Erreur", description: "Erreur mise à jour email : " + authError.message, variant: "destructive" });
         return;
       }
     }
@@ -106,9 +113,9 @@ export default function SettingsPage() {
       .eq("id", profile.id);
     setSavingProfile(false);
     if (error) {
-      alert("Erreur sauvegarde : " + error.message);
+      toast({ title: "Erreur", description: "Erreur sauvegarde : " + error.message, variant: "destructive" });
     } else {
-      alert("Profil mis à jour !");
+      toast({ title: "Succès", description: "Profil mis à jour !" });
     }
   };
 
@@ -218,9 +225,9 @@ export default function SettingsPage() {
       })
       .eq("id", profile.id);
     if (error) {
-      alert("Erreur sauvegarde boutique : " + error.message);
+      toast({ title: "Erreur", description: "Erreur sauvegarde boutique : " + error.message, variant: "destructive" });
     } else {
-      alert("Boutique mise à jour !");
+      toast({ title: "Succès", description: "Boutique mise à jour !" });
     }
   };
 
@@ -288,7 +295,7 @@ export default function SettingsPage() {
     }
   };
   const currentLocale = typeof window !== 'undefined' ? localStorage.getItem('trustlink_seller_locale') || 'fr' : 'fr';
-  const currentCurrency = typeof window !== 'undefined' ? localStorage.getItem('trustlink_seller_currency') || 'NGN' : 'NGN';
+  const currentCurrency = typeof window !== 'undefined' ? localStorage.getItem('trustlink_currency') || 'NGN' : 'NGN';
   const [langForm, setLangForm] = useState({
     lang: currentLocale === 'fr' ? 'Français' : 'English',
     devise: currentCurrency === 'NGN' ? "Naira nigérian (₦)" : "Franc CFA (FCFA)",
@@ -303,8 +310,10 @@ export default function SettingsPage() {
 
   const handleSaveLang = async () => {
     const localeVal = langForm.lang === 'Français' ? 'fr' : 'en';
+    const currencyVal = langForm.devise.includes('Naira') ? 'NGN' : 'XOF';
     localStorage.setItem('trustlink_seller_locale', localeVal);
-    localStorage.setItem('trustlink_seller_currency', langForm.devise.includes('Naira') ? 'NGN' : 'XOF');
+    localStorage.setItem('trustlink_currency', currencyVal);
+    window.dispatchEvent(new CustomEvent('currency-change', { detail: currencyVal }));
     await supabase.from('profiles').update({ locale: localeVal }).eq('id', user?.id);
     setSavedLangMsg(true);
     setTimeout(() => setSavedLangMsg(false), 3000);
@@ -370,7 +379,7 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-800">{profile?.full_name || "Vendeur"}</p>
-                    <p className="text-xs text-gray-400">Vendeur vérifié · Lagos Hub</p>
+                    <p className="text-xs text-gray-400">Vendeur vérifié · {profile?.default_city || "Hub"}</p>
                     <input
                       type="file"
                       id="avatar-upload"
@@ -423,7 +432,12 @@ export default function SettingsPage() {
                     <FieldRow label="Téléphone" value={profileForm.phone} onChange={v => setProfileForm(f => ({ ...f, phone: v }))} />
                   </div>
                   <div className="col-span-2">
-                    <FieldRow label="Localisation" value={profileForm.location} onChange={v => setProfileForm(f => ({ ...f, location: v }))} />
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">Localisation</label>
+                      <div className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-500 bg-gray-100">
+                        {profileForm.location || "—"}
+                      </div>
+                    </div>
                   </div>
                   <div className="col-span-2">
                     <label className="text-xs text-gray-500 block mb-1">Bio</label>
@@ -510,7 +524,7 @@ export default function SettingsPage() {
                     <div>
                       <label className="text-xs text-gray-500 block mb-1">URL de la boutique</label>
                       <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                        <span className="px-3 py-2.5 text-xs text-gray-400 bg-gray-100 border-r border-gray-200 whitespace-nowrap">trustlink.ng/</span>
+                        <span className="px-3 py-2.5 text-xs text-gray-400 bg-gray-100 border-r border-gray-200 whitespace-nowrap">{STORE_DOMAIN}/</span>
                         <input
                           type="text"
                           value={boutiqueForm.slug}
@@ -537,7 +551,7 @@ export default function SettingsPage() {
                         onChange={e => setBoutiqueForm(f => ({ ...f, category: e.target.value }))}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#125C8D] bg-gray-50 cursor-pointer"
                       >
-                        {["Mode & Vêtements", "Electronique", "Alimentation", "Beauté & Cosmétiques", "Sports"].map(c => <option key={c}>{c}</option>)}
+                        {CATEGORIES.map(c => <option key={c}>{c}</option>)}
                       </select>
                     </div>
                     <FieldRow label="Site web" value={boutiqueForm.website} onChange={v => setBoutiqueForm(f => ({ ...f, website: v }))} />
@@ -697,20 +711,20 @@ export default function SettingsPage() {
                     <div>
                       <label className="text-xs text-gray-500 block mb-1">Langue d'interface</label>
                       <select value={langForm.lang} onChange={e => setLangForm(f => ({ ...f, lang: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none bg-white cursor-pointer">
-                        {["English", "Français", "Yoruba", "Hausa", "Igbo"].map(l => <option key={l}>{l}</option>)}
+                        {LANGUAGES.map(l => <option key={l}>{l}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="text-xs text-gray-500 block mb-1">Devise principale</label>
                       <select value={langForm.devise} onChange={e => setLangForm(f => ({ ...f, devise: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none bg-white cursor-pointer">
-                        {["Naira nigérian (₦)", "Franc CFA (FCFA)", "Dollar US ($)"].map(d => <option key={d}>{d}</option>)}
+                        {CURRENCIES.map(d => <option key={d}>{d}</option>)}
                       </select>
                     </div>
                   </div>
                   <div>
                     <label className="text-xs text-gray-500 block mb-1">Fuseau horaire</label>
                     <select value={langForm.timezone} onChange={e => setLangForm(f => ({ ...f, timezone: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none bg-white cursor-pointer">
-                      {["Africa/Lagos (GMT+1)", "Africa/Cotonou (GMT+1)", "Europe/Paris (GMT+2)", "UTC (GMT+0)"].map(t => <option key={t}>{t}</option>)}
+                      {TIMEZONES.map(t => <option key={t}>{t}</option>)}
                     </select>
                   </div>
                   {savedLangMsg && (
