@@ -1,5 +1,5 @@
 -- ============================================
--- TRUSTLINK - Schéma Supabase complet (Mis à jour v4)
+-- TRUSTLINK - Schéma Supabase complet
 -- Date: 2026-05-15
 -- ============================================
 
@@ -31,7 +31,8 @@ create type notification_type as enum (
   'product_rejected',
   'dispute_update',
   'new_order',
-  'payment_received'
+  'payment_received',
+  'order_ready'
 );
 create type payout_status as enum ('pending_review', 'approved', 'rejected', 'paid');
 create type dispatch_status as enum ('preparing', 'in_transit', 'delivered', 'cancelled');
@@ -90,9 +91,10 @@ create table categories (
   id uuid primary key default uuid_generate_v4(),
   name text not null,
   slug text not null unique,
-  description text,
-  image_url text,
+  icon text default 'ri-price-tag-3-line',
   parent_id uuid references categories(id),
+  is_active boolean not null default true,
+  sort_order integer default 0,
   created_at timestamptz default now()
 );
 
@@ -162,7 +164,7 @@ create table exchange_rates (
 );
 
 insert into exchange_rates (from_currency, to_currency, rate)
-values ('NGN', 'XOF', 0.89);
+values ('NGN', 'XOF', 0.41);
 
 -- ESCROW CONFIG
 create table escrow_config (
@@ -171,12 +173,50 @@ create table escrow_config (
   min_amount_xof numeric(12,2) not null default 500,
   release_delay_hours integer not null default 72,
   auto_release boolean not null default false,
+  delivery_fee integer not null default 2500,
   updated_by uuid references profiles(id),
   updated_at timestamptz default now()
 );
 
-insert into escrow_config (spread_pct, min_amount_xof, release_delay_hours, auto_release)
-values (3.0, 500, 72, false);
+insert into escrow_config (spread_pct, min_amount_xof, release_delay_hours, auto_release, delivery_fee)
+values (3.0, 500, 72, false, 2500);
+
+-- PAYMENT METHODS (admin-managed, read by buyer)
+create table payment_methods (
+  id uuid primary key default uuid_generate_v4(),
+  code text not null unique,
+  label text not null,
+  icon text not null default 'ri-bank-card-line',
+  color text not null default '#6B7280',
+  is_online boolean not null default false,
+  is_active boolean not null default true,
+  sort_order integer not null default 0,
+  created_at timestamptz default now()
+);
+
+insert into payment_methods (code, label, icon, color, is_online, sort_order) values
+  ('kkiapay', 'KkiaPay (CB / Mobile Money)', 'ri-bank-card-2-line', '#8B5CF6', true, 1),
+  ('mtn', 'MTN Mobile Money (hors ligne)', 'ri-smartphone-line', '#FCD34D', false, 2),
+  ('moov', 'Moov Money (hors ligne)', 'ri-smartphone-line', '#3B82F6', false, 3),
+  ('wave', 'Wave (hors ligne)', 'ri-bank-card-line', '#06B6D4', false, 4)
+on conflict (code) do nothing;
+
+-- DELIVERY CITIES (admin-managed, read by buyer)
+create table delivery_cities (
+  id uuid primary key default uuid_generate_v4(),
+  name text not null unique,
+  is_active boolean not null default true,
+  sort_order integer not null default 0,
+  created_at timestamptz default now()
+);
+
+insert into delivery_cities (name, sort_order) values
+  ('Cotonou', 1),
+  ('Porto-Novo', 2),
+  ('Parakou', 3),
+  ('Abomey-Calavi', 4),
+  ('Bohicon', 5)
+on conflict (name) do nothing;
 
 -- HUBS
 create table hubs (
@@ -230,12 +270,17 @@ create table orders (
   shipping_country text default 'Bénin',
   shipping_postal_code text,
   total_amount numeric(12, 2),
+  commission_amount numeric(12, 2) default 0,
+  delivery_fee integer default 0,
+  coupon_code text,
+  coupon_discount numeric(12, 2) default 0,
   currency text default 'XOF',
   payment_reference text,
   payment_method text,
   notes text,
   admin_notes text,
   group_id uuid,
+  dispatch_id uuid,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -251,6 +296,7 @@ create table order_items (
   quantity integer not null default 1,
   subtotal numeric(12, 2),
   status order_status not null default 'pending',
+  dispatched_at timestamptz default null,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -309,6 +355,10 @@ create table dispatch_orders (
   primary key (dispatch_id, order_id),
   created_at timestamptz default now()
 );
+
+-- Foreign key for orders.dispatch_id (added after dispatches exists)
+alter table orders add constraint fk_orders_dispatch
+  foreign key (dispatch_id) references dispatches(id);
 
 -- PAYOUTS
 create table payouts (
@@ -463,6 +513,8 @@ alter table product_views enable row level security;
 alter table exchange_rates enable row level security;
 alter table escrow_config enable row level security;
 alter table hubs enable row level security;
+alter table payment_methods enable row level security;
+alter table delivery_cities enable row level security;
 alter table wishlists enable row level security;
 alter table carts enable row level security;
 alter table cart_items enable row level security;
@@ -518,12 +570,27 @@ create policy "Admins can view all preferences"
   on notification_preferences for select using (is_admin(auth.uid()));
 
 -- CATEGORIES
-create policy "Anyone can view categories"
-  on categories for select using (true);
+create policy "Anyone can view active categories"
+  on categories for select using (is_active = true);
+create policy "Sellers can view all categories"
+  on categories for select using (
+    exists (select 1 from profiles where id = auth.uid() and role = 'seller')
+  );
 create policy "Admins can manage categories"
-  on categories for all using (is_admin(auth.uid()));
+  on categories for all using (
+    is_admin(auth.uid())
+  );
+-- PRODUCT VARIANTS
+create policy "Anyone can view product variants"
+  on product_variants for select using (true);
+create policy "Sellers can manage their product variants"
+  on product_variants for all using (
+    exists (select 1 from products where id = product_variants.product_id and seller_id = auth.uid())
+  );
+create policy "Admins can manage all variants"
+  on product_variants for all using (is_admin(auth.uid()));
 
--- PRODUCTS
+-- PRODUCTS (policies RLS)
 create policy "Anyone can view approved products"
   on products for select using (status = 'approved');
 create policy "Sellers can view their own products"
@@ -536,16 +603,6 @@ create policy "Sellers can delete their own products"
   on products for delete using (seller_id = auth.uid());
 create policy "Admins can manage all products"
   on products for all using (is_admin(auth.uid()));
-
--- PRODUCT VARIANTS
-create policy "Anyone can view product variants"
-  on product_variants for select using (true);
-create policy "Sellers can manage their product variants"
-  on product_variants for all using (
-    exists (select 1 from products where id = product_variants.product_id and seller_id = auth.uid())
-  );
-create policy "Admins can manage all variants"
-  on product_variants for all using (is_admin(auth.uid()));
 
 -- PRODUCT IMAGES
 create policy "Anyone can view product images"
@@ -582,6 +639,18 @@ create policy "Anyone can view hubs"
   on hubs for select using (true);
 create policy "Admins can manage hubs"
   on hubs for all using (is_admin(auth.uid()));
+
+-- PAYMENT METHODS
+create policy "Anyone can view payment methods"
+  on payment_methods for select using (true);
+create policy "Admins can manage payment methods"
+  on payment_methods for all using (is_admin(auth.uid()));
+
+-- DELIVERY CITIES
+create policy "Anyone can view delivery cities"
+  on delivery_cities for select using (true);
+create policy "Admins can manage delivery cities"
+  on delivery_cities for all using (is_admin(auth.uid()));
 
 -- WISHLISTS
 create policy "Buyers can manage their own wishlist"
@@ -623,9 +692,9 @@ create policy "Buyers can insert order items for their own orders"
     exists (select 1 from orders where id = order_items.order_id and buyer_id = auth.uid())
   );
 create policy "Sellers can view their own order items"
-  on order_items for select using (seller_id = auth.uid());
+  on order_items for select using (seller_id = auth.uid() AND dispatched_at IS NOT NULL);
 create policy "Sellers can update their own order items status"
-  on order_items for update using (seller_id = auth.uid())
+  on order_items for update using (seller_id = auth.uid() AND dispatched_at IS NOT NULL)
   with check (seller_id = auth.uid());
 create policy "Admins can manage all order items"
   on order_items for all using (is_admin(auth.uid()));
@@ -765,6 +834,7 @@ create index idx_orders_created_at on orders(created_at desc);
 create index idx_order_items_seller_id on order_items(seller_id);
 create index idx_order_items_order_id on order_items(order_id);
 create index idx_order_items_product_id on order_items(product_id);
+create index idx_order_items_dispatched_at on order_items(dispatched_at);
 create index idx_products_seller_id on products(seller_id);
 create index idx_products_category_id on products(category_id);
 create index idx_products_status on products(status);
@@ -795,6 +865,10 @@ create index idx_product_views_product_id on product_views(product_id);
 create index idx_product_views_viewed_at on product_views(viewed_at);
 create index idx_seller_logs_seller_id on seller_logs(seller_id);
 create index idx_announcements_active on system_announcements(is_active);
+create index idx_payment_methods_active on payment_methods(is_active);
+create index idx_payment_methods_sort on payment_methods(sort_order);
+create index idx_delivery_cities_active on delivery_cities(is_active);
+create index idx_delivery_cities_sort on delivery_cities(sort_order);
 
 -- ============================================
 -- TRIGGERS
@@ -895,3 +969,16 @@ create policy "Sellers can upload product images"
     bucket_id = 'product-images'
     and exists (select 1 from profiles where id = auth.uid() and role = 'seller')
   );
+
+-- KYC DOCUMENTS
+create policy "Authenticated users can upload KYC documents"
+  on storage.objects for insert
+  with check ( bucket_id = 'kyc-documents' and auth.role() = 'authenticated' );
+
+create policy "Users can view their own KYC documents"
+  on storage.objects for select
+  using ( bucket_id = 'kyc-documents' and auth.uid() = owner );
+
+create policy "Admins can manage all KYC documents"
+  on storage.objects for all
+  using ( bucket_id = 'kyc-documents' and is_admin(auth.uid()) );
