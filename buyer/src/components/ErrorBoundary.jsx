@@ -7,8 +7,7 @@ export default class ErrorBoundary extends Component {
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
-  componentDidCatch(error, errorInfo) {
-    console.error('ErrorBoundary caught:', error, errorInfo);
+  componentDidCatch() {
   }
   render() {
     if (this.state.hasError) {

@@ -1,11 +1,17 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
 import { formatPrice } from '@/utils/format';
-
-const DELIVERY_FEE = 2500;
+import { supabase } from '@/lib/supabaseClient';
 
 export default function Cart() {
   const { items, loading, removeItem, updateQuantity, totalPrice } = useCart();
+  const [deliveryFee, setDeliveryFee] = useState(0);
+
+  useEffect(() => {
+    supabase.from('escrow_config').select('delivery_fee').limit(1).single()
+      .then(({ data }) => { if (data?.delivery_fee) setDeliveryFee(data.delivery_fee); });
+  }, []);
 
   if (loading) {
     return (
@@ -108,12 +114,12 @@ export default function Cart() {
                 </div>
                 <div className="flex justify-between text-sm font-inter">
                   <span style={{ color: '#6B7280' }}>Frais de livraison</span>
-                  <span style={{ color: '#111827' }}>{formatPrice(DELIVERY_FEE)}</span>
+                  <span style={{ color: '#111827' }}>{formatPrice(deliveryFee)}</span>
                 </div>
                 <hr className="border-gray-100" />
                 <div className="flex justify-between font-poppins font-bold">
                   <span style={{ color: '#111827' }}>Total</span>
-                  <span style={{ color: '#125C8D' }}>{formatPrice(totalPrice + DELIVERY_FEE)}</span>
+                  <span style={{ color: '#125C8D' }}>{formatPrice(totalPrice + deliveryFee)}</span>
                 </div>
               </div>
               <div className="rounded-xl p-3 mb-4" style={{ backgroundColor: '#E1F0F9' }}>

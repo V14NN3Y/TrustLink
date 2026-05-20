@@ -16,7 +16,6 @@ export function useDisputes() {
             setDisputes(data);
         } catch (err) {
             setError(err.message);
-            console.error('Erreur litiges:', err);
         } finally {
             setLoading(false);
         }

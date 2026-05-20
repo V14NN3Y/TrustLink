@@ -9,20 +9,7 @@ import DisputeModal from './components/DisputeModal';
 import ConfirmDeliveryModal from './components/ConfirmDeliveryModal';
 import { Link } from 'react-router-dom';
 import { formatPrice } from '@/utils/format';
-
-
-const STATUS_CONFIG = {
-  all:        { label: 'Toutes',        color: '#111827', bg: '#F8FAFC' },
-  pending:    { label: 'En attente',    color: '#B45309', bg: '#FEF3C7' },
-  paid:       { label: 'Payée',         color: '#2563EB', bg: '#EFF6FF' },
-  processing: { label: 'En cours de traitement', color: '#125C8D', bg: '#E1F0F9' },
-  in_transit: { label: 'En cours de livraison',  color: '#7C3AED', bg: '#F5F3FF' },
-  delivered:  { label: 'Livrée',        color: '#15803D', bg: '#DCFCE7' },
-  confirmed:  { label: 'Confirmée',     color: '#15803D', bg: '#DCFCE7' },
-  disputed:   { label: 'Litige',        color: '#DC2626', bg: '#FEE2E2' },
-  cancelled:  { label: 'Annulée',       color: '#6B7280', bg: '#F1F5F9' },
-  refunded:   { label: 'Remboursée',    color: '#0891B2', bg: '#ECFEFF' },
-};
+import { STATUS_CONFIG } from '@/lib/config';
 
 const ORDER_FILTERS = [
   { id: 'all', label: 'Toutes' },
@@ -263,9 +250,21 @@ export default function Account() {
                                 </div>
                               ))}
                             </div>
-                            <p className="text-xs font-inter mb-4" style={{ color: '#6B7280' }}>
+                            <p className="text-xs font-inter mb-2" style={{ color: '#6B7280' }}>
                               N° suivi : <span className="font-medium" style={{ color: '#125C8D' }}>{order.trackingNumber}</span>
                             </p>
+                            {order.dispatches && order.dispatches.length > 0 && order.dispatches.map((d) => (
+                              <div key={d.id} className="rounded-lg p-3 mb-4" style={{ backgroundColor: '#F5F3FF' }}>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <i className="ri-truck-line text-xs" style={{ color: '#7C3AED' }} />
+                                  <span className="text-xs font-poppins font-semibold" style={{ color: '#7C3AED' }}>Expédition {d.dispatch_code}</span>
+                                </div>
+                                <p className="text-xs font-inter" style={{ color: '#6B7280' }}>
+                                  {d.origin_hub} → {d.destination_hub}
+                                  {d.estimated_arrival && ` · Arrivée estimée : ${new Date(d.estimated_arrival).toLocaleDateString('fr-FR')}`}
+                                </p>
+                              </div>
+                            ))}
                             <div className="flex gap-2 flex-wrap">
                {(order.status === 'in_transit' || order.status === 'delivered') && (
                                  <>

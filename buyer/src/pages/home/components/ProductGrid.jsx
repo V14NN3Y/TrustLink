@@ -48,11 +48,18 @@ export default function ProductGrid({ products, title = 'Tous les produits', sor
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 px-4">
-        <div className="text-6xl mb-4">⚠️</div>
-        <h3 className="text-lg font-poppins font-semibold mb-2" style={{ color: '#111827' }}>Erreur de chargement</h3>
-        <p className="text-sm font-inter mb-6 text-center" style={{ color: '#6B7280' }}>Impossible de charger les produits. Vérifiez votre connexion.</p>
-      </div>
+      <section className="max-w-[1200px] mx-auto px-4 md:px-6 py-8">
+        <div className="flex flex-col items-center justify-center py-24 px-4">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: '#FEE2E2' }}>
+            <i className="ri-cloud-off-line text-2xl" style={{ color: '#DC2626' }}></i>
+          </div>
+          <h3 className="text-lg font-poppins font-semibold mb-2" style={{ color: '#111827' }}>Service momentanément indisponible</h3>
+          <p className="text-sm font-inter mb-6 text-center max-w-md" style={{ color: '#6B7280' }}>Nos produits sont en cours de chargement. Veuillez réessayer dans quelques instants.</p>
+          <button onClick={() => window.location.reload()} className="px-6 py-2.5 text-white text-sm font-poppins font-semibold rounded-full cursor-pointer" style={{ backgroundColor: '#125C8D' }}>
+            <i className="ri-refresh-line mr-1.5"></i>Réessayer
+          </button>
+        </div>
+      </section>
     );
   }
 

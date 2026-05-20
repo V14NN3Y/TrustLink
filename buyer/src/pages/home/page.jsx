@@ -18,7 +18,8 @@ export default function Home() {
     else if (sort === 'price_desc') result.sort((a, b) => b.price - a.price);
     return result;
   }, [products, sort]);
-  const showHero = !search && !category;
+  const showHero = !search;
+
   const gridTitle = search
     ? `Résultats pour "${search}"`
     : category

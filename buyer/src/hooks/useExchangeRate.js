@@ -11,7 +11,6 @@ export function useExchangeRate() {
         const data = await fetchExchangeRate();
         if (data) setRate(data);
       } catch (err) {
-        console.error('Erreur taux de change:', err);
         setError(err);
       } finally {
         setLoading(false);

@@ -21,7 +21,6 @@ export const AuthProvider = ({ children }) => {
       .eq('id', userId)
       .maybeSingle();
     if (error) {
-      console.error('Error fetching profile:', error);
       return null;
     }
     return data;
@@ -44,7 +43,6 @@ export const AuthProvider = ({ children }) => {
           setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error('Auth init error:', error);
         if (mounted) {
           setAuthError({ type: 'unknown', message: error.message });
         }

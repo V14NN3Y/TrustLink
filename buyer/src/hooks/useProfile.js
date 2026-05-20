@@ -16,7 +16,6 @@ export function useProfile() {
       const data = await fetchProfile(user.id);
       setProfile(data);
     } catch (err) {
-      console.error('Erreur chargement profil:', err);
       setError(err);
     } finally {
       setLoading(false);
@@ -38,7 +37,6 @@ export function useProfile() {
       if (refreshProfile) await refreshProfile();
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      console.error('Erreur sauvegarde profil:', err);
       setError(err);
     } finally {
       setSaving(false);

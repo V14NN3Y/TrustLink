@@ -10,7 +10,6 @@ export default function AuthCallback() {
         error,
       } = await supabase.auth.getSession();
       if (error) {
-        console.error('OAuth callback error:', error);
         navigate('/login?error=oauth_failed', { replace: true });
         return;
       }

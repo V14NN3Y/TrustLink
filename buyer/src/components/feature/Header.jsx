@@ -9,10 +9,10 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [locale, setLocaleState] = useState(getLocale);
   const { totalItems } = useCart();
   const { currency, setCurrency } = useCurrency();
   const navigate = useNavigate();
-  const locale = getLocale();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -27,7 +27,11 @@ export default function Header() {
 
   const toggleCurrency = () => setCurrency(currency === 'XOF' ? 'NGN' : 'XOF');
 
-  const toggleLocale = () => setLocale(locale === 'fr' ? 'en' : 'fr');
+  const toggleLocale = () => {
+    const next = locale === 'fr' ? 'en' : 'fr';
+    setLocale(next);
+    setLocaleState(next);
+  };
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 bg-white transition-all duration-300 ${scrolled ? 'shadow-sm' : 'border-b border-gray-100'}`}>

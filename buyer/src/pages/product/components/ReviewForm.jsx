@@ -15,8 +15,7 @@ export default function ReviewForm({ existing, submitting, onSubmit, onCancel })
         try {
             await onSubmit({ rating, comment });
             setSuccess(true);
-        } catch (err) {
-            console.error('Erreur soumission review:', err);
+        } catch {
         }
     };
     if (success) {

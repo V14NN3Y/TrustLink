@@ -20,7 +20,6 @@ export function useNotifications() {
       const data = await fetchNotifications(user.id);
       setNotifications(data);
     } catch (err) {
-      console.error('Erreur chargement notifications:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -57,8 +56,8 @@ export function useNotifications() {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       );
-    } catch (err) {
-      console.error('Erreur markRead:', err);
+    } catch {
+      // Silently fail
     }
   }, []);
   const markAllRead = useCallback(async () => {
@@ -66,8 +65,8 @@ export function useNotifications() {
     try {
       await markAllNotificationsRead(user.id);
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    } catch (err) {
-      console.error('Erreur markAllRead:', err);
+    } catch {
+      // Silently fail
     }
   }, [user?.id]);
   return {

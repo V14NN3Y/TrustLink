@@ -45,8 +45,7 @@ const startRecording = async () => {
                         .upload(fileName, blob, { contentType: 'video/webm', upsert: false });
                     if (upErr) throw upErr;
                     onRecorded && onRecorded(fileName); // Retourne le chemin relatif
-                } catch (err) {
-                    console.error('Erreur upload vidéo:', err);
+                } catch {
                     toast({ title: 'Erreur', description: 'Erreur lors de l\'envoi de la vidéo. Réessayez.', variant: 'destructive' });
                 } finally {
                     setUploading(false);
@@ -59,8 +58,7 @@ const startRecording = async () => {
         setRecording(true);
         setDuration(0);
         timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
-    } catch (err) {
-        console.error('Caméra refusée:', err);
+    } catch {
         toast({ title: 'Caméra refusée', description: 'Autorisez l\'accès à la caméra dans les paramètres de votre navigateur.', variant: 'destructive' });
     }
 };

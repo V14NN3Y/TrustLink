@@ -96,14 +96,6 @@ export default function ProductPage() {
     });
     navigate('/cart');
   };
-  const categoryLabels = {
-    mode: 'Mode',
-    beaute: 'Beauté',
-    hightech: 'High-Tech',
-    auto: 'Auto',
-    maison: 'Maison',
-    sport: 'Sport',
-  };
   return (
     <div className="pt-24 pb-12">
       <div className="max-w-[1200px] mx-auto px-4 md:px-6">
@@ -112,7 +104,7 @@ export default function ProductPage() {
           <Link to="/" className="hover:underline cursor-pointer">Accueil</Link>
           <span>/</span>
           <Link to={`/?category=${product.category}`} className="hover:underline cursor-pointer">
-            {categoryLabels[product.category] || product.categoryName}
+            {product.categoryName || product.category}
           </Link>
           <span>/</span>
           <span style={{ color: '#111827' }}>{product.name}</span>
@@ -188,11 +180,11 @@ export default function ProductPage() {
             {/* Price */}
             <div className="flex items-baseline gap-3 mb-2">
               <span className="text-2xl font-poppins font-bold" style={{ color: '#125C8D' }}>
-                {formatPrice ? formatPrice(product.price) : `${product.price} €`}
+                {formatPrice(product.price)}
               </span>
               {product.originalPrice && (
                 <span className="text-sm font-inter line-through" style={{ color: '#6B7280' }}>
-                  {formatPrice ? formatPrice(product.originalPrice) : `${product.originalPrice} €`}
+                  {formatPrice(product.originalPrice)}
                 </span>
               )}
               {product.discount && (
@@ -331,10 +323,10 @@ export default function ProductPage() {
             <button
               onClick={() => toggle(product.id)}
               className="flex items-center gap-2 text-sm font-inter mb-5 cursor-pointer"
-              style={{ color: isWishlisted && isWishlisted(product.id) ? '#DC2626' : '#6B7280' }}
+              style={{ color: isWishlisted(product.id) ? '#DC2626' : '#6B7280' }}
             >
-              <i className={isWishlisted && isWishlisted(product.id) ? 'ri-heart-fill' : 'ri-heart-line'}></i>
-              {isWishlisted && isWishlisted(product.id) ? 'Retiré des favoris' : 'Ajouter aux favoris'}
+              <i className={isWishlisted(product.id) ? 'ri-heart-fill' : 'ri-heart-line'}></i>
+              {isWishlisted(product.id) ? 'Retiré des favoris' : 'Ajouter aux favoris'}
             </button>
             {/* Escrow block */}
             <div className="rounded-xl p-4" style={{ backgroundColor: '#E1F0F9' }}>

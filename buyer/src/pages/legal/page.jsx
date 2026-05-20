@@ -71,7 +71,13 @@ function useSectionScroll(sections) {
 export default function Legal() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const active = searchParams.get('tab') || 'mentions';
+  let active = searchParams.get('tab') || 'mentions';
+
+  if (active === 'escrow') {
+    navigate('/legal?tab=cgu', { replace: true });
+    return null;
+  }
+
   const sections = TOC[active] || [];
   const { activeSection, scrollToSection, setRef } = useSectionScroll(sections);
 

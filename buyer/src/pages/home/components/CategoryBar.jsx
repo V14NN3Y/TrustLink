@@ -1,14 +1,5 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCategories } from '@/hooks/useCategories';
-// Mapping slug → icône Remix Icon
-const CATEGORY_ICONS = {
-  mode: 'ri-t-shirt-line',
-  beaute: 'ri-sparkling-line',
-  hightech: 'ri-smartphone-line',
-  auto: 'ri-car-line',
-  maison: 'ri-home-3-line',
-  sport: 'ri-run-line',
-};
 export default function CategoryBar() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -55,7 +46,7 @@ export default function CategoryBar() {
                   : { color: '#6B7280', backgroundColor: 'transparent' }
               }
             >
-              <i className={`${CATEGORY_ICONS[cat.slug] || 'ri-price-tag-3-line'} text-sm`}></i>
+              <i className={`${cat.icon || 'ri-price-tag-3-line'} text-sm`}></i>
               {cat.name}
             </button>
           ))}

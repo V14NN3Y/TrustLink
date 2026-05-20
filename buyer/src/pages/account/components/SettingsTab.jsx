@@ -5,14 +5,18 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
 import SavedPayments from './SavedPayments';
 
-const CITIES = ['Cotonou', 'Porto-Novo', 'Parakou', 'Abomey-Calavi', 'Bohicon'];
-
 export default function SettingsTab() {
   const { profile, loading, saving, saveSuccess, saveProfile, reload } = useProfile();
   const { rate } = useExchangeRate();
   const { user, refreshProfile } = useAuth();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [cities, setCities] = useState([]);
   
+  useEffect(() => {
+    supabase.from('delivery_cities').select('name').eq('is_active', true).order('sort_order')
+      .then(({ data }) => setCities((data || []).map(c => c.name)));
+  }, []);
+
   const [form, setForm] = useState({
     fullName: '', phone: '', addressLine1: '', city: '',
   });
@@ -32,8 +36,7 @@ export default function SettingsTab() {
       await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
       if (refreshProfile) await refreshProfile();
       if (reload) await reload();
-    } catch (err) {
-      console.error('Erreur upload avatar:', err);
+    } catch {
       alert("Erreur lors de l'upload de la photo");
     } finally {
       setUploadingAvatar(false);
@@ -241,7 +244,7 @@ export default function SettingsTab() {
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-inter outline-none focus:border-[#125C8D]"
             >
               <option value="">Sélectionner une ville</option>
-              {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              {cities.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           {saveSuccess && (

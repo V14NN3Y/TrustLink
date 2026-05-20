@@ -29,13 +29,12 @@ export const fetchProducts = async ({ category, search } = {}) => {
       ),
       profiles!seller_id (
         full_name,
-        business_name,
-        seller_rating,
-        seller_sales
+        business_name
       )
     `)
     .eq('status', 'approved')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(50);
   if (category) {
     const { data: cat } = await supabase
       .from('categories')
@@ -80,9 +79,7 @@ export const fetchProductById = async (id) => {
       ),
       profiles!seller_id (
         full_name,
-        business_name,
-        seller_rating,
-        seller_sales
+        business_name
       )
     `)
     .eq('id', id)
@@ -98,7 +95,9 @@ export const fetchProductById = async (id) => {
 export const fetchCategories = async () => {
   const { data, error } = await supabase
     .from('categories')
-    .select('id, name, slug, image_url')
+    .select('id, name, slug, icon')
+    .is('parent_id', null)
+    .order('sort_order', { ascending: true })
     .order('name');
   if (error) throw error;
   return data || [];
@@ -127,8 +126,8 @@ const normalizeProduct = (p) => {
     stock: p.stock_quantity,
     seller: p.profiles?.business_name || p.profiles?.full_name || 'Vendeur TrustLink',
     seller_id: p.seller_id,
-    seller_rating: p.profiles?.seller_rating || 0,
-    seller_sales: p.profiles?.seller_sales || 0,
+    seller_rating: 0,
+    seller_sales: 0,
     delivery_min_days: p.delivery_min_days || null,
     delivery_max_days: p.delivery_max_days || null,
     category: p.categories?.slug || '',

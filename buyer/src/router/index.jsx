@@ -1,4 +1,5 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import { useMemo } from 'react';
 import Home from '@/pages/home/page';
 import ProductPage from '@/pages/product/page';
 import Cart from '@/pages/cart/page';
@@ -13,6 +14,7 @@ import Legal from '@/pages/legal/page';
 import Returns from '@/pages/returns/page';
 import InvoicePage from '@/pages/invoice/page';
 import NotFound from '@/pages/NotFound';
+import MaintenancePage from '@/pages/MaintenancePage';
 import Header from '@/components/feature/Header';
 import Footer from '@/components/feature/Footer';
 import FloatingSupportButton from '@/components/feature/FloatingSupportButton';
@@ -22,14 +24,39 @@ import Register from '@/pages/auth/register';
 import AuthCallback from '@/pages/auth/callback';
 import ForgotPassword from '@/pages/auth/forgot-password';
 import ResetPassword from '@/pages/auth/reset-password';
+import { useMaintenance } from '@/hooks/useMaintenance';
+
+const AUTH_ROUTES = ['/login', '/register', '/forgot-password', '/auth/reset-password', '/auth/callback'];
 
 export default function AppRoutes() {
+  const { pathname } = useLocation();
+  const { isMaintenance, checked } = useMaintenance();
+
+  const isAuthPage = useMemo(() => AUTH_ROUTES.includes(pathname), [pathname]);
+
+  if (!checked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-10 h-10 border-4 border-slate-200 border-t-[#125C8D] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (isMaintenance && !isAuthPage) {
+    return (
+      <>
+        <Header />
+        <main><MaintenancePage /></main>
+        <Footer />
+      </>
+    );
+  }
+
   return (
     <>
-      <Header />
+      {!isAuthPage && <Header />}
       <main>
         <Routes>
-          {/* Routes publiques */}
           <Route path="/" element={<Home />} />
           <Route path="/product/:id" element={<ProductPage />} />
           <Route path="/faq" element={<FAQ />} />
@@ -37,13 +64,11 @@ export default function AppRoutes() {
           <Route path="/support" element={<Support />} />
           <Route path="/legal" element={<Legal />} />
           <Route path="/policy/returns" element={<Returns />} />
-          {/* Auth */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/auth/reset-password" element={<ResetPassword />} />
-          {/* Routes protégées (nécessitent d'être connecté) */}
           <Route element={<ProtectedRoute />}>
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
@@ -55,8 +80,8 @@ export default function AppRoutes() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      <Footer />
-      <FloatingSupportButton />
+      {!isAuthPage && <Footer />}
+      {!isAuthPage && <FloatingSupportButton />}
     </>
   );
 }

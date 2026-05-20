@@ -51,8 +51,8 @@ export function useCart() {
         for (const item of guestItems) {
           try {
             await addCartItem(user.id, item.productId, item.quantity);
-          } catch (e) {
-            console.error('Merge guest cart error:', e);
+          } catch {
+            // Silently skip failed items during merge
           }
         }
         clearGuestCart();

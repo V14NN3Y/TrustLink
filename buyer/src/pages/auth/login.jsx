@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 export default function Login() {
@@ -12,10 +12,11 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  if (isAuthenticated) {
-    navigate(redirectTo, { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(redirectTo, { replace: true });
+    }
+  }, [isAuthenticated, navigate, redirectTo]);
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();

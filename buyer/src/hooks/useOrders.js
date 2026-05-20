@@ -18,7 +18,6 @@ export function useOrders() {
       const data = await fetchOrders(user.id);
       setOrders(data);
     } catch (err) {
-      console.error('Erreur chargement commandes:', err);
       setError(err);
     } finally {
       setLoading(false);

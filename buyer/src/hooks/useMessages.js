@@ -23,7 +23,6 @@ export function useMessages() {
             const data = await fetchThreads(user.id);
             setThreads(data);
         } catch (err) {
-            console.error('Erreur chargement threads:', err);
             setError(err.message);
         } finally {
             setLoading(false);
@@ -44,8 +43,8 @@ export function useMessages() {
                     t.threadId === threadId ? { ...t, unread: 0 } : t
                 )
             );
-        } catch (err) {
-            console.error('Erreur chargement messages:', err);
+        } catch {
+            // Silently fail
         }
     }, [user?.id]);
     const sendMessage = useCallback(async ({ subject, body }) => {
@@ -56,7 +55,6 @@ export function useMessages() {
             await loadThreads();
             return newId;
         } catch (err) {
-            console.error('Erreur envoi message:', err);
             throw err;
         } finally {
             setSending(false);
@@ -76,7 +74,6 @@ export function useMessages() {
             setThreadMessages(msgs);
             await loadThreads();
         } catch (err) {
-            console.error('Erreur réponse:', err);
             throw err;
         } finally {
             setSending(false);
