@@ -84,6 +84,7 @@ export default function EscrowBridge() {
           { label: 'Commission spread (%)', key: 'spread_pct' },
           { label: 'Montant minimum (XOF)', key: 'min_amount_xof' },
           { label: 'Délai libération (heures)', key: 'release_delay_hours' },
+          { label: 'Frais de livraison (FCFA)', key: 'delivery_fee' },
         ].map(field => (
           <div key={field.key}>
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">{field.label}</label>

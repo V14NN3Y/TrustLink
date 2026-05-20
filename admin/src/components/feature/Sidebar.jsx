@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 const navItems = [
   { path: '/', label: 'Dashboard', icon: 'ri-dashboard-3-line', exact: true },
   { path: '/orders', label: 'Commandes', icon: 'ri-shopping-bag-line', exact: false },
+  { path: '/orders/dispatch', label: 'Aux vendeurs', icon: 'ri-send-plane-line', exact: false },
   { path: '/logistics', label: 'Logistique', icon: 'ri-truck-line', exact: false },
   { path: '/finance', label: 'Finance', icon: 'ri-bank-line', exact: false },
   { path: '/moderation', label: 'Modération', icon: 'ri-shield-check-line', exact: false },
@@ -14,6 +15,8 @@ const navItems = [
   { path: '/admin-logs', label: 'Historique', icon: 'ri-history-line', exact: false },
   { path: '/delivery-videos', label: 'Vidéos réception', icon: 'ri-video-line', exact: false },
   { path: '/categories', label: 'Catégories', icon: 'ri-folder-2-line', exact: false },
+  { path: '/payment-methods', label: 'Paiements', icon: 'ri-bank-card-line', exact: false },
+  { path: '/delivery-cities', label: 'Villes livraison', icon: 'ri-map-pin-line', exact: false },
   { path: '/reviews', label: 'Avis clients', icon: 'ri-star-line', exact: false },
   { path: '/coupons', label: 'Coupons', icon: 'ri-percent-line', exact: false },
   { path: '/questions', label: 'Questions', icon: 'ri-question-answer-line', exact: false },

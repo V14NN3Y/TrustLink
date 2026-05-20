@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import ToggleSwitch from '@/components/base/ToggleSwitch';
 
 export default function MaintenancePage() {
   const [enabled, setEnabled] = useState(false);
@@ -44,14 +45,13 @@ export default function MaintenancePage() {
           </div>
         </div>
         <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50">
-          <div>
-            <p className="text-sm font-semibold text-slate-800">{enabled ? 'Maintenance active' : 'Maintenance inactive'}</p>
-            <p className="text-xs text-slate-500">{enabled ? 'Tout le trafic redirigé' : 'Site en production'}</p>
+          <div className="flex items-center gap-4">
+            <ToggleSwitch enabled={enabled} onClick={saving ? undefined : toggle} size="lg" />
+            <div>
+              <p className="text-sm font-semibold text-slate-800">{enabled ? 'Maintenance active' : 'Maintenance inactive'}</p>
+              <p className="text-xs text-slate-500">{enabled ? 'Tout le trafic redirigé' : 'Site en production'}</p>
+            </div>
           </div>
-          <button onClick={toggle} disabled={saving}
-            className={`relative rounded-full w-14 h-7 transition-colors ${enabled ? 'bg-red-500' : 'bg-slate-300'} ${saving ? 'opacity-50' : 'cursor-pointer'}`}>
-            <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${enabled ? 'translate-x-[30px]' : 'translate-x-0.5'}`} />
-          </button>
         </div>
         {enabled && (
           <div className="mt-4 p-4 rounded-xl bg-red-50 border border-red-100">

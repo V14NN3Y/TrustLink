@@ -8,6 +8,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AdminLayout from '@/components/feature/AdminLayout';
 import HomePage from '@/pages/home/page';
 import OrdersPage from '@/pages/orders/page';
+import DispatchPage from '@/pages/orders/dispatch/page';
 import FinancePage from '@/pages/finance/page';
 import LogisticsPage from '@/pages/logistics/page';
 import ModerationPage from '@/pages/moderation/page';
@@ -21,6 +22,8 @@ import MessagesPage from '@/pages/messages/page';
 import DeliveryVideosPage from '@/pages/delivery-videos/page';
 import NotificationsPage from '@/pages/notifications/page';
 import CategoriesPage from '@/pages/categories/page';
+import PaymentMethodsPage from '@/pages/payment-methods/page';
+import DeliveryCitiesPage from '@/pages/delivery-cities/page';
 import ReviewsPage from '@/pages/reviews/page';
 import CouponsPage from '@/pages/coupons/page';
 import QuestionsPage from '@/pages/questions/page';
@@ -81,6 +84,7 @@ const AuthenticatedApp = () => {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/orders/dispatch" element={<DispatchPage />} />
             <Route path="/finance" element={<FinancePage />} />
             <Route path="/logistics" element={<LogisticsPage />} />
             <Route path="/moderation" element={<ModerationPage />} />
@@ -92,6 +96,8 @@ const AuthenticatedApp = () => {
             <Route path="/delivery-videos" element={<DeliveryVideosPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/payment-methods" element={<PaymentMethodsPage />} />
+            <Route path="/delivery-cities" element={<DeliveryCitiesPage />} />
             <Route path="/reviews" element={<ReviewsPage />} />
             <Route path="/coupons" element={<CouponsPage />} />
             <Route path="/questions" element={<QuestionsPage />} />
