@@ -71,15 +71,18 @@ function useSectionScroll(sections) {
 export default function Legal() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  let active = searchParams.get('tab') || 'mentions';
-
-  if (active === 'escrow') {
-    navigate('/legal?tab=cgu', { replace: true });
-    return null;
-  }
-
-  const sections = TOC[active] || [];
+  const active = searchParams.get('tab') || 'mentions';
+  const effectiveTab = active === 'escrow' ? 'cgu' : active;
+  const sections = TOC[effectiveTab] || [];
   const { activeSection, scrollToSection, setRef } = useSectionScroll(sections);
+
+  useEffect(() => {
+    if (active === 'escrow') {
+      navigate('/legal?tab=cgu', { replace: true });
+    }
+  }, [active, navigate]);
+
+  if (active === 'escrow') return null;
 
   return (
     <div className="pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
