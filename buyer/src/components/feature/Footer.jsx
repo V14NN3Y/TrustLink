@@ -97,7 +97,7 @@ export default function Footer() {
                   { to: '/legal?tab=mentions', label: 'Mentions légales' },
                   { to: '/legal?tab=confidentialite', label: 'Politique de confidentialité' },
                   { to: '/legal?tab=cgu', label: 'Conditions d\'utilisation' },
-                  { to: '/legal?tab=escrow', label: 'Protection Escrow' },
+                  { to: '/escrow', label: 'Protection Escrow' },
                 ].map((link) => (
                   <li key={link.to}>
                     <Link to={link.to} className="text-sm font-inter text-white/70 hover:text-white transition-colors">{link.label}</Link>

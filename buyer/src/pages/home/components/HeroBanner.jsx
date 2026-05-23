@@ -8,7 +8,7 @@ const SLIDES = [
     title: 'Jusqu\'à -50%\nsur la Mode',
     desc: 'Les meilleures marques nigérianes livrées chez vous en 2 à 7 jours. Paiement 100% en FCFA.',
     cta1: { label: 'Découvrir les offres →', to: '/?category=mode' },
-    cta2: { label: 'Protection Escrow', to: '/legal?tab=escrow', icon: 'ri-shield-check-line' },
+    cta2: { label: 'Protection Escrow', to: '/escrow', icon: 'ri-shield-check-line' },
   },
   {
     image: 'https://readdy.ai/api/search-image?query=modern%20smartphones%20and%20tech%20gadgets%20on%20dark%20background%20with%20blue%20and%20teal%20lighting%2C%20futuristic%20technology%20product%20display%2C%20premium%20electronics&width=1200&height=600&seq=hero2&orientation=landscape',
@@ -16,7 +16,7 @@ const SLIDES = [
     title: 'Smartphones &\nAccessoires',
     desc: 'Dernières technologies nigérianes certifiées. Garantie incluse, livraison express.',
     cta1: { label: 'Explorer le High-Tech →', to: '/?category=hightech' },
-    cta2: { label: 'Protection Escrow', to: '/legal?tab=escrow', icon: 'ri-shield-check-line' },
+    cta2: { label: 'Protection Escrow', to: '/escrow', icon: 'ri-shield-check-line' },
   },
   {
     image: 'https://readdy.ai/api/search-image?query=luxury%20natural%20beauty%20skincare%20products%20with%20shea%20butter%20coconut%20oil%20on%20elegant%20dark%20background%20with%20warm%20golden%20lighting%2C%20african%20beauty%20cosmetics&width=1200&height=600&seq=hero3&orientation=landscape',
@@ -24,7 +24,7 @@ const SLIDES = [
     title: 'Soins Naturels\nAfricains',
     desc: 'Cosmétiques formulés pour les peaux africaines. 100% naturels, certifiés premium.',
     cta1: { label: 'Voir la Beauté →', to: '/?category=beaute' },
-    cta2: { label: 'Protection Escrow', to: '/legal?tab=escrow', icon: 'ri-shield-check-line' },
+    cta2: { label: 'Protection Escrow', to: '/escrow', icon: 'ri-shield-check-line' },
   },
 ];
 
