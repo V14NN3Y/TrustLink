@@ -11,6 +11,7 @@ import FAQ from '@/pages/faq/page';
 import Help from '@/pages/help/page';
 import Support from '@/pages/support/page';
 import Legal from '@/pages/legal/page';
+import EscrowPage from '@/pages/escrow/page';
 import Returns from '@/pages/returns/page';
 import InvoicePage from '@/pages/invoice/page';
 import NotFound from '@/pages/NotFound';
@@ -63,6 +64,7 @@ export default function AppRoutes() {
           <Route path="/help" element={<Help />} />
           <Route path="/support" element={<Support />} />
           <Route path="/legal" element={<Legal />} />
+          <Route path="/escrow" element={<EscrowPage />} />
           <Route path="/policy/returns" element={<Returns />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
