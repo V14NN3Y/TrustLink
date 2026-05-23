@@ -4,7 +4,8 @@ import { useProduct } from '@/hooks/useProduct';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useReviews } from '@/hooks/useReviews';
-import { formatPrice, renderStars } from '@/utils/format';
+import { renderStars } from '@/utils/format';
+import { useCurrencyContext } from '@/lib/CurrencyContext';
 import { addRecentlyViewed } from '@/lib/storage';
 import LazyImage from '@/components/base/LazyImage';
 import ProductCard from '@/pages/home/components/ProductCard';
@@ -16,6 +17,7 @@ export default function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const { formatPrice } = useCurrencyContext();
   const { toggle, isWishlisted } = useWishlist();
   const { data: product, isLoading, error } = useProduct(id);
   const { data: allProducts = [] } = useProducts({});

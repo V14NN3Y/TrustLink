@@ -8,7 +8,7 @@ import { useDisputes } from '@/hooks/useDisputes';
 import DisputeModal from './components/DisputeModal';
 import ConfirmDeliveryModal from './components/ConfirmDeliveryModal';
 import { Link } from 'react-router-dom';
-import { formatPrice } from '@/utils/format';
+import { useCurrencyContext } from '@/lib/CurrencyContext';
 import { STATUS_CONFIG } from '@/lib/config';
 
 const ORDER_FILTERS = [
@@ -36,6 +36,7 @@ export default function Account() {
   const [orderFilter, setOrderFilter] = useState('all');
   const [expandedOrder, setExpandedOrder] = useState(null);
   const { user, logout } = useAuth();
+  const { formatPrice } = useCurrencyContext();
   const { profile: userProfile } = useProfile();
   const { items: wishlistIds, products: wishlistProducts, loadWishlistProducts } = useWishlist();
   useEffect(() => {

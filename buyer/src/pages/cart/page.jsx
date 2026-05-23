@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
-import { formatPrice } from '@/utils/format';
+import { useCurrencyContext } from '@/lib/CurrencyContext';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function Cart() {
   const { items, loading, removeItem, updateQuantity, totalPrice } = useCart();
+  const { formatPrice } = useCurrencyContext();
   const [deliveryFee, setDeliveryFee] = useState(0);
 
   useEffect(() => {

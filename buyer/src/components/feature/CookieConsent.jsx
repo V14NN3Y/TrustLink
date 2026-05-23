@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { t } from '@/lib/i18n';
+import { useI18n } from '@/lib/I18nContext';
 
 const COOKIE_KEY = 'trustlink_cookie_consent';
 
 export default function CookieConsent() {
   const [visible, setVisible] = useState(false);
+  const { t } = useI18n();
 
   useEffect(() => {
     const consent = localStorage.getItem(COOKIE_KEY);

@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
-import { useCurrency } from '@/hooks/useCurrency';
-import { t, setLocale, getLocale } from '@/lib/i18n';
+import { useCurrencyContext } from '@/lib/CurrencyContext';
+import { useI18n } from '@/lib/I18nContext';
 import NotificationBell from './NotificationBell';
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [locale, setLocaleState] = useState(getLocale);
   const { totalItems } = useCart();
-  const { currency, setCurrency } = useCurrency();
+  const { currency, setCurrency } = useCurrencyContext();
+  const { locale, setLocale, t } = useI18n();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,13 +25,7 @@ export default function Header() {
     if (query.trim()) navigate('/?search=' + encodeURIComponent(query.trim()));
   };
 
-  const toggleCurrency = () => setCurrency(currency === 'XOF' ? 'NGN' : 'XOF');
-
-  const toggleLocale = () => {
-    const next = locale === 'fr' ? 'en' : 'fr';
-    setLocale(next);
-    setLocaleState(next);
-  };
+  const toggleLocale = () => setLocale(locale === 'fr' ? 'en' : 'fr');
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 bg-white transition-all duration-300 ${scrolled ? 'shadow-sm' : 'border-b border-gray-100'}`}>

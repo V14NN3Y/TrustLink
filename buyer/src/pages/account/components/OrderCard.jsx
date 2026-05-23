@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { formatPrice } from '@/utils/format';
+import { useCurrencyContext } from '@/lib/CurrencyContext';
 import { STATUS_CONFIG } from '@/lib/config';
 
 export default function OrderCard({ order }) {
   const [confirmed, setConfirmed] = useState(false);
+  const { formatPrice } = useCurrencyContext();
   const config = STATUS_CONFIG[order.status];
   const maxImages = order.items.slice(0, 3);
   const extra = order.items.length - 3;

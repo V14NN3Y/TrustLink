@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useDeliveryVideos } from '@/hooks/useDeliveryVideos';
 import VideoRecorder from './VideoRecorder';
-import { formatPrice } from '@/utils/format';
+import { useCurrencyContext } from '@/lib/CurrencyContext';
 export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOpenDispute }) {
   const { confirmDeliveryWithVideo, uploading } = useDeliveryVideos();
+  const { formatPrice } = useCurrencyContext();
   const [step, setStep] = useState(1);
   const [videoFilePath, setVideoFilePath] = useState(null);
   const [error, setError] = useState(null);

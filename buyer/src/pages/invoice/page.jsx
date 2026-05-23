@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
-import { formatPrice } from '@/utils/format';
+import { useCurrencyContext } from '@/lib/CurrencyContext';
 
 export default function InvoicePage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { formatPrice } = useCurrencyContext();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
 

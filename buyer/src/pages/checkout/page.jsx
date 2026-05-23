@@ -4,7 +4,7 @@ import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/lib/AuthContext';
 import { createOrder, updateOrdersAfterPayment } from '@/lib/supabase/orders';
 import { openKkiapayPayment } from '@/lib/kkiapay';
-import { formatPrice } from '@/utils/format';
+import { useCurrencyContext } from '@/lib/CurrencyContext';
 import { supabase } from '@/lib/supabaseClient';
 
 const STEPS = ['Adresse', 'Paiement', 'Confirmation'];
@@ -12,6 +12,7 @@ const GUEST_KEY = 'trustlink_guest_info';
 
 export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
+  const { formatPrice } = useCurrencyContext();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
 

@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { useWishlist } from '@/hooks/useWishlist';
-import { formatPrice, renderStars } from '@/utils/format';
+import { renderStars } from '@/utils/format';
+import { useCurrencyContext } from '@/lib/CurrencyContext';
 import LazyImage from '@/components/base/LazyImage';
 
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
   const { toggle, isWishlisted } = useWishlist();
+  const { formatPrice } = useCurrencyContext();
   const stars = renderStars(product.rating);
   const wishlisted = isWishlisted(product.id);
 

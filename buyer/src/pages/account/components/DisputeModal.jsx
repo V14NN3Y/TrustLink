@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDisputes } from '@/hooks/useDisputes';
 import VideoRecorder from './VideoRecorder';
-import { formatPrice } from '@/utils/format';
+import { useCurrencyContext } from '@/lib/CurrencyContext';
 const REASONS = [
   'Produit non conforme à la description',
   'Produit défectueux / endommagé',
@@ -12,6 +12,7 @@ const REASONS = [
 ];
 export default function DisputeModal({ order, onClose, onSuccess }) {
   const { openDispute, submitting } = useDisputes();
+  const { formatPrice } = useCurrencyContext();
   const [step, setStep] = useState(order.videoFilePath ? 3 : 1);
   const [reason, setReason] = useState('');
   const [customReason, setCustomReason] = useState('');

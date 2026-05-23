@@ -1,4 +1,4 @@
-import { formatPrice } from '@/utils/format';
+import { useCurrencyContext } from '@/lib/CurrencyContext';
 
 const JOURNEY_STEPS = [
   { key: 'pending', icon: 'ri-time-line', label: 'Commande passée' },
@@ -15,6 +15,7 @@ const STATUS_PRIORITY = {
 };
 
 export default function OrderTimeline({ order, onConfirmDelivery, onOpenDispute }) {
+  const { formatPrice } = useCurrencyContext();
   const currentIdx = STATUS_PRIORITY[order.status] ?? 0;
   const isTerminal = ['disputed', 'cancelled', 'refunded'].includes(order.status);
 
