@@ -1,9 +1,12 @@
 import { supabase } from '@/lib/supabaseClient';
+
+const PLACEHOLDER_IMAGE = '/placeholder-product.svg';
+
 /**
- * Fetch all approved products with their primary image.
- * Supports optional category filter and search.
+ * Fetch approved products with optional category filter, search, and pagination.
+ * Returns an array of normalized products.
  */
-export const fetchProducts = async ({ category, search } = {}) => {
+export const fetchProducts = async ({ category, search, limit = 100 } = {}) => {
   let query = supabase
     .from('products')
     .select(`
@@ -34,7 +37,8 @@ export const fetchProducts = async ({ category, search } = {}) => {
     `)
     .eq('status', 'approved')
     .order('created_at', { ascending: false })
-    .limit(50);
+    .limit(limit);
+
   if (category) {
     const { data: cat } = await supabase
       .from('categories')
@@ -43,13 +47,16 @@ export const fetchProducts = async ({ category, search } = {}) => {
       .maybeSingle();
     if (cat) query = query.eq('category_id', cat.id);
   }
+
   if (search) {
-    query = query.ilike('name', `%${search}%`);
+    query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
   }
+
   const { data, error } = await query;
   if (error) throw error;
   return (data || []).map(normalizeProduct);
 };
+
 /**
  * Fetch a single product by ID with all images.
  */
@@ -89,6 +96,7 @@ export const fetchProductById = async (id) => {
   if (!data) return null;
   return normalizeProduct(data);
 };
+
 /**
  * Fetch all categories.
  */
@@ -102,6 +110,7 @@ export const fetchCategories = async () => {
   if (error) throw error;
   return data || [];
 };
+
 /**
  * Normalize a Supabase product row to match the shape
  * expected by ProductCard, ProductPage, etc.
@@ -112,7 +121,12 @@ const normalizeProduct = (p) => {
     if (!a.is_primary && b.is_primary) return 1;
     return (a.sort_order || 0) - (b.sort_order || 0);
   });
-  const images = sortedImages.map((img) => img.url);
+  const images = sortedImages.map((img) => img.url).filter(Boolean);
+
+  const createdAt = new Date(p.created_at);
+  const diffDays = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+  const isNew = diffDays <= 14;
+
   return {
     id: p.id,
     name: p.name,
@@ -120,7 +134,7 @@ const normalizeProduct = (p) => {
     price: Number(p.price),
     originalPrice: null,
     discount: null,
-    isNew: false,
+    isNew,
     rating: 0,
     sales: 0,
     stock: p.stock_quantity,
@@ -132,7 +146,7 @@ const normalizeProduct = (p) => {
     delivery_max_days: p.delivery_max_days || null,
     category: p.categories?.slug || '',
     categoryName: p.categories?.name || '',
-    images: images.length > 0 ? images : ['https://readdy.ai/api/search-image?query=product+placeholder+clean+white+background+minimal&width=400&height=400&seq=placeholder1&orientation=squarish'],
+    images: images.length > 0 ? images : [PLACEHOLDER_IMAGE],
     variants: {
       sizes: [],
       colors: [],

@@ -9,7 +9,10 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClientInstance}>
-        <BrowserRouter basename="/">
+        <BrowserRouter
+          basename="/"
+          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        >
           <AuthProvider>
             <AppRoutes />
             <Toaster />

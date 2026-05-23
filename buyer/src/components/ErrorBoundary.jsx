@@ -7,7 +7,8 @@ export default class ErrorBoundary extends Component {
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
-  componentDidCatch() {
+  componentDidCatch(error, info) {
+    console.error('[TrustLink] Erreur capturée par ErrorBoundary:', error, info);
   }
   render() {
     if (this.state.hasError) {
