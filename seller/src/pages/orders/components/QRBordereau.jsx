@@ -1,33 +1,29 @@
-const MiniQR = ({ code, size = 5 }) => {
-  const grid = Array.from({ length: 7 }, (_, r) =>
-    Array.from({ length: 7 }, (_, c) => {
-      const hash = (r * 7 + c + code.charCodeAt(r % code.length)) % 3;
-      return hash !== 2;
-    })
-  );
-
-  const cellSize = size;
-  return (
-    <div className="bg-white p-3 rounded-xl border border-gray-200 inline-block">
-      <div className="flex flex-col gap-0.5">
-        {grid.map((row, r) => (
-          <div key={r} className="flex gap-0.5">
-            {row.map((filled, c) => (
-              <div
-                key={c}
-                className={`rounded-sm ${filled ? "bg-gray-900" : "bg-white border border-gray-100"}`}
-                style={{ width: `${cellSize * 4}px`, height: `${cellSize * 4}px` }}
-              ></div>
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 
 export default function QRBordereau({ order, onClose }) {
+  const canvasRef = useRef(null);
+  const [qrDataUrl, setQrDataUrl] = useState("");
+
+  useEffect(() => {
+    if (!order?.order_id) return;
+    QRCode.toDataURL(order.order_id, {
+      width: 160,
+      margin: 2,
+      color: { dark: "#111827", light: "#FFFFFF" },
+    }).then(setQrDataUrl);
+  }, [order?.order_id]);
+
   if (!order) return null;
+
+  const handleDownload = () => {
+    if (!qrDataUrl) return;
+    const a = document.createElement("a");
+    a.href = qrDataUrl;
+    a.download = `bordereau-${order.id}.png`;
+    a.click();
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4" onClick={onClose}>
       <div
@@ -43,8 +39,14 @@ export default function QRBordereau({ order, onClose }) {
           </button>
         </div>
 
-        <div data-qr className="flex justify-center mb-3">
-          <MiniQR code={order.id} />
+        <div className="flex justify-center mb-3">
+          {qrDataUrl ? (
+            <img src={qrDataUrl} alt={`QR ${order.id}`} className="w-40 h-40 rounded-xl border border-gray-100" />
+          ) : (
+            <div className="w-40 h-40 flex items-center justify-center rounded-xl border border-gray-100 bg-gray-50">
+              <div className="w-6 h-6 border-2 border-gray-300 border-t-[#125C8D] rounded-full animate-spin" />
+            </div>
+          )}
         </div>
 
         <p className="font-mono text-sm font-bold text-gray-900 mb-1">{order.id}</p>
@@ -59,9 +61,10 @@ export default function QRBordereau({ order, onClose }) {
             Fermer
           </button>
           <button
-            className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer whitespace-nowrap transition-colors"
+            className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer whitespace-nowrap transition-colors disabled:opacity-40"
             style={{ backgroundColor: "#125C8D" }}
-            onClick={() => { const el = document.createElement('a'); el.href = `data:image/svg+xml,${encodeURIComponent(document.querySelector('[data-qr]')?.outerHTML || '')}`; el.download = `bordereau-${order.id}.svg`; el.click(); }}
+            onClick={handleDownload}
+            disabled={!qrDataUrl}
           >
             <i className="ri-download-line mr-1.5"></i>Télécharger
           </button>

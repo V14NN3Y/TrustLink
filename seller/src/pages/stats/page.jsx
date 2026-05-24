@@ -174,7 +174,18 @@ export default function StatsPage() {
           <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-100">
             <div>
               <p className="text-[10px] text-gray-400 uppercase tracking-widest">Croissance</p>
-              <p className="text-sm font-bold text-[#10B981]">0%</p>
+              {(() => {
+                if (revenueByMonth.length < 2) return <p className="text-sm font-bold text-gray-400">—</p>;
+                const last = revenueByMonth[revenueByMonth.length - 1].revenue;
+                const prev = revenueByMonth[revenueByMonth.length - 2].revenue;
+                if (!prev) return <p className="text-sm font-bold text-gray-400">—</p>;
+                const pct = Math.round(((last - prev) / prev) * 100);
+                return (
+                  <p className={`text-sm font-bold ${pct >= 0 ? "text-[#10B981]" : "text-red-500"}`}>
+                    {pct >= 0 ? "+" : ""}{pct}%
+                  </p>
+                );
+              })()}
             </div>
             <div>
               <p className="text-[10px] text-gray-400 uppercase tracking-widest">Moy. mensuelle</p>

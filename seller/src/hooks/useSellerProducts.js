@@ -1,33 +1,45 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 export function useSellerProducts(sellerId) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
   const fetchProducts = useCallback(async () => {
     if (!sellerId) {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
       return;
     }
-    setLoading(true);
+    if (mountedRef.current) setLoading(true);
+
     const { data: rateData } = await supabase
       .from("exchange_rates")
       .select("rate")
       .eq("from_currency", "NGN")
       .eq("to_currency", "XOF")
       .maybeSingle();
-    const rate = rateData?.rate;
+    const rate = rateData?.rate || 1;
+
     const { data, error } = await supabase
       .from("products")
       .select(`*, images:product_images(url, is_primary), category:categories(name)`)
       .eq("seller_id", sellerId)
       .order("created_at", { ascending: false });
+
+    if (!mountedRef.current) return;
+
     if (error) {
       setProducts([]);
       setLoading(false);
       return;
     }
-    // Calcul des sales_count
+
     let salesMap = {};
     if (data && data.length > 0) {
       const productIds = data.map((p) => p.id);
@@ -42,6 +54,9 @@ export function useSellerProducts(sellerId) {
         });
       }
     }
+
+    if (!mountedRef.current) return;
+
     const formatted = (data || []).map((p) => ({
       id: p.id,
       name: p.name,
@@ -55,11 +70,16 @@ export function useSellerProducts(sellerId) {
       description: p.description,
       created_at: p.created_at,
     }));
-    setProducts(formatted);
-    setLoading(false);
+
+    if (mountedRef.current) {
+      setProducts(formatted);
+      setLoading(false);
+    }
   }, [sellerId]);
+
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
   return { products, loading, refetch: fetchProducts };
 }

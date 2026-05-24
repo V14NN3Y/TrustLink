@@ -253,6 +253,7 @@ export default function SettingsPage() {
         'new_order': 'Nouvelle commande reçue',
         'dispute_update': 'Mise à jour du statut KYC',
         'order_update': 'Commande livrée',
+        'dispatch_ready': 'Commande prête à expédier',
       };
       const newNotifs = { ...notifs };
       data.forEach(p => {
@@ -270,7 +271,7 @@ export default function SettingsPage() {
     setNotifSaving(true);
     const typeMap = {
       'Nouvelle commande reçue': 'new_order',
-      'Commande prête à expédier': 'order_update',
+      'Commande prête à expédier': 'dispatch_ready',
       'Commande livrée': 'order_update',
       'Connexion depuis un nouvel appareil': 'new_message',
       'Mise à jour du statut KYC': 'dispute_update',

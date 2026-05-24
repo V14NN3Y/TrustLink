@@ -15,6 +15,28 @@ const tabs = [
   { value: "cancelled", label: "Annulées" },
 ];
 
+function exportOrdersCSV(orders) {
+  const headers = ["ID", "Date", "Acheteur", "Ville", "Produit", "Montant NGN", "Montant FCFA", "Statut"];
+  const rows = orders.map((o) => [
+    `"${o.id}"`,
+    `"${o.created_at ? new Date(o.created_at).toLocaleDateString("fr-FR") : ""}"`,
+    `"${o.buyer || ""}"`,
+    `"${o.buyer_city || ""}"`,
+    `"${o.items?.[0]?.product || ""}"`,
+    `"${o.amount_ngn || 0}"`,
+    `"${o.amount_fcfa || 0}"`,
+    `"${o.status}"`,
+  ].join(","));
+  const csv = [headers.join(","), ...rows].join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `commandes_trustlink_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function OrdersPage() {
   const { user } = useAuth();
   const { orders, loading, refetch } = useSellerOrders(user?.id);
@@ -39,6 +61,7 @@ export default function OrdersPage() {
       (o.buyer?.toLowerCase() || "").includes(s)
     );
   });
+
   const totalFiltered = filtered.reduce((sum, o) => sum + (o.amount_ngn || 0), 0);
   const totalAll = orders.reduce((sum, o) => sum + (o.amount_ngn || 0), 0);
   const tabCount = (val) => {
@@ -49,6 +72,7 @@ export default function OrdersPage() {
     if (val === "cancelled") return orders.filter((o) => o.status === "cancelled" || o.status === "refunded").length;
     return orders.filter((o) => o.status === val).length;
   };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -58,6 +82,7 @@ export default function OrdersPage() {
       </DashboardLayout>
     );
   }
+
   return (
     <DashboardLayout>
       <div className="flex items-center gap-3 mb-5 flex-wrap">
@@ -76,20 +101,24 @@ export default function OrdersPage() {
               className="border border-gray-200 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-700 outline-none w-48 focus:border-[#125C8D] transition-colors"
             />
           </div>
-          <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-white whitespace-nowrap" style={{ backgroundColor: "#125C8D" }}>
+          <button
+            onClick={() => exportOrdersCSV(filtered)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-white whitespace-nowrap cursor-pointer hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: "#125C8D" }}
+          >
             <i className="ri-download-2-line text-sm"></i>Exporter CSV
           </button>
         </div>
       </div>
+
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-5 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.value}
             onClick={() => setActiveStatus(tab.value)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer transition-all ${activeStatus === tab.value
-              ? "bg-white text-[#125C8D] shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer transition-all ${
+              activeStatus === tab.value ? "bg-white text-[#125C8D] shadow-sm" : "text-gray-500 hover:text-gray-700"
+            }`}
           >
             {tab.label}
             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${activeStatus === tab.value ? "bg-[#125C8D]/10 text-[#125C8D]" : "bg-gray-200 text-gray-500"}`}>
@@ -98,6 +127,7 @@ export default function OrdersPage() {
           </button>
         ))}
       </div>
+
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -124,7 +154,7 @@ export default function OrdersPage() {
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-sm font-medium text-gray-800">{order.buyer || "—"}</p>
-                    <p className="text-[10px] text-gray-400">{order.buyer_city || "—"}, {import.meta.env.VITE_DEFAULT_COUNTRY || "Bénin"}</p>
+                    <p className="text-[10px] text-gray-400">{order.buyer_city || "—"}</p>
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-xs font-medium text-gray-700 max-w-[180px] truncate">{order.items?.[0]?.product || "—"}</p>
@@ -172,6 +202,7 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
+
       {detailOrder && <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} onStatusUpdate={() => refetch()} />}
       {showQR && <QRBordereau order={showQR} onClose={() => setShowQR(null)} />}
     </DashboardLayout>

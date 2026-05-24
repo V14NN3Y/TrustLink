@@ -6,9 +6,12 @@ export function useSellerOrders(sellerId) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const channelRef = useRef(null);
-
   const mountedRef = useRef(true);
-  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const fetchOrdersData = useCallback(async () => {
     if (!sellerId) {
@@ -16,40 +19,39 @@ export function useSellerOrders(sellerId) {
       return;
     }
     if (mountedRef.current) setLoading(true);
+
     const { data: rateData } = await supabase
       .from("exchange_rates")
       .select("rate")
       .eq("from_currency", "NGN")
       .eq("to_currency", "XOF")
       .maybeSingle();
-    const rate = rateData?.rate;
+    const rate = rateData?.rate || 1;
+
     const { data, error: supaError } = await supabase
       .from("order_items")
-      .select(`id,
-        status,
-        dispatched_at,
-        quantity,
-        product_name,
-        product_price,
-        subtotal,
-        created_at,
-        order_id,
-        product:product_id ( id, name )
-      `)
+      .select(`id, status, dispatched_at, quantity, product_name, product_price, subtotal, created_at, order_id, product:product_id ( id, name )`)
       .eq("seller_id", sellerId)
-      .not('dispatched_at', 'is', null)
       .order("created_at", { ascending: false });
+
     if (!mountedRef.current) return;
+
     if (supaError) {
       setError(supaError.message);
       setOrders([]);
     } else {
       const orderIds = [...new Set((data || []).map((item) => item.order_id))];
-      const { data: ordersData } = await supabase
-        .from("orders")
-        .select(`id, shipping_address_line1, shipping_city, shipping_country, notes, buyer:buyer_id ( full_name )`)
-        .in("id", orderIds);
-      const orderMap = (ordersData || []).reduce((acc, o) => { acc[o.id] = o; return acc; }, {});
+
+      let ordersData = [];
+      if (orderIds.length > 0) {
+        const { data: od } = await supabase
+          .from("orders")
+          .select(`id, shipping_address_line1, shipping_city, shipping_country, notes, buyer:buyer_id ( full_name )`)
+          .in("id", orderIds);
+        ordersData = od || [];
+      }
+
+      const orderMap = ordersData.reduce((acc, o) => { acc[o.id] = o; return acc; }, {});
 
       const grouped = (data || []).reduce((acc, item) => {
         const oid = item.order_id;
@@ -74,7 +76,7 @@ export function useSellerOrders(sellerId) {
             qr_code: oid,
           };
         }
-        const xof = item.subtotal || item.product_price * item.quantity;
+        const xof = item.subtotal || (item.product_price * item.quantity);
         acc[oid].amount_fcfa += xof;
         acc[oid].amount_ngn += Math.round(xof / rate);
         acc[oid].items.push({
@@ -88,6 +90,7 @@ export function useSellerOrders(sellerId) {
         });
         return acc;
       }, {});
+
       if (mountedRef.current) setOrders(Object.values(grouped));
     }
     if (mountedRef.current) setLoading(false);
@@ -99,32 +102,15 @@ export function useSellerOrders(sellerId) {
 
   useEffect(() => {
     if (!sellerId) return;
-
     const channelName = `seller-orders-${sellerId}-${Date.now()}`;
     const channel = supabase
       .channel(channelName)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'orders' },
-        () => {
-          fetchOrdersData();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'order_items' },
-        () => {
-          fetchOrdersData();
-        }
-      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, fetchOrdersData)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'order_items' }, fetchOrdersData)
       .subscribe();
-
     channelRef.current = channel;
-
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
     };
   }, [sellerId, fetchOrdersData]);
 

@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { useCurrency } from "@/hooks/useCurrency";
+import { useSidebar } from "@/lib/SidebarContext";
 
 const pageTitles = [
   { path: "/catalog/new", title: "Nouveau Produit", subtitle: "Ajoutez un produit à votre catalogue" },
@@ -33,6 +34,8 @@ export default function Header() {
   const { currency, setCurrency } = useCurrency();
   const { user, profile } = useAuth();
   const [notifCount, setNotifCount] = useState(0);
+  const { toggle: toggleSidebar } = useSidebar();
+
   useEffect(() => {
     const fetchNotifs = async () => {
       if (!user?.id) return;
@@ -46,12 +49,11 @@ export default function Header() {
       setNotifCount((data || []).filter(n => !n.is_read).length);
     };
     fetchNotifs();
-    // Temps réel (optionnel mais propre)
     const channel = supabase
-      .channel(`seller-notifications-${user.id}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'notifications',
-        filter: `user_id=eq.${user.id}`
+      .channel(`seller-notifications-${user?.id}`)
+      .on("postgres_changes", {
+        event: "*", schema: "public", table: "notifications",
+        filter: `user_id=eq.${user?.id}`,
       }, fetchNotifs)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -73,33 +75,39 @@ export default function Header() {
   }) || pageTitles[pageTitles.length - 1];
 
   return (
-    <header className="fixed top-0 right-0 z-20 h-16 flex items-center px-6 border-b border-gray-100 bg-white" style={{ left: "256px" }}>
+    <header className="fixed top-0 right-0 left-0 md:left-64 z-20 h-16 flex items-center px-4 md:px-6 border-b border-gray-100 bg-white gap-3">
+      {/* Hamburger - mobile only */}
+      <button
+        onClick={toggleSidebar}
+        className="md:hidden w-9 h-9 rounded-lg flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+      >
+        <i className="ri-menu-line text-lg"></i>
+      </button>
+
       {/* Title */}
-      <div className="flex-1">
-        <h1 className="text-base font-bold text-gray-900 leading-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>
+      <div className="flex-1 min-w-0">
+        <h1 className="text-base font-bold text-gray-900 leading-tight truncate" style={{ fontFamily: "'Poppins', sans-serif" }}>
           {current.title}
         </h1>
-        <p className="text-[11px] text-gray-400 leading-tight">{current.subtitle}</p>
+        <p className="text-[11px] text-gray-400 leading-tight hidden sm:block">{current.subtitle}</p>
       </div>
 
       {/* Right side */}
-      <div className="flex items-center gap-3">
-
-
+      <div className="flex items-center gap-2 md:gap-3">
         {/* Currency Toggle */}
         <div className="hidden md:flex items-center bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
-          <button onClick={() => setCurrency('NGN')}
-            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${currency === 'NGN' ? 'bg-[#10B981] text-white' : 'text-gray-500 hover:text-gray-700'}`}>
+          <button onClick={() => setCurrency("NGN")}
+            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${currency === "NGN" ? "bg-[#10B981] text-white" : "text-gray-500 hover:text-gray-700"}`}>
             NGN
           </button>
-          <button onClick={() => setCurrency('XOF')}
-            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${currency === 'XOF' ? 'bg-[#10B981] text-white' : 'text-gray-500 hover:text-gray-700'}`}>
+          <button onClick={() => setCurrency("XOF")}
+            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${currency === "XOF" ? "bg-[#10B981] text-white" : "text-gray-500 hover:text-gray-700"}`}>
             FCFA
           </button>
         </div>
 
         {/* Exchange Rate Badge */}
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-green-200 bg-green-50 whitespace-nowrap">
+        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-green-200 bg-green-50 whitespace-nowrap">
           <span className="text-[#10B981] text-xs">⊙</span>
           <span className="text-xs font-semibold text-[#10B981]">1 NGN = {liveRate ? liveRate.toFixed(2) : "..."} FCFA</span>
         </div>
@@ -117,7 +125,6 @@ export default function Header() {
               </span>
             )}
           </div>
-          {/* Dropdown */}
           {notifOpen && (
             <div className="absolute right-0 top-12 w-80 bg-white rounded-xl border border-gray-100 shadow-xl z-50 overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -142,10 +149,10 @@ export default function Header() {
                   notifications.map((n) => (
                     <div
                       key={n.id}
-                      className={`flex items-start gap-3 px-4 py-3 border-b border-gray-50 last:border-0 ${!n.is_read ? "bg-[#125C8D]/3" : ""}`}
+                      className={`flex items-start gap-3 px-4 py-3 border-b border-gray-50 last:border-0 ${!n.is_read ? "bg-[#125C8D]/[0.03]" : ""}`}
                     >
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${!n.is_read ? "bg-[#125C8D]/10" : "bg-gray-100"}`}>
-                        <i className={`${n.type === 'new_order' ? 'ri-shopping-bag-3-line' : n.type === 'order_update' ? 'ri-truck-line' : 'ri-notification-3-line'} text-sm ${!n.is_read ? "text-[#125C8D]" : "text-gray-400"}`}></i>
+                        <i className={`${n.type === "new_order" ? "ri-shopping-bag-3-line" : n.type === "order_update" ? "ri-truck-line" : n.type === "dispatch_ready" ? "ri-send-plane-line" : "ri-notification-3-line"} text-sm ${!n.is_read ? "text-[#125C8D]" : "text-gray-400"}`}></i>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
@@ -193,9 +200,9 @@ export default function Header() {
         </div>
 
         {/* Hub + Online */}
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
           <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse flex-shrink-0"></span>
-          <span className="text-xs font-medium text-gray-600 whitespace-nowrap hidden sm:inline">
+          <span className="text-xs font-medium text-gray-600 whitespace-nowrap">
             {profile?.default_city || "Hub"} · En ligne
           </span>
         </div>

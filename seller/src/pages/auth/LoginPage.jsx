@@ -1,13 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
+
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoadingAuth } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isLoadingAuth && isAuthenticated) {
+      navigate("/", { replace: true });
+    }
+  }, [isAuthenticated, isLoadingAuth, navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -22,6 +30,7 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB] px-4">
       <div className="w-full max-w-md bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
@@ -45,6 +54,7 @@ export default function LoginPage() {
             <input
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#125C8D] transition-colors"
@@ -52,10 +62,16 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-2">Mot de passe</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mot de passe</label>
+              <Link to="/forgot-password" className="text-xs text-[#125C8D] hover:underline font-medium">
+                Mot de passe oublié ?
+              </Link>
+            </div>
             <input
               type="password"
               required
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#125C8D] transition-colors"

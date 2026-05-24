@@ -9,10 +9,10 @@ import SupportPage from "@/pages/support/page";
 import SettingsPage from "@/pages/settings/page";
 import LoginPage from "@/pages/auth/LoginPage";
 import RegisterPage from "@/pages/auth/RegisterPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import NotificationsPage from "@/pages/notifications/page";
 import MessagesPage from "@/pages/messages/page";
 import ReviewsPage from "@/pages/reviews/page";
-import PayoutsPage from "@/pages/payouts/page";
 import QuestionsPage from "@/pages/questions/page";
 import HelpPage from "@/pages/help/page";
 import ActivityPage from "@/pages/activity/page";
@@ -21,6 +21,7 @@ import PageNotFound from "@/lib/PageNotFound";
 const routes = [
   { path: "/login", element: <LoginPage /> },
   { path: "/register", element: <RegisterPage /> },
+  { path: "/forgot-password", element: <ForgotPasswordPage /> },
   {
     element: (
       <ProtectedRoute
@@ -39,7 +40,6 @@ const routes = [
       { path: "/messages", element: <MessagesPage /> },
       { path: "/settings/:section", element: <SettingsPage /> },
       { path: "/reviews", element: <ReviewsPage /> },
-      { path: "/payouts", element: <PayoutsPage /> },
       { path: "/questions", element: <QuestionsPage /> },
       { path: "/help", element: <HelpPage /> },
       { path: "/activity", element: <ActivityPage /> },

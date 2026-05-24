@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, isAuthenticated, isLoadingAuth } = useAuth();
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -15,10 +15,18 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!isLoadingAuth && isAuthenticated) {
+      navigate("/", { replace: true });
+    }
+  }, [isAuthenticated, isLoadingAuth, navigate]);
+
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setError("");
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.password !== form.confirmPassword) {
@@ -47,6 +55,7 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB] px-4">
@@ -69,6 +78,7 @@ export default function RegisterPage() {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB] px-4 py-8">
       <div className="w-full max-w-md bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
@@ -114,6 +124,7 @@ export default function RegisterPage() {
             <input
               type="email"
               required
+              autoComplete="email"
               value={form.email}
               onChange={(e) => handleChange("email", e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#125C8D]"
@@ -125,10 +136,11 @@ export default function RegisterPage() {
             <input
               type="password"
               required
+              autoComplete="new-password"
               value={form.password}
               onChange={(e) => handleChange("password", e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#125C8D]"
-              placeholder="Min. 6 caractères"
+              placeholder="Min. 8 caractères"
             />
           </div>
           <div>
@@ -136,10 +148,11 @@ export default function RegisterPage() {
             <input
               type="password"
               required
+              autoComplete="new-password"
               value={form.confirmPassword}
               onChange={(e) => handleChange("confirmPassword", e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#125C8D]"
-              placeholder="Min. 6 caractères"
+              placeholder="Min. 8 caractères"
             />
           </div>
           <button
