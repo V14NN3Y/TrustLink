@@ -208,14 +208,6 @@ export default function Header() {
           )}
         </div>
 
-        {/* Message icon */}
-        <div
-          onClick={() => navigate("/messages")}
-          className="w-9 h-9 rounded-lg flex items-center justify-center bg-gray-50 border border-gray-100 hover:bg-gray-100 transition-colors cursor-pointer"
-        >
-          <i className="ri-message-3-line text-gray-600 text-base"></i>
-        </div>
-
         {/* Hub + Online */}
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
           <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse flex-shrink-0"></span>
