@@ -7,12 +7,10 @@ import { useSellerOrders } from "@/hooks/useSellerOrders";
 import { useSellerProducts } from "@/hooks/useSellerProducts";
 import { useProductPerformance } from "@/hooks/useProductPerformance";
 import { useLowStock } from "@/hooks/useLowStock";
+import { useLocale } from "@/lib/i18n";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const COLORS = ["#125C8D", "#10B981", "#FF6A00", "#F59E0B", "#EF4444", "#8B5CF6"];
-
-function formatNgn(amount) {
-  return `₦${(amount / 1000).toFixed(0)}k`;
-}
 
 export default function StatsPage() {
   const navigate = useNavigate();
@@ -23,21 +21,27 @@ export default function StatsPage() {
   const { lowStock } = useLowStock(user?.id, 5);
   const [sortField, setSortField] = useState("sales");
   const [sortDir, setSortDir] = useState("desc");
+  const { t, locale } = useLocale();
+  const { currency, formatPrice } = useCurrency();
 
   const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((s, o) => s + (o.amount_ngn || 0), 0);
-  const avgOrder = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+  const totalRevenueFCFA = orders.reduce((s, o) => s + (o.amount_fcfa || 0), 0);
+  const totalRevenue = currency === "NGN"
+    ? orders.reduce((s, o) => s + (o.amount_ngn || 0), 0)
+    : totalRevenueFCFA;
+  const avgOrderFCFA = totalOrders > 0 ? Math.round(totalRevenueFCFA / totalOrders) : 0;
   const totalSold = orders.reduce((s, o) => s + (o.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0), 0);
   const confirmedOrders = orders.filter(o => o.status === "confirmed");
   const conversionRate = totalOrders > 0 ? Math.round((confirmedOrders.length / totalOrders) * 100) : 0;
   const disputeRate = totalOrders > 0 ? Math.round((orders.filter(o => o.status === "disputed").length / totalOrders) * 100) : 0;
 
+  // Chart always stores FCFA, formatPrice handles display conversion
   const revenueByMonth = useMemo(() => {
     const map = {};
     orders.forEach((o) => {
       const d = new Date(o.created_at);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      map[key] = (map[key] || 0) + (o.amount_ngn || 0);
+      map[key] = (map[key] || 0) + (o.amount_fcfa || 0);
     });
     const keys = Object.keys(map).sort().slice(-12);
     return keys.map((k) => ({
@@ -58,9 +62,7 @@ export default function StatsPage() {
   }, [orders]);
 
   const topProducts = useMemo(() => {
-    return [...products]
-      .sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0))
-      .slice(0, 5);
+    return [...products].sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0)).slice(0, 5);
   }, [products]);
 
   const sortedPerf = useMemo(() => {
@@ -73,23 +75,22 @@ export default function StatsPage() {
 
   const toggleSort = useCallback((field) => {
     setSortField(prev => {
-      if (prev === field) {
-        setSortDir(d => d === "desc" ? "asc" : "desc");
-        return prev;
-      }
+      if (prev === field) { setSortDir(d => d === "desc" ? "asc" : "desc"); return prev; }
       setSortDir("desc");
       return field;
     });
   }, []);
 
   const exportCSV = useCallback(() => {
-    const headers = ["Mois", "Revenus (NGN)", "Commandes", "Confirmées", "Annulées", "Litiges", "Taux conversion (%)"];
+    const headers = locale === "en"
+      ? ["Month", "Revenue (FCFA)", "Orders", "Confirmed", "Cancelled", "Disputed", "Conversion (%)"]
+      : ["Mois", "Revenus (FCFA)", "Commandes", "Confirmées", "Annulées", "Litiges", "Taux conversion (%)"];
     const monthMap = {};
     orders.forEach((o) => {
       const d = new Date(o.created_at);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       if (!monthMap[key]) monthMap[key] = { revenue: 0, total: 0, confirmed: 0, cancelled: 0, disputed: 0 };
-      monthMap[key].revenue += o.amount_ngn || 0;
+      monthMap[key].revenue += o.amount_fcfa || 0;
       monthMap[key].total += 1;
       if (o.status === "confirmed") monthMap[key].confirmed += 1;
       if (o.status === "cancelled") monthMap[key].cancelled += 1;
@@ -107,7 +108,16 @@ export default function StatsPage() {
     a.download = "trustlink_stats.csv";
     a.click();
     URL.revokeObjectURL(url);
-  }, [orders]);
+  }, [orders, locale]);
+
+  const statusLabel = (s) => {
+    if (locale === "en") {
+      const m = { processing: "Processing", confirmed: "Confirmed", delivered: "Delivered", disputed: "Disputed", cancelled: "Cancelled", paid: "Paid" };
+      return m[s] || s;
+    }
+    const m = { processing: "En cours", confirmed: "Confirmée", delivered: "Livrée", disputed: "Litige", cancelled: "Annulée", paid: "Payée" };
+    return m[s] || s;
+  };
 
   const SortHeader = ({ field, label }) => (
     <th className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-3 py-2 text-left cursor-pointer hover:text-gray-600 select-none" onClick={() => toggleSort(field)}>
@@ -115,28 +125,39 @@ export default function StatsPage() {
     </th>
   );
 
+  // Revenue display for KPI (large numbers)
+  const revenueDisplay = (() => {
+    if (currency === "NGN") {
+      if (totalRevenue >= 1000000) return `₦${(totalRevenue / 1000000).toFixed(1)}M`;
+      if (totalRevenue >= 1000) return `₦${(totalRevenue / 1000).toFixed(0)}k`;
+      return `₦${totalRevenue.toLocaleString()}`;
+    }
+    if (totalRevenueFCFA >= 1000000) return `${(totalRevenueFCFA / 1000000).toFixed(1)}M FCFA`;
+    if (totalRevenueFCFA >= 1000) return `${(totalRevenueFCFA / 1000).toFixed(0)}k FCFA`;
+    return `${totalRevenueFCFA.toLocaleString()} FCFA`;
+  })();
+
   return (
     <DashboardLayout>
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
-            Statistiques de ventes
+            {t("stats.title")}
           </h2>
-          <p className="text-sm text-gray-400">Historique et performances de vos ventes</p>
+          <p className="text-sm text-gray-400">{t("stats.subtitle")}</p>
         </div>
         <button onClick={exportCSV} className="flex items-center gap-2 text-xs font-semibold text-white bg-[#125C8D] hover:bg-[#125C8D]/90 px-4 py-2 rounded-lg transition-all cursor-pointer">
-          <i className="ri-file-download-line"></i>
-          Export CSV
+          <i className="ri-file-download-line"></i>{t("stats.exportCSV")}
         </button>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Commandes totales", value: totalOrders, icon: "ri-shopping-bag-3-line", color: "#125C8D", bg: "rgba(18,92,141,0.1)" },
-          { label: "Produits vendus", value: totalSold, icon: "ri-store-2-line", color: "#10B981", bg: "rgba(16,185,129,0.1)" },
-          { label: "Revenus totaux", value: `₦${(totalRevenue / 1000000).toFixed(1)}M`, icon: "ri-money-dollar-circle-line", color: "#125C8D", bg: "rgba(18,92,141,0.1)" },
-          { label: "Panier moyen", value: `₦${avgOrder.toLocaleString()}`, icon: "ri-bar-chart-box-line", color: "#FF6A00", bg: "rgba(255,106,0,0.1)" },
+          { label: t("stats.totalOrders"), value: totalOrders, icon: "ri-shopping-bag-3-line", color: "#125C8D", bg: "rgba(18,92,141,0.1)" },
+          { label: t("stats.totalSold"), value: totalSold, icon: "ri-store-2-line", color: "#10B981", bg: "rgba(16,185,129,0.1)" },
+          { label: t("stats.totalRevenue"), value: revenueDisplay, icon: "ri-money-dollar-circle-line", color: "#125C8D", bg: "rgba(18,92,141,0.1)" },
+          { label: t("stats.avgOrder"), value: formatPrice(avgOrderFCFA), icon: "ri-bar-chart-box-line", color: "#FF6A00", bg: "rgba(255,106,0,0.1)" },
         ].map((kpi) => (
           <div key={kpi.label} className="bg-white rounded-xl border border-gray-100 p-5">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mb-3" style={{ backgroundColor: kpi.bg }}>
@@ -153,8 +174,8 @@ export default function StatsPage() {
         {/* Revenue Area Chart */}
         <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>Évolution des revenus</h3>
-            <p className="text-xs text-gray-400">12 derniers mois</p>
+            <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>{t("stats.revenueChart")}</h3>
+            <p className="text-xs text-gray-400">{t("stats.last12Months")}</p>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={revenueByMonth}>
@@ -167,13 +188,17 @@ export default function StatsPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={v => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} width={50} />
-              <Tooltip formatter={(v) => [`₦${Number(v).toLocaleString()}`, "Revenus"]} labelFormatter={(l, p) => p?.[0]?.payload?.full || l} contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }} />
+              <Tooltip
+                formatter={(v) => [formatPrice(v), t("stats.totalRevenue")]}
+                labelFormatter={(l, p) => p?.[0]?.payload?.full || l}
+                contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }}
+              />
               <Area type="monotone" dataKey="revenue" stroke="#125C8D" strokeWidth={2} fill="url(#revGrad)" />
             </AreaChart>
           </ResponsiveContainer>
           <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-100">
             <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-widest">Croissance</p>
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest">{t("stats.growth")}</p>
               {(() => {
                 if (revenueByMonth.length < 2) return <p className="text-sm font-bold text-gray-400">—</p>;
                 const last = revenueByMonth[revenueByMonth.length - 1].revenue;
@@ -188,32 +213,32 @@ export default function StatsPage() {
               })()}
             </div>
             <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-widest">Moy. mensuelle</p>
-              <p className="text-sm font-bold text-gray-900">₦{revenueByMonth.length > 0 ? Math.round(totalRevenue / revenueByMonth.length / 1000) : 0}k</p>
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest">{t("stats.monthlyAvg")}</p>
+              <p className="text-sm font-bold text-gray-900">
+                {formatPrice(revenueByMonth.length > 0 ? Math.round(totalRevenueFCFA / revenueByMonth.length) : 0)}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Conversion / Order Status */}
+        {/* Conversion */}
         <div className="bg-white rounded-xl border border-gray-100 p-5 flex flex-col justify-center">
-          <h3 className="text-base font-bold text-gray-900 mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>Taux de conversion</h3>
+          <h3 className="text-base font-bold text-gray-900 mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>{t("stats.conversionRate")}</h3>
           <div className="text-center mb-4">
             <p className="text-4xl font-bold text-[#10B981]">{conversionRate}%</p>
-            <p className="text-xs text-gray-400 mt-1">Commandes confirmées sans litige</p>
+            <p className="text-xs text-gray-400 mt-1">{t("stats.conversionSub")}</p>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-3">
             <div className="h-3 rounded-full bg-[#10B981]" style={{ width: `${conversionRate}%` }}></div>
           </div>
-          <p className="text-[10px] text-center text-gray-400 mt-3">
-            Litiges : {disputeRate}%
-          </p>
+          <p className="text-[10px] text-center text-gray-400 mt-3">{t("stats.disputes")} : {disputeRate}%</p>
         </div>
       </div>
 
-      {/* Order Status Distribution + Low Stock */}
+      {/* Order Status Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <h3 className="text-base font-bold text-gray-900 mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>Statut des commandes</h3>
+          <h3 className="text-base font-bold text-gray-900 mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>{t("stats.orderStatus")}</h3>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie data={orderStatusDist} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
@@ -221,21 +246,21 @@ export default function StatsPage() {
                   <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v, n) => [v, n]} contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }} />
+              <Tooltip formatter={(v, n) => [v, statusLabel(n)]} contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }} />
             </PieChart>
           </ResponsiveContainer>
           <div className="flex flex-wrap gap-3 mt-2 justify-center">
             {orderStatusDist.map((item, idx) => (
               <div key={item.name} className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                <span className="text-[10px] text-gray-500 capitalize">{item.name} ({item.value})</span>
+                <span className="text-[10px] text-gray-500 capitalize">{statusLabel(item.name)} ({item.value})</span>
               </div>
             ))}
           </div>
         </div>
 
         <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 p-5">
-          <h3 className="text-base font-bold text-gray-900 mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>Répartition des statuts</h3>
+          <h3 className="text-base font-bold text-gray-900 mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>{t("stats.statusDist")}</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={orderStatusDist}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -257,14 +282,20 @@ export default function StatsPage() {
         <div className="bg-white rounded-xl border border-amber-200 p-5 mb-4">
           <div className="flex items-center gap-2 mb-4">
             <i className="ri-alert-line text-amber-500"></i>
-            <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>Stock faible ({lowStock.length})</h3>
+            <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
+              {t("stats.lowStock")} ({lowStock.length})
+            </h3>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {lowStock.map(p => (
               <div key={p.id} className="bg-amber-50 border border-amber-100 rounded-lg p-3">
                 <p className="text-xs font-semibold text-gray-900 truncate">{p.name}</p>
-                <p className="text-[10px] text-gray-400">Stock: <span className="font-bold text-amber-600">{p.stock_quantity}</span></p>
-                <p className="text-[10px] text-gray-400">{p.status === "pending_review" ? "En attente" : "Approuvé"}</p>
+                <p className="text-[10px] text-gray-400">{locale === "en" ? "Stock" : "Stock"}: <span className="font-bold text-amber-600">{p.stock_quantity}</span></p>
+                <p className="text-[10px] text-gray-400">
+                  {p.status === "pending_review"
+                    ? (locale === "en" ? "Pending" : "En attente")
+                    : (locale === "en" ? "Approved" : "Approuvé")}
+                </p>
               </div>
             ))}
           </div>
@@ -272,60 +303,61 @@ export default function StatsPage() {
       )}
 
       {/* Product Performance Table */}
-      <div className="grid grid-cols-1 gap-4 mb-4">
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>Performance des produits</h3>
-            <p className="text-xs text-gray-400">{perfProducts.length} produits</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <SortHeader field="name" label="Produit" />
-                  <SortHeader field="price" label="Prix" />
-                  <SortHeader field="views" label="Vues" />
-                  <SortHeader field="sales" label="Ventes" />
-                  <SortHeader field="conversion" label="Conversion" />
-                  <SortHeader field="stock" label="Stock" />
-                  <th className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-3 py-2 text-left">Statut</th>
+      <div className="bg-white rounded-xl border border-gray-100 p-5 mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>{t("stats.productPerf")}</h3>
+          <p className="text-xs text-gray-400">{perfProducts.length} {t("stats.products")}</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-100">
+                <SortHeader field="name" label={t("stats.colProduct")} />
+                <SortHeader field="price" label={t("stats.colPrice")} />
+                <SortHeader field="views" label={t("stats.colViews")} />
+                <SortHeader field="sales" label={t("stats.colSales")} />
+                <SortHeader field="conversion" label={t("stats.colConversion")} />
+                <SortHeader field="stock" label={t("stats.colStock")} />
+                <th className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-3 py-2 text-left">{t("stats.colStatus")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedPerf.map(p => (
+                <tr key={p.id} className="border-b border-gray-50 hover:bg-[#F9FAFB] transition-all">
+                  <td className="text-xs font-semibold text-gray-900 px-3 py-3">{p.name}</td>
+                  <td className="text-xs text-gray-600 px-3 py-3">{formatPrice(p.price_fcfa || p.price || 0)}</td>
+                  <td className="text-xs text-gray-600 px-3 py-3">{p.views}</td>
+                  <td className="text-xs font-semibold text-gray-900 px-3 py-3">{p.sales}</td>
+                  <td className="text-xs px-3 py-3">
+                    <span className={`font-semibold ${p.conversion >= 10 ? "text-[#10B981]" : p.conversion >= 5 ? "text-[#F59E0B]" : "text-gray-400"}`}>
+                      {p.conversion}%
+                    </span>
+                  </td>
+                  <td className="text-xs px-3 py-3">
+                    <span className={`font-semibold ${p.stock <= 5 ? "text-[#EF4444]" : p.stock <= 15 ? "text-[#F59E0B]" : "text-gray-600"}`}>
+                      {p.stock}
+                    </span>
+                  </td>
+                  <td className="text-xs px-3 py-3">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                      p.status === "approved" ? "bg-[#10B981]/10 text-[#10B981]" :
+                      p.status === "pending_review" ? "bg-[#F59E0B]/10 text-[#F59E0B]" :
+                      p.status === "rejected" ? "bg-[#EF4444]/10 text-[#EF4444]" :
+                      "bg-gray-100 text-gray-500"
+                    }`}>
+                      {p.status === "approved" ? (locale === "en" ? "Approved" : "Approuvé")
+                       : p.status === "pending_review" ? (locale === "en" ? "Pending" : "En attente")
+                       : p.status === "rejected" ? (locale === "en" ? "Rejected" : "Rejeté")
+                       : p.status}
+                    </span>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {sortedPerf.map(p => (
-                  <tr key={p.id} className="border-b border-gray-50 hover:bg-[#F9FAFB] transition-all">
-                    <td className="text-xs font-semibold text-gray-900 px-3 py-3">{p.name}</td>
-                    <td className="text-xs text-gray-600 px-3 py-3">₦{Number(p.price).toLocaleString()}</td>
-                    <td className="text-xs text-gray-600 px-3 py-3">{p.views}</td>
-                    <td className="text-xs font-semibold text-gray-900 px-3 py-3">{p.sales}</td>
-                    <td className="text-xs px-3 py-3">
-                      <span className={`font-semibold ${p.conversion >= 10 ? "text-[#10B981]" : p.conversion >= 5 ? "text-[#F59E0B]" : "text-gray-400"}`}>
-                        {p.conversion}%
-                      </span>
-                    </td>
-                    <td className="text-xs px-3 py-3">
-                      <span className={`font-semibold ${p.stock <= 5 ? "text-[#EF4444]" : p.stock <= 15 ? "text-[#F59E0B]" : "text-gray-600"}`}>
-                        {p.stock}
-                      </span>
-                    </td>
-                    <td className="text-xs px-3 py-3">
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                        p.status === "approved" ? "bg-[#10B981]/10 text-[#10B981]" :
-                        p.status === "pending_review" ? "bg-[#F59E0B]/10 text-[#F59E0B]" :
-                        p.status === "rejected" ? "bg-[#EF4444]/10 text-[#EF4444]" :
-                        "bg-gray-100 text-gray-500"
-                      }`}>
-                        {p.status === "approved" ? "Approuvé" : p.status === "pending_review" ? "En attente" : p.status === "rejected" ? "Rejeté" : p.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {sortedPerf.length === 0 && (
-                  <tr><td colSpan={7} className="text-xs text-gray-400 text-center py-8">Aucune donnée disponible</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              ))}
+              {sortedPerf.length === 0 && (
+                <tr><td colSpan={7} className="text-xs text-gray-400 text-center py-8">{t("stats.noData")}</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -333,9 +365,9 @@ export default function StatsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white rounded-xl border border-gray-100 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>Dernières commandes</h3>
+            <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>{t("stats.recentOrders")}</h3>
             <button onClick={() => navigate("/orders")} className="text-[10px] font-semibold text-[#125C8D] hover:underline cursor-pointer whitespace-nowrap">
-              Voir toutes
+              {t("stats.viewAll")}
             </button>
           </div>
           <div className="space-y-3">
@@ -345,17 +377,17 @@ export default function StatsPage() {
                   <p className="text-xs font-semibold text-gray-900">{order.items?.[0]?.product || "—"}</p>
                   <p className="text-[10px] text-gray-400">{order.id} · {order.buyer}</p>
                 </div>
-                <p className="text-xs font-bold text-[#125C8D] whitespace-nowrap">₦{(order.amount_ngn || 0).toLocaleString()}</p>
+                <p className="text-xs font-bold text-[#125C8D] whitespace-nowrap">{formatPrice(order.amount_fcfa || 0)}</p>
               </div>
             ))}
-            {orders.length === 0 && <p className="text-xs text-gray-400 text-center py-4">Aucune commande</p>}
+            {orders.length === 0 && <p className="text-xs text-gray-400 text-center py-4">{t("stats.noOrders")}</p>}
           </div>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>Top produits</h3>
+            <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>{t("stats.topProducts")}</h3>
             <button onClick={() => navigate("/catalog")} className="text-[10px] font-semibold text-[#125C8D] hover:underline cursor-pointer whitespace-nowrap">
-              Voir catalogue
+              {t("stats.viewCatalog")}
             </button>
           </div>
           <div className="space-y-3">
@@ -367,12 +399,14 @@ export default function StatsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-gray-900 truncate">{product.name}</p>
-                  <p className="text-[10px] text-gray-400">{(product.sales_count || 0)} vendus</p>
+                  <p className="text-[10px] text-gray-400">{(product.sales_count || 0)} {locale === "en" ? "sold" : "vendus"}</p>
                 </div>
-                <p className="text-xs font-bold text-[#10B981] whitespace-nowrap flex-shrink-0">₦{(product.price_ngn || 0).toLocaleString()}</p>
+                <p className="text-xs font-bold text-[#10B981] whitespace-nowrap flex-shrink-0">
+                  {formatPrice(product.price_fcfa || product.price_xof || 0)}
+                </p>
               </div>
             ))}
-            {topProducts.length === 0 && <p className="text-xs text-gray-400 text-center py-4">Aucun produit</p>}
+            {topProducts.length === 0 && <p className="text-xs text-gray-400 text-center py-4">{t("stats.noProducts")}</p>}
           </div>
         </div>
       </div>

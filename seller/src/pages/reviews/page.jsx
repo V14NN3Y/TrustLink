@@ -1,24 +1,23 @@
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import { useAuth } from "@/lib/AuthContext";
 import { useSellerReviews } from "@/hooks/useSellerReviews";
+import { useLocale } from "@/lib/i18n";
 
 function StarRating({ rating }) {
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((s) => (
-        <i
-          key={s}
-          className={`ri-star-${s <= rating ? "fill" : "line"} text-xs ${
-            s <= rating ? "text-amber-400" : "text-gray-300"
-          }`}
-        ></i>
+        <i key={s} className={`ri-star-${s <= rating ? "fill" : "line"} text-xs ${s <= rating ? "text-amber-400" : "text-gray-300"}`}></i>
       ))}
     </div>
   );
 }
+
 export default function ReviewsPage() {
   const { user } = useAuth();
   const { reviews, loading, stats } = useSellerReviews(user?.id);
+  const { t, locale } = useLocale();
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -28,35 +27,36 @@ export default function ReviewsPage() {
       </DashboardLayout>
     );
   }
+
   return (
     <DashboardLayout>
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
-          Avis clients
+          {t("reviews.title")}
         </h2>
-        <p className="text-sm text-gray-400">Retours et évaluations sur vos produits</p>
+        <p className="text-sm text-gray-400">{t("reviews.subtitle")}</p>
       </div>
-      {/* Stats cards */}
+
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">Total avis</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">{t("reviews.total")}</p>
           <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">Note moyenne</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">{t("reviews.avgRating")}</p>
           <p className="text-2xl font-bold text-[#125C8D]">{stats.avg} <span className="text-sm text-gray-400 font-normal">/ 5</span></p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">5 étoiles</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">{t("reviews.fiveStars")}</p>
           <p className="text-2xl font-bold text-[#10B981]">{stats.fiveStars}</p>
         </div>
       </div>
-      {/* Reviews list */}
+
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
         {reviews.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <i className="ri-star-line text-3xl mb-2 block"></i>
-            <p className="text-sm">Aucun avis pour le moment</p>
+            <p className="text-sm">{t("reviews.noReviews")}</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
@@ -71,16 +71,14 @@ export default function ReviewsPage() {
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <div>
                       <p className="text-sm font-semibold text-gray-900">{r.buyer?.full_name || "—"}</p>
-                      <p className="text-[10px] text-gray-400">sur <span className="font-medium text-gray-600">{r.product?.name || "—"}</span></p>
+                      <p className="text-[10px] text-gray-400">{t("reviews.on")} <span className="font-medium text-gray-600">{r.product?.name || "—"}</span></p>
                     </div>
                     <span className="text-[10px] text-gray-400 whitespace-nowrap">
-                      {new Date(r.created_at).toLocaleDateString("fr-FR")}
+                      {new Date(r.created_at).toLocaleDateString(locale === "en" ? "en-GB" : "fr-FR")}
                     </span>
                   </div>
                   <StarRating rating={r.rating} />
-                  {r.comment && (
-                    <p className="text-sm text-gray-600 mt-2 leading-relaxed">{r.comment}</p>
-                  )}
+                  {r.comment && <p className="text-sm text-gray-600 mt-2 leading-relaxed">{r.comment}</p>}
                 </div>
               </div>
             ))}

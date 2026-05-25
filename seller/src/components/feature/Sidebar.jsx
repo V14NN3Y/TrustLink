@@ -2,27 +2,37 @@ import { useState } from "react";
 import { useLocation, useNavigate, NavLink, Link } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { useSidebar } from "@/lib/SidebarContext";
+import { useLocale } from "@/lib/i18n";
 
 const profileMenuItems = [
-  { icon: "ri-user-line", label: "Mon Profil", path: "/settings/profile" },
-  { icon: "ri-store-2-line", label: "Boutique & Marque", path: "/settings/boutique" },
-  { icon: "ri-notification-3-line", label: "Notifications", path: "/settings/notifications" },
-  { icon: "ri-shield-line", label: "Sécurité", path: "/settings/securite" },
-  { icon: "ri-global-line", label: "Langue & Devise", path: "/settings/langue" },
+  { icon: "ri-user-line", key: "profile", path: "/settings/profile" },
+  { icon: "ri-store-2-line", key: "boutique", path: "/settings/boutique" },
+  { icon: "ri-notification-3-line", key: "notifications", path: "/settings/notifications" },
+  { icon: "ri-shield-line", key: "securite", path: "/settings/securite" },
+  { icon: "ri-global-line", key: "langue", path: "/settings/langue" },
 ];
 
 const navItems = [
-  { path: "/", icon: "ri-dashboard-3-line", label: "Dashboard" },
-  { path: "/orders", icon: "ri-shopping-bag-3-line", label: "Commandes" },
-  { path: "/catalog", icon: "ri-store-2-line", label: "Catalogue" },
-  { path: "/reviews", icon: "ri-star-line", label: "Avis" },
-  { path: "/stats", icon: "ri-bar-chart-line", label: "Statistiques" },
-  { path: "/questions", icon: "ri-question-answer-line", label: "Questions" },
-  { path: "/help", icon: "ri-information-line", label: "Centre d'aide" },
-  { path: "/activity", icon: "ri-history-line", label: "Activité" },
-  { path: "/support", icon: "ri-customer-service-2-line", label: "Support & KYC" },
-  { path: "/messages", icon: "ri-message-3-line", label: "Messages" },
+  { path: "/", icon: "ri-dashboard-3-line", key: "dashboard" },
+  { path: "/orders", icon: "ri-shopping-bag-3-line", key: "orders" },
+  { path: "/catalog", icon: "ri-store-2-line", key: "catalog" },
+  { path: "/reviews", icon: "ri-star-line", key: "reviews" },
+  { path: "/stats", icon: "ri-bar-chart-line", key: "stats" },
+  { path: "/questions", icon: "ri-question-answer-line", key: "questions" },
+  { path: "/help", icon: "ri-information-line", key: "help" },
+  { path: "/activity", icon: "ri-history-line", key: "activity" },
+  { path: "/support", icon: "ri-customer-service-2-line", key: "support" },
+  { path: "/messages", icon: "ri-message-3-line", key: "messages" },
 ];
+
+const profileLabelsFr = {
+  profile: "Mon Profil", boutique: "Boutique & Marque",
+  notifications: "Notifications", securite: "Sécurité", langue: "Langue & Devise",
+};
+const profileLabelsEn = {
+  profile: "My Profile", boutique: "Store & Brand",
+  notifications: "Notifications", securite: "Security", langue: "Language & Currency",
+};
 
 export default function Sidebar() {
   const location = useLocation();
@@ -30,24 +40,21 @@ export default function Sidebar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, profile, logout } = useAuth();
   const { open: sidebarOpen, close } = useSidebar();
+  const { locale, t } = useLocale();
+
+  const profileLabels = locale === "en" ? profileLabelsEn : profileLabelsFr;
 
   const isActive = (path) => {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
 
-  const handleNavClick = () => {
-    close();
-  };
+  const handleNavClick = () => { close(); };
 
   return (
     <>
-      {/* Mobile overlay */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-20 bg-black/50 md:hidden"
-          onClick={close}
-        />
+        <div className="fixed inset-0 z-20 bg-black/50 md:hidden" onClick={close} />
       )}
 
       <div
@@ -66,7 +73,9 @@ export default function Sidebar() {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          <p className="text-white/30 text-[9px] font-bold uppercase tracking-widest px-3 mb-3">Menu Principal</p>
+          <p className="text-white/30 text-[9px] font-bold uppercase tracking-widest px-3 mb-3">
+            {locale === "en" ? "Main Menu" : "Menu Principal"}
+          </p>
           <div className="space-y-0.5">
             {navItems.map((item) => {
               const active = isActive(item.path);
@@ -80,7 +89,7 @@ export default function Sidebar() {
                   }`}
                 >
                   <i className={`${item.icon} text-base w-5 text-center flex-shrink-0 ${active ? "text-[#10B981]" : ""}`}></i>
-                  <span className="text-sm font-medium flex-1 whitespace-nowrap">{item.label}</span>
+                  <span className="text-sm font-medium flex-1 whitespace-nowrap">{t(`nav.${item.key}`)}</span>
                 </NavLink>
               );
             })}
@@ -98,12 +107,12 @@ export default function Sidebar() {
               <div className="py-1">
                 {profileMenuItems.map((item) => (
                   <button
-                    key={item.label}
+                    key={item.key}
                     onClick={() => { navigate(item.path); setMenuOpen(false); handleNavClick(); }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-white/70 hover:text-white hover:bg-white/5 transition-all text-left"
                   >
                     <i className={`${item.icon} text-sm w-4 text-center flex-shrink-0`}></i>
-                    <span className="text-sm">{item.label}</span>
+                    <span className="text-sm">{profileLabels[item.key]}</span>
                   </button>
                 ))}
               </div>
@@ -113,7 +122,7 @@ export default function Sidebar() {
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-red-400 hover:text-red-300 hover:bg-white/5 transition-all text-left"
                 >
                   <i className="ri-logout-box-r-line text-sm w-4 text-center flex-shrink-0"></i>
-                  <span className="text-sm font-medium">Déconnexion</span>
+                  <span className="text-sm font-medium">{locale === "en" ? "Sign out" : "Déconnexion"}</span>
                 </button>
               </div>
             </div>
@@ -137,7 +146,9 @@ export default function Sidebar() {
             </div>
             <div className="flex-1 min-w-0 text-left">
               <div className="text-white text-sm font-semibold truncate">{profile?.business_name || "Vendeur"}</div>
-              <div className="text-white/50 text-[10px] truncate">{profile?.default_city || "Hub"} · Vérifié</div>
+              <div className="text-white/50 text-[10px] truncate">
+                {profile?.default_city || "Hub"} · {locale === "en" ? "Verified" : "Vérifié"}
+              </div>
             </div>
             <i className={`ri-arrow-${menuOpen ? "up" : "down"}-s-line text-white/40 text-sm flex-shrink-0`}></i>
           </button>

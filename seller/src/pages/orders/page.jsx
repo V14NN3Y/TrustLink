@@ -1,22 +1,17 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { useSellerOrders } from "@/hooks/useSellerOrders";
+import { useLocale } from "@/lib/i18n";
+import { useCurrency } from "@/hooks/useCurrency";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import OrderStatusBadge from "./components/OrderStatusBadge";
 import OrderDetailModal from "./components/OrderDetailModal";
 import QRBordereau from "./components/QRBordereau";
 
-const tabs = [
-  { value: "all", label: "Toutes" },
-  { value: "processing", label: "En cours de traitement" },
-  { value: "in_transit", label: "En cours de livraison" },
-  { value: "delivered", label: "Livrées" },
-  { value: "disputed", label: "Litiges" },
-  { value: "cancelled", label: "Annulées" },
-];
-
-function exportOrdersCSV(orders) {
-  const headers = ["ID", "Date", "Acheteur", "Ville", "Produit", "Montant NGN", "Montant FCFA", "Statut"];
+function exportOrdersCSV(orders, locale) {
+  const headers = locale === "en"
+    ? ["ID", "Date", "Buyer", "City", "Product", "Amount NGN", "Amount FCFA", "Status"]
+    : ["ID", "Date", "Acheteur", "Ville", "Produit", "Montant NGN", "Montant FCFA", "Statut"];
   const rows = orders.map((o) => [
     `"${o.id}"`,
     `"${o.created_at ? new Date(o.created_at).toLocaleDateString("fr-FR") : ""}"`,
@@ -32,7 +27,7 @@ function exportOrdersCSV(orders) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `commandes_trustlink_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `orders_trustlink_${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -44,6 +39,17 @@ export default function OrdersPage() {
   const [search, setSearch] = useState("");
   const [detailOrder, setDetailOrder] = useState(null);
   const [showQR, setShowQR] = useState(null);
+  const { t, locale } = useLocale();
+  const { formatPrice } = useCurrency();
+
+  const tabs = [
+    { value: "all", label: t("orders.all") },
+    { value: "processing", label: t("orders.processing") },
+    { value: "in_transit", label: t("orders.inTransit") },
+    { value: "delivered", label: t("orders.delivered") },
+    { value: "disputed", label: t("orders.disputed") },
+    { value: "cancelled", label: t("orders.cancelled") },
+  ];
 
   const filtered = orders.filter((o) => {
     if (activeStatus === "all") return true;
@@ -62,8 +68,9 @@ export default function OrdersPage() {
     );
   });
 
-  const totalFiltered = filtered.reduce((sum, o) => sum + (o.amount_ngn || 0), 0);
-  const totalAll = orders.reduce((sum, o) => sum + (o.amount_ngn || 0), 0);
+  const totalFilteredFCFA = filtered.reduce((sum, o) => sum + (o.amount_fcfa || 0), 0);
+  const totalAllFCFA = orders.reduce((sum, o) => sum + (o.amount_fcfa || 0), 0);
+
   const tabCount = (val) => {
     if (val === "all") return orders.length;
     if (val === "processing") return orders.filter((o) => o.status === "processing").length;
@@ -87,26 +94,26 @@ export default function OrdersPage() {
     <DashboardLayout>
       <div className="flex items-center gap-3 mb-5 flex-wrap">
         <p className="text-sm font-semibold text-gray-700">
-          {orders.length} commandes · Total{" "}
-          <span className="text-[#125C8D]">₦{totalAll.toLocaleString()}</span>
+          {orders.length} {t("orders.total")}{" "}
+          <span className="text-[#125C8D]">{formatPrice(totalAllFCFA)}</span>
         </p>
         <div className="ml-auto flex items-center gap-2">
           <div className="relative">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
             <input
               type="text"
-              placeholder="Rechercher..."
+              placeholder={t("orders.search")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="border border-gray-200 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-700 outline-none w-48 focus:border-[#125C8D] transition-colors"
             />
           </div>
           <button
-            onClick={() => exportOrdersCSV(filtered)}
+            onClick={() => exportOrdersCSV(filtered, locale)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-white whitespace-nowrap cursor-pointer hover:opacity-90 transition-opacity"
             style={{ backgroundColor: "#125C8D" }}
           >
-            <i className="ri-download-2-line text-sm"></i>Exporter CSV
+            <i className="ri-download-2-line text-sm"></i>{t("orders.exportCSV")}
           </button>
         </div>
       </div>
@@ -133,12 +140,12 @@ export default function OrdersPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">ID / Date</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Acheteur</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Articles</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Montant</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Statut</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Actions</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">{t("orders.colId")}</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">{t("orders.colBuyer")}</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">{t("orders.colItems")}</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">{t("orders.colAmount")}</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">{t("orders.colStatus")}</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">{t("orders.colActions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -150,7 +157,7 @@ export default function OrdersPage() {
                 >
                   <td className="px-4 py-3">
                     <p className="text-sm font-bold text-[#125C8D]">{order.id}</p>
-                    <p className="text-[10px] text-gray-400">{order.created_at ? new Date(order.created_at).toLocaleDateString("fr-FR") : ""}</p>
+                    <p className="text-[10px] text-gray-400">{order.created_at ? new Date(order.created_at).toLocaleDateString(locale === "en" ? "en-GB" : "fr-FR") : ""}</p>
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-sm font-medium text-gray-800">{order.buyer || "—"}</p>
@@ -158,10 +165,10 @@ export default function OrdersPage() {
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-xs font-medium text-gray-700 max-w-[180px] truncate">{order.items?.[0]?.product || "—"}</p>
-                    <p className="text-[10px] text-gray-400">FCFA {(order.amount_fcfa || 0).toLocaleString()}</p>
+                    <p className="text-[10px] text-gray-400">{(order.amount_fcfa || 0).toLocaleString()} FCFA</p>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-sm font-bold text-gray-900">₦{(order.amount_ngn || 0).toLocaleString()}</p>
+                    <p className="text-sm font-bold text-gray-900">{formatPrice(order.amount_fcfa || 0)}</p>
                   </td>
                   <td className="px-4 py-3">
                     <OrderStatusBadge status={order.status} />
@@ -178,7 +185,7 @@ export default function OrdersPage() {
                       <button
                         onClick={(e) => { e.stopPropagation(); setDetailOrder(order); }}
                         className="w-7 h-7 rounded-md flex items-center justify-center bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors cursor-pointer"
-                        title="Détail"
+                        title={locale === "en" ? "Detail" : "Détail"}
                       >
                         <i className="ri-eye-line text-xs"></i>
                       </button>
@@ -191,14 +198,14 @@ export default function OrdersPage() {
           {filtered.length === 0 && (
             <div className="text-center py-12 text-gray-400">
               <i className="ri-inbox-line text-3xl mb-2 block"></i>
-              <p className="text-sm">Aucune commande trouvée</p>
+              <p className="text-sm">{t("orders.noOrders")}</p>
             </div>
           )}
         </div>
         {filtered.length > 0 && (
           <div className="px-4 py-3 border-t border-gray-100 flex justify-between items-center">
-            <span className="text-xs text-gray-400">{filtered.length} résultats</span>
-            <span className="text-xs font-bold text-gray-700">Total filtré : ₦{totalFiltered.toLocaleString()}</span>
+            <span className="text-xs text-gray-400">{filtered.length} {t("orders.results")}</span>
+            <span className="text-xs font-bold text-gray-700">{t("orders.filteredTotal")} : {formatPrice(totalFilteredFCFA)}</span>
           </div>
         )}
       </div>
