@@ -4,6 +4,8 @@ import DashboardLayout from "@/components/feature/DashboardLayout";
 import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "@/components/ui/use-toast";
+import { useLocale } from "@/lib/i18n";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const STORE_DOMAIN = import.meta.env.VITE_DOMAIN || 'trustlink.ng';
 const CATEGORIES = ["Mode & Vêtements", "Electronique", "Alimentation", "Beauté & Cosmétiques", "Sports"];
@@ -23,7 +25,7 @@ function SectionTitle({ title, sub }) {
   return (
     <div className="mb-6">
       <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>{title}</h2>
-      <p className="text-sm text-gray-400">{sub || 'Gérez vos informations personnelles et préférences'}</p>
+      {sub && <p className="text-sm text-gray-400">{sub}</p>}
     </div>
   );
 }
@@ -67,6 +69,8 @@ export default function SettingsPage() {
   const { section } = useParams();
   const { user, profile, logout, setProfile } = useAuth();
   const [active, setActive] = useState(section || "profile");
+  const { locale, setLocale } = useLocale();
+  const { currency, setCurrency } = useCurrency();
 
   const [uploadMsg, setUploadMsg] = useState(null);
 
@@ -296,13 +300,7 @@ export default function SettingsPage() {
       setNotifSaving(false);
     }
   };
-  const currentLocale = typeof window !== 'undefined' ? localStorage.getItem('trustlink_seller_locale') || 'fr' : 'fr';
-  const currentCurrency = typeof window !== 'undefined' ? localStorage.getItem('trustlink_currency') || 'NGN' : 'NGN';
-  const [langForm, setLangForm] = useState({
-    lang: currentLocale === 'fr' ? 'Français' : 'English',
-    devise: currentCurrency === 'NGN' ? "Naira nigérian (₦)" : "Franc CFA (FCFA)",
-    timezone: "Africa/Lagos (GMT+1)",
-  });
+  const [langTimezone, setLangTimezone] = useState("Africa/Lagos (GMT+1)");
 
   const pwMismatch = passwords.next && passwords.confirm && passwords.next !== passwords.confirm;
 
@@ -311,12 +309,9 @@ export default function SettingsPage() {
   const [savedLangMsg, setSavedLangMsg] = useState(false);
 
   const handleSaveLang = async () => {
-    const localeVal = langForm.lang === 'Français' ? 'fr' : 'en';
-    const currencyVal = langForm.devise.includes('Naira') ? 'NGN' : 'XOF';
-    localStorage.setItem('trustlink_seller_locale', localeVal);
-    localStorage.setItem('trustlink_currency', currencyVal);
-    window.dispatchEvent(new CustomEvent('currency-change', { detail: currencyVal }));
-    await supabase.from('profiles').update({ locale: localeVal }).eq('id', user?.id);
+    setLocale(locale);
+    setCurrency(currency);
+    await supabase.from('profiles').update({ locale }).eq('id', user?.id);
     setSavedLangMsg(true);
     setTimeout(() => setSavedLangMsg(false), 3000);
   };
@@ -327,24 +322,32 @@ export default function SettingsPage() {
         {/* Left nav */}
         <div className="w-56 flex-shrink-0">
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-            {sideNav.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActive(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-all text-left border-b border-gray-50 last:border-0 ${active === item.id ? "text-[#125C8D] font-semibold bg-[#125C8D]/5" : "text-gray-600 hover:bg-gray-50"
-                  }`}
-              >
-                <i className={`${item.icon} text-base w-4 text-center ${active === item.id ? "text-[#125C8D]" : "text-gray-400"}`}></i>
-                {item.label}
-              </button>
-            ))}
+            {sideNav.map((item) => {
+              const navLabels = {
+                profile: locale === 'en' ? 'My Profile' : 'Mon Profil',
+                boutique: locale === 'en' ? 'Store & Brand' : 'Boutique & Marque',
+                notifications: 'Notifications',
+                securite: locale === 'en' ? 'Security' : 'Sécurité',
+                langue: locale === 'en' ? 'Language & Currency' : 'Langue & Devise',
+              };
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActive(item.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-all text-left border-b border-gray-50 last:border-0 ${active === item.id ? "text-[#125C8D] font-semibold bg-[#125C8D]/5" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  <i className={`${item.icon} text-base w-4 text-center ${active === item.id ? "text-[#125C8D]" : "text-gray-400"}`}></i>
+                  {navLabels[item.id] || item.label}
+                </button>
+              );
+            })}
             <div className="border-t border-gray-100">
               <button
                 onClick={logout}
                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-all text-left"
               >
                 <i className="ri-logout-box-r-line text-base w-4 text-center"></i>
-                Déconnexion
+                {locale === 'en' ? 'Sign out' : 'Déconnexion'}
               </button>
             </div>
           </div>
@@ -360,7 +363,10 @@ export default function SettingsPage() {
                   <i className={`${uploadMsg.type === 'success' ? 'ri-checkbox-circle-line' : 'ri-error-warning-line'}`} />{uploadMsg.text}
                 </div>
               )}
-              <SectionTitle title="Mon Profil" />
+              <SectionTitle
+                title={locale === 'en' ? 'My Profile' : 'Mon Profil'}
+                sub={locale === 'en' ? 'Manage your personal information' : 'Gérez vos informations personnelles'}
+              />
               {/* Photo */}
               <div className="bg-white rounded-xl border border-gray-100 p-6 mb-4">
                 <h3 className="text-sm font-bold text-gray-800 mb-4">Photo de profil</h3>
@@ -469,7 +475,10 @@ export default function SettingsPage() {
           {/* Boutique & Marque */}
           {active === "boutique" && (
             <div>
-              <SectionTitle title="Boutique & Marque" />
+              <SectionTitle
+                title={locale === 'en' ? 'Store & Brand' : 'Boutique & Marque'}
+                sub={locale === 'en' ? 'Manage your store identity and branding' : 'Gérez l\'identité et la marque de votre boutique'}
+              />
               {/* Logo */}
               <div className="bg-white rounded-xl border border-gray-100 p-6 mb-4">
                 <h3 className="text-sm font-bold text-gray-800 mb-4">Logo de la boutique</h3>
@@ -572,7 +581,10 @@ export default function SettingsPage() {
           {/* Notifications */}
           {active === "notifications" && (
             <div>
-              <SectionTitle title="Notifications" />
+              <SectionTitle
+                title="Notifications"
+                sub={locale === 'en' ? 'Manage your notification preferences' : 'Gérez vos préférences de notification'}
+              />
               <div className="mb-4">
                 <button
                   onClick={() => navigate("/notifications")}
@@ -630,7 +642,10 @@ export default function SettingsPage() {
           {/* Sécurité */}
           {active === "securite" && (
             <div>
-              <SectionTitle title="Sécurité" />
+              <SectionTitle
+                title={locale === 'en' ? 'Security' : 'Sécurité'}
+                sub={locale === 'en' ? 'Password and account access' : 'Mot de passe et accès au compte'}
+              />
               {/* Password */}
               <div className="bg-white rounded-xl border border-gray-100 p-6 mb-4">
                 <h3 className="text-sm font-bold text-gray-800 mb-4">Modifier le mot de passe</h3>
@@ -705,38 +720,73 @@ export default function SettingsPage() {
           {/* Langue & Devise */}
           {active === "langue" && (
             <div>
-              <SectionTitle title="Langue & Devise" />
+              <SectionTitle
+                title={locale === 'en' ? 'Language & Currency' : 'Langue & Devise'}
+                sub={locale === 'en' ? 'Display language and currency for the interface' : 'Langue et devise d\'affichage de l\'interface'}
+              />
               <div className="bg-white rounded-xl border border-gray-100 p-6 mb-4">
-                <h3 className="text-sm font-bold text-gray-800 mb-4">Langue & Devise</h3>
-                <div className="space-y-4 max-w-lg">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-gray-500 block mb-1">Langue d'interface</label>
-                      <select value={langForm.lang} onChange={e => setLangForm(f => ({ ...f, lang: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none bg-white cursor-pointer">
-                        {LANGUAGES.map(l => <option key={l}>{l}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 block mb-1">Devise principale</label>
-                      <select value={langForm.devise} onChange={e => setLangForm(f => ({ ...f, devise: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none bg-white cursor-pointer">
-                        {CURRENCIES.map(d => <option key={d}>{d}</option>)}
-                      </select>
-                    </div>
-                  </div>
+                <div className="space-y-6 max-w-lg">
+                  {/* Language toggle */}
                   <div>
-                    <label className="text-xs text-gray-500 block mb-1">Fuseau horaire</label>
-                    <select value={langForm.timezone} onChange={e => setLangForm(f => ({ ...f, timezone: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none bg-white cursor-pointer">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">
+                      {locale === 'en' ? 'Interface language' : 'Langue d\'interface'}
+                    </p>
+                    <div className="flex items-center bg-gray-100 p-1 rounded-xl w-fit gap-1">
+                      {[{ val: 'fr', label: 'Français' }, { val: 'en', label: 'English' }].map(({ val, label }) => (
+                        <button
+                          key={val}
+                          onClick={() => setLocale(val)}
+                          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${locale === val ? 'bg-[#125C8D] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                      {locale === 'en' ? 'Takes effect immediately across all pages.' : 'Prend effet immédiatement sur toutes les pages.'}
+                    </p>
+                  </div>
+
+                  {/* Currency toggle */}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">
+                      {locale === 'en' ? 'Display currency' : 'Devise d\'affichage'}
+                    </p>
+                    <div className="flex items-center bg-gray-100 p-1 rounded-xl w-fit gap-1">
+                      {[{ val: 'NGN', label: 'Naira (₦ NGN)' }, { val: 'XOF', label: 'Franc CFA (FCFA)' }].map(({ val, label }) => (
+                        <button
+                          key={val}
+                          onClick={() => setCurrency(val)}
+                          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${currency === val ? 'bg-[#10B981] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                      {locale === 'en' ? 'All prices update instantly across the dashboard.' : 'Tous les prix se mettent à jour instantanément.'}
+                    </p>
+                  </div>
+
+                  {/* Timezone */}
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest block mb-3">
+                      {locale === 'en' ? 'Timezone' : 'Fuseau horaire'}
+                    </label>
+                    <select value={langTimezone} onChange={e => setLangTimezone(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#125C8D] bg-gray-50 cursor-pointer">
                       {TIMEZONES.map(t => <option key={t}>{t}</option>)}
                     </select>
                   </div>
+
                   {savedLangMsg && (
-                    <div className="animate-fade-in bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 text-emerald-700 text-xs flex items-center gap-2 mb-3">
-                      <i className="ri-checkbox-circle-line" />Préférences sauvegardées
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 text-emerald-700 text-xs flex items-center gap-2">
+                      <i className="ri-checkbox-circle-line" />
+                      {locale === 'en' ? 'Saved to your profile' : 'Sauvegardé dans votre profil'}
                     </div>
                   )}
                   <div className="flex justify-end">
                     <button onClick={handleSaveLang} className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity" style={{ backgroundColor: "#125C8D" }}>
-                      Sauvegarder
+                      {locale === 'en' ? 'Save to profile' : 'Sauvegarder dans le profil'}
                     </button>
                   </div>
                 </div>

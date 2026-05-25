@@ -1,19 +1,27 @@
 import { useNavigate } from "react-router-dom";
+import { useCurrency } from "@/hooks/useCurrency";
+import { useLocale } from "@/lib/i18n";
 
 export default function TopProducts({ products = [] }) {
   const navigate = useNavigate();
+  const { formatPrice } = useCurrency();
+  const { locale } = useLocale();
+
   const sorted = [...products]
     .sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0))
     .slice(0, 5);
+
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>Top Produits</h3>
+        <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
+          {locale === "en" ? "Top Products" : "Top Produits"}
+        </h3>
         <button
           onClick={() => navigate("/catalog")}
           className="text-[10px] font-semibold text-[#125C8D] hover:underline cursor-pointer whitespace-nowrap"
         >
-          Voir catalogue
+          {locale === "en" ? "View catalog" : "Voir catalogue"}
         </button>
       </div>
       <div className="space-y-3">
@@ -34,16 +42,18 @@ export default function TopProducts({ products = [] }) {
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-gray-900 truncate">{product.name}</p>
               <p className="text-[10px] text-gray-400">
-                {(product.sales_count || 0)} vendus &bull; Stock : {product.stock_total || 0}
+                {(product.sales_count || 0)} {locale === "en" ? "sold" : "vendus"} &bull; {locale === "en" ? "Stock" : "Stock"}: {product.stock_total || 0}
               </p>
             </div>
             <p className="text-xs font-bold text-[#10B981] whitespace-nowrap flex-shrink-0">
-              ₦{(product.price_ngn || 0).toLocaleString()}
+              {formatPrice(product.price_fcfa || 0)}
             </p>
           </div>
         ))}
         {sorted.length === 0 && (
-          <p className="text-xs text-gray-400 text-center py-4">Aucun produit vendu pour l'instant</p>
+          <p className="text-xs text-gray-400 text-center py-4">
+            {locale === "en" ? "No products sold yet" : "Aucun produit vendu pour l'instant"}
+          </p>
         )}
       </div>
     </div>
