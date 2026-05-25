@@ -70,6 +70,15 @@ export default function Home() {
     });
   }, [user]);
   const isLoading = ordersLoading || productsLoading;
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <DashboardSkeleton />
+      </DashboardLayout>
+    );
+  }
+
   const toShip = orders.filter((o) => o.status === "paid" || o.status === "processing").length;
   const delivered = orders.filter((o) => o.status === "delivered" || o.status === "confirmed").length;
   const totalRevenue = orders.reduce((s, o) => s + (o.amount_ngn || 0), 0);

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 const PRESET_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL", "Unique"];
+const PRESET_MATERIALS = ["Coton", "Polyester", "Lin", "Soie", "Laine", "Cuir", "Jean"];
 const PRESET_COLORS = [
   { name: "Noir", hex: "#111827" },
   { name: "Blanc", hex: "#F9FAFB" },
@@ -17,25 +18,30 @@ const PRESET_COLORS = [
   { name: "Violet", hex: "#8B5CF6" },
 ];
 
-const VARIANT_TYPES = [
-  { key: "size", label: "Taille", icon: "ri-ruler-line" },
-  { key: "color", label: "Couleur", icon: "ri-palette-line" },
-  { key: "material", label: "Matériau", icon: "ri-t-shirt-line" },
-];
-
-function SizeChip({ value, selected, onClick }) {
+function SizeChip({ value, selected, onClick, onRemove, isCustom }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
-        selected
-          ? "border-[#125C8D] bg-[#125C8D] text-white"
-          : "border-gray-200 text-gray-600 hover:border-gray-400"
-      }`}
-    >
-      {value}
-    </button>
+    <div className="relative group">
+      <button
+        type="button"
+        onClick={onClick}
+        className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+          selected
+            ? "border-[#125C8D] bg-[#125C8D] text-white"
+            : "border-gray-200 text-gray-600 hover:border-gray-400"
+        }`}
+      >
+        {value}
+      </button>
+      {isCustom && selected && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10"
+        >
+          ×
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -49,18 +55,14 @@ function ColorSwatch({ color, selected, onClick }) {
       title={color.name}
     >
       <div
-        className={`w-8 h-8 rounded-full border-2 transition-all ${
+        className={`w-9 h-9 rounded-full border-2 transition-all flex items-center justify-center ${
           selected ? "border-[#125C8D] scale-110 shadow-md" : "border-gray-200 hover:border-gray-400"
         }`}
         style={{ backgroundColor: color.hex }}
       >
-        {isLight && (
-          <div className="w-full h-full rounded-full border border-gray-300" />
-        )}
+        {isLight && <div className="w-full h-full rounded-full border border-gray-300" />}
         {selected && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <i className={`ri-check-line text-[10px] font-bold ${isLight ? "text-gray-700" : "text-white"}`}></i>
-          </div>
+          <i className={`ri-check-line text-[10px] font-bold ${isLight ? "text-gray-700" : "text-white"}`}></i>
         )}
       </div>
       <span className="text-[9px] text-gray-400 group-hover:text-gray-600 max-w-[36px] text-center leading-tight">{color.name}</span>
@@ -69,11 +71,13 @@ function ColorSwatch({ color, selected, onClick }) {
 }
 
 export default function VariantsEditor({ productId, onVariantsChange }) {
-  const [activeType, setActiveType] = useState("size");
   const [variants, setVariants] = useState([]);
   const [loading, setLoading] = useState(!!productId);
   const [selectedValues, setSelectedValues] = useState({ size: [], color: [], material: [] });
-  const [customInput, setCustomInput] = useState("");
+  const [customSizes, setCustomSizes] = useState([]);
+  const [customColors, setCustomColors] = useState([]);
+  const [customMaterials, setCustomMaterials] = useState([]);
+  const [customInputs, setCustomInputs] = useState({ size: "", color: "", material: "" });
   const [stockMap, setStockMap] = useState({});
   const [modifierMap, setModifierMap] = useState({});
 
@@ -93,25 +97,49 @@ export default function VariantsEditor({ productId, onVariantsChange }) {
       setSelectedValues(sel);
       setStockMap(sMap);
       setModifierMap(mMap);
+      const cs = rows.filter(v => v.type === "size" && !PRESET_SIZES.includes(v.value)).map(v => v.value);
+      const cc = rows.filter(v => v.type === "color" && !PRESET_COLORS.find(c => c.name === v.value)).map(v => v.value);
+      const cm = rows.filter(v => v.type === "material" && !PRESET_MATERIALS.includes(v.value)).map(v => v.value);
+      if (cs.length) setCustomSizes([...new Set(cs)]);
+      if (cc.length) setCustomColors([...new Set(cc)]);
+      if (cm.length) setCustomMaterials([...new Set(cm)]);
       setLoading(false);
     });
   }, [productId]);
 
-  const toggleValue = (type, value) => {
-    setSelectedValues(prev => {
-      const current = prev[type] || [];
-      const next = current.includes(value) ? current.filter(v => v !== value) : [...current, value];
-      const newSel = { ...prev, [type]: next };
-      emitChange(newSel, stockMap, modifierMap);
-      return newSel;
-    });
+  const toggleValue = (type, value, newSel) => {
+    const base = newSel || selectedValues;
+    const current = base[type] || [];
+    const next = current.includes(value) ? current.filter(v => v !== value) : [...current, value];
+    const updated = { ...base, [type]: next };
+    setSelectedValues(updated);
+    emitChange(updated, stockMap, modifierMap);
+    return updated;
   };
 
-  const addCustom = () => {
-    const val = customInput.trim();
+  const addCustom = (type) => {
+    const val = customInputs[type].trim();
     if (!val) return;
-    toggleValue(activeType, val);
-    setCustomInput("");
+    if (type === "size" && !PRESET_SIZES.includes(val) && !customSizes.includes(val)) setCustomSizes(p => [...p, val]);
+    if (type === "color" && !PRESET_COLORS.find(c => c.name === val) && !customColors.includes(val)) setCustomColors(p => [...p, val]);
+    if (type === "material" && !PRESET_MATERIALS.includes(val) && !customMaterials.includes(val)) setCustomMaterials(p => [...p, val]);
+    setCustomInputs(p => ({ ...p, [type]: "" }));
+    const current = selectedValues[type] || [];
+    if (!current.includes(val)) {
+      const updated = { ...selectedValues, [type]: [...current, val] };
+      setSelectedValues(updated);
+      emitChange(updated, stockMap, modifierMap);
+    }
+  };
+
+  const removeCustom = (type, value) => {
+    if (type === "size") setCustomSizes(p => p.filter(v => v !== value));
+    if (type === "color") setCustomColors(p => p.filter(v => v !== value));
+    if (type === "material") setCustomMaterials(p => p.filter(v => v !== value));
+    const current = selectedValues[type] || [];
+    const updated = { ...selectedValues, [type]: current.filter(v => v !== value) };
+    setSelectedValues(updated);
+    emitChange(updated, stockMap, modifierMap);
   };
 
   const setStock = (type, value, stock) => {
@@ -166,211 +194,247 @@ export default function VariantsEditor({ productId, onVariantsChange }) {
 
   const removeVariant = async (type, value) => {
     const existing = variants.find(v => v.type === type && v.value === value);
-    if (existing) {
+    if (existing && productId) {
       await supabase.from("product_variants").delete().eq("id", existing.id);
       setVariants(v => v.filter(x => x.id !== existing.id));
     }
-    toggleValue(type, value);
+    const updated = { ...selectedValues, [type]: selectedValues[type].filter(v => v !== value) };
+    setSelectedValues(updated);
+    emitChange(updated, stockMap, modifierMap);
   };
 
   const totalSelected = Object.values(selectedValues).flat().length;
 
-  if (loading) return <div className="animate-pulse h-20 bg-gray-100 rounded-xl" />;
+  if (loading) return <div className="animate-pulse h-24 bg-gray-100 rounded-xl" />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
           Variantes produit
-          {totalSelected > 0 && (
-            <span className="ml-2 px-2 py-0.5 rounded-full text-[#125C8D] bg-[#125C8D]/10 text-[10px] font-bold">
-              {totalSelected} sélectionnée{totalSelected > 1 ? "s" : ""}
+        </p>
+        {totalSelected > 0 && (
+          <span className="px-2 py-0.5 rounded-full text-[#125C8D] bg-[#125C8D]/10 text-[10px] font-bold">
+            {totalSelected} sélectionnée{totalSelected > 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+
+      {/* Couleurs */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <i className="ri-palette-line text-gray-400 text-sm"></i>
+          <p className="text-xs font-semibold text-gray-700">Couleurs</p>
+          {selectedValues.color.length > 0 && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#125C8D]/10 text-[#125C8D]">
+              {selectedValues.color.length}
             </span>
           )}
-        </p>
-      </div>
-
-      {/* Type tabs */}
-      <div className="flex gap-1">
-        {VARIANT_TYPES.map(t => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setActiveType(t.key)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              activeType === t.key
-                ? "bg-[#125C8D] text-white"
-                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-            }`}
-          >
-            <i className={t.icon}></i>{t.label}
-            {selectedValues[t.key]?.length > 0 && (
-              <span className={`text-[9px] font-bold px-1.5 rounded-full ${activeType === t.key ? "bg-white/20 text-white" : "bg-[#125C8D]/15 text-[#125C8D]"}`}>
-                {selectedValues[t.key].length}
-              </span>
-            )}
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {PRESET_COLORS.map(c => (
+            <ColorSwatch
+              key={c.name}
+              color={c}
+              selected={selectedValues.color.includes(c.name)}
+              onClick={() => toggleValue("color", c.name)}
+            />
+          ))}
+          {customColors.map(name => (
+            <ColorSwatch
+              key={name}
+              color={{ name, hex: "#888" }}
+              selected={selectedValues.color.includes(name)}
+              onClick={() => toggleValue("color", name)}
+            />
+          ))}
+        </div>
+        <div className="flex gap-1.5">
+          <input
+            value={customInputs.color}
+            onChange={e => setCustomInputs(p => ({ ...p, color: e.target.value }))}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom("color"); } }}
+            placeholder="Autre couleur..."
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-[#125C8D]"
+          />
+          <button type="button" onClick={() => addCustom("color")} className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 cursor-pointer whitespace-nowrap">
+            + Ajouter
           </button>
-        ))}
+        </div>
       </div>
 
-      {/* Taille presets */}
-      {activeType === "size" && (
-        <div>
-          <p className="text-[10px] text-gray-400 mb-2">Sélectionnez les tailles disponibles</p>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {PRESET_SIZES.map(s => (
-              <SizeChip
-                key={s}
-                value={s}
-                selected={selectedValues.size.includes(s)}
-                onClick={() => toggleValue("size", s)}
-              />
-            ))}
-          </div>
-          <div className="flex gap-1.5">
-            <input
-              value={customInput}
-              onChange={e => setCustomInput(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom(); } }}
-              placeholder="Autre taille (ex: 38, 40...)"
-              className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-[#125C8D]"
-            />
-            <button
-              type="button"
-              onClick={addCustom}
-              className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 cursor-pointer"
-            >
-              Ajouter
-            </button>
-          </div>
-        </div>
-      )}
+      <div className="border-t border-gray-100"></div>
 
-      {/* Couleur presets */}
-      {activeType === "color" && (
-        <div>
-          <p className="text-[10px] text-gray-400 mb-2">Sélectionnez les couleurs disponibles</p>
-          <div className="flex flex-wrap gap-3 mb-3">
-            {PRESET_COLORS.map(c => (
-              <ColorSwatch
-                key={c.name}
-                color={c}
-                selected={selectedValues.color.includes(c.name)}
-                onClick={() => toggleValue("color", c.name)}
-              />
-            ))}
-          </div>
-          <div className="flex gap-1.5">
-            <input
-              value={customInput}
-              onChange={e => setCustomInput(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom(); } }}
-              placeholder="Autre couleur"
-              className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-[#125C8D]"
-            />
-            <button type="button" onClick={addCustom} className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 cursor-pointer">
-              Ajouter
-            </button>
-          </div>
+      {/* Tailles */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <i className="ri-ruler-line text-gray-400 text-sm"></i>
+          <p className="text-xs font-semibold text-gray-700">Tailles</p>
+          {selectedValues.size.length > 0 && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#125C8D]/10 text-[#125C8D]">
+              {selectedValues.size.length}
+            </span>
+          )}
         </div>
-      )}
-
-      {/* Matériau */}
-      {activeType === "material" && (
-        <div>
-          <p className="text-[10px] text-gray-400 mb-2">Ajoutez les matériaux disponibles</p>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {["Coton", "Polyester", "Lin", "Soie", "Laine", "Cuir", "Jean"].map(s => (
-              <SizeChip
-                key={s}
-                value={s}
-                selected={selectedValues.material.includes(s)}
-                onClick={() => toggleValue("material", s)}
-              />
-            ))}
-          </div>
-          <div className="flex gap-1.5">
-            <input
-              value={customInput}
-              onChange={e => setCustomInput(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom(); } }}
-              placeholder="Autre matériau"
-              className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-[#125C8D]"
+        <div className="flex flex-wrap gap-2">
+          {PRESET_SIZES.map(s => (
+            <SizeChip
+              key={s}
+              value={s}
+              selected={selectedValues.size.includes(s)}
+              onClick={() => toggleValue("size", s)}
             />
-            <button type="button" onClick={addCustom} className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 cursor-pointer">
-              Ajouter
-            </button>
-          </div>
+          ))}
+          {customSizes.map(s => (
+            <SizeChip
+              key={s}
+              value={s}
+              selected={selectedValues.size.includes(s)}
+              onClick={() => toggleValue("size", s)}
+              onRemove={() => removeCustom("size", s)}
+              isCustom
+            />
+          ))}
         </div>
-      )}
+        <div className="flex gap-1.5">
+          <input
+            value={customInputs.size}
+            onChange={e => setCustomInputs(p => ({ ...p, size: e.target.value }))}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom("size"); } }}
+            placeholder="Autre taille (ex: 38, 40, 2XL...)"
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-[#125C8D]"
+          />
+          <button type="button" onClick={() => addCustom("size")} className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 cursor-pointer whitespace-nowrap">
+            + Ajouter
+          </button>
+        </div>
+      </div>
 
-      {/* Stock & modifier per selected variant */}
+      <div className="border-t border-gray-100"></div>
+
+      {/* Matériaux */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <i className="ri-t-shirt-line text-gray-400 text-sm"></i>
+          <p className="text-xs font-semibold text-gray-700">Matériaux</p>
+          {selectedValues.material.length > 0 && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#125C8D]/10 text-[#125C8D]">
+              {selectedValues.material.length}
+            </span>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {PRESET_MATERIALS.map(s => (
+            <SizeChip
+              key={s}
+              value={s}
+              selected={selectedValues.material.includes(s)}
+              onClick={() => toggleValue("material", s)}
+            />
+          ))}
+          {customMaterials.map(s => (
+            <SizeChip
+              key={s}
+              value={s}
+              selected={selectedValues.material.includes(s)}
+              onClick={() => toggleValue("material", s)}
+              onRemove={() => removeCustom("material", s)}
+              isCustom
+            />
+          ))}
+        </div>
+        <div className="flex gap-1.5">
+          <input
+            value={customInputs.material}
+            onChange={e => setCustomInputs(p => ({ ...p, material: e.target.value }))}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom("material"); } }}
+            placeholder="Autre matériau..."
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-[#125C8D]"
+          />
+          <button type="button" onClick={() => addCustom("material")} className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 cursor-pointer whitespace-nowrap">
+            + Ajouter
+          </button>
+        </div>
+      </div>
+
+      {/* Stock table */}
       {totalSelected > 0 && (
-        <div className="border border-gray-100 rounded-xl overflow-hidden">
-          <div className="bg-gray-50 px-3 py-2 border-b border-gray-100">
-            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Stock par variante</p>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {Object.entries(selectedValues).flatMap(([type, values]) =>
-              values.map(value => {
-                const key = `${type}:${value}`;
-                const typeCfg = VARIANT_TYPES.find(t => t.key === type);
-                return (
-                  <div key={key} className="flex items-center gap-3 px-3 py-2">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      {type === "color" && (
-                        <div
-                          className="w-4 h-4 rounded-full border border-gray-200 flex-shrink-0"
-                          style={{ backgroundColor: PRESET_COLORS.find(c => c.name === value)?.hex || "#888" }}
-                        />
-                      )}
-                      {type !== "color" && (
-                        <i className={`${typeCfg?.icon} text-gray-400 text-xs flex-shrink-0`}></i>
-                      )}
-                      <span className="text-xs font-semibold text-gray-700 truncate">{value}</span>
-                      <span className="text-[10px] text-gray-400 capitalize">({type === "size" ? "taille" : type === "color" ? "couleur" : "matériau"})</span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <div className="flex items-center gap-1">
-                        <label className="text-[10px] text-gray-400">Stock</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={stockMap[key] ?? 0}
-                          onChange={e => setStock(type, value, e.target.value)}
-                          onBlur={() => productId && saveVariant(type, value)}
-                          className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-[#125C8D] text-center"
-                        />
+        <>
+          <div className="border-t border-gray-100"></div>
+          <div className="border border-gray-100 rounded-xl overflow-hidden">
+            <div className="bg-gray-50 px-3 py-2 border-b border-gray-100 flex items-center justify-between">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Stock & prix par variante</p>
+              <p className="text-[10px] text-gray-400">{totalSelected} variante{totalSelected > 1 ? "s" : ""}</p>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {Object.entries(selectedValues).flatMap(([type, values]) =>
+                values.map(value => {
+                  const key = `${type}:${value}`;
+                  const typeLabel = type === "size" ? "Taille" : type === "color" ? "Couleur" : "Matériau";
+                  const colorHex = type === "color"
+                    ? (PRESET_COLORS.find(c => c.name === value)?.hex || "#888")
+                    : null;
+                  return (
+                    <div key={key} className="flex items-center gap-3 px-3 py-2.5">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {colorHex ? (
+                          <div className="w-5 h-5 rounded-full border border-gray-200 flex-shrink-0" style={{ backgroundColor: colorHex }} />
+                        ) : (
+                          <div className="w-5 h-5 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[8px] font-bold text-gray-400">{value.slice(0, 2).toUpperCase()}</span>
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-gray-800 truncate">{value}</p>
+                          <p className="text-[10px] text-gray-400">{typeLabel}</p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <label className="text-[10px] text-gray-400">+NGN</label>
-                        <input
-                          type="number"
-                          value={modifierMap[key] ?? 0}
-                          onChange={e => setModifier(type, value, e.target.value)}
-                          onBlur={() => productId && saveVariant(type, value)}
-                          className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-[#125C8D] text-center"
-                        />
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <label className="text-[9px] text-gray-400 uppercase tracking-widest">Stock</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={stockMap[key] ?? 0}
+                            onChange={e => setStock(type, value, e.target.value)}
+                            onBlur={() => productId && saveVariant(type, value)}
+                            className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-[#125C8D] text-center"
+                          />
+                        </div>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <label className="text-[9px] text-gray-400 uppercase tracking-widest">+NGN</label>
+                          <input
+                            type="number"
+                            value={modifierMap[key] ?? 0}
+                            onChange={e => setModifier(type, value, e.target.value)}
+                            onBlur={() => productId && saveVariant(type, value)}
+                            className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-[#125C8D] text-center"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => productId ? removeVariant(type, value) : (() => {
+                            const updated = { ...selectedValues, [type]: selectedValues[type].filter(v => v !== value) };
+                            setSelectedValues(updated);
+                            emitChange(updated, stockMap, modifierMap);
+                          })()}
+                          className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors cursor-pointer"
+                        >
+                          <i className="ri-close-line text-sm"></i>
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => productId ? removeVariant(type, value) : toggleValue(type, value)}
-                        className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors cursor-pointer"
-                      >
-                        <i className="ri-close-line text-sm"></i>
-                      </button>
                     </div>
-                  </div>
-                );
-              })
-            )}
+                  );
+                })
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {totalSelected === 0 && (
         <p className="text-xs text-gray-400 text-center py-3 bg-gray-50 rounded-xl">
-          Aucune variante sélectionnée — les variantes sont optionnelles
+          Sélectionnez des couleurs, tailles ou matériaux pour créer des variantes
         </p>
       )}
     </div>

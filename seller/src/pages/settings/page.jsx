@@ -251,9 +251,10 @@ export default function SettingsPage() {
       if (!data) return;
       const typeLabelMap = {
         'new_order': 'Nouvelle commande reçue',
-        'dispute_update': 'Mise à jour du statut KYC',
-        'order_update': 'Commande livrée',
         'dispatch_ready': 'Commande prête à expédier',
+        'order_update': 'Commande livrée',
+        'security_alert': 'Connexion depuis un nouvel appareil',
+        'dispute_update': 'Mise à jour du statut KYC',
       };
       const newNotifs = { ...notifs };
       data.forEach(p => {
@@ -273,7 +274,7 @@ export default function SettingsPage() {
       'Nouvelle commande reçue': 'new_order',
       'Commande prête à expédier': 'dispatch_ready',
       'Commande livrée': 'order_update',
-      'Connexion depuis un nouvel appareil': 'new_message',
+      'Connexion depuis un nouvel appareil': 'security_alert',
       'Mise à jour du statut KYC': 'dispute_update',
     };
     try {

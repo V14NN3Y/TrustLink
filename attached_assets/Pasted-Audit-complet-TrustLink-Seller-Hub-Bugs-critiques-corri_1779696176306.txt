@@ -1,0 +1,56 @@
+Audit complet — TrustLink Seller Hub
+🔴 Bugs critiques (à corriger en priorité)
+
+1. QR codes non fonctionnels
+Le composant MiniQR génère une grille visuelle aléatoire basée sur l'ID de commande, mais ce ne sont pas de vrais QR codes. Aucun scanner physique ne pourra les lire — ce qui rend les bordereaux d'expédition inutilisables en pratique.
+
+2. Les commandes non expédiées n'apparaissent jamais
+Dans useSellerOrders.js, il y a un filtre .not('dispatched_at', 'is', null) qui exclut toutes les commandes dont la date d'expédition n'est pas renseignée. Résultat : les nouvelles commandes en statut "processing" n'apparaissent jamais dans le tableau de bord.
+
+3. Prix en NaN quand le taux de change est absent
+Dans useSellerProducts.js et useSellerOrders.js, si la table exchange_rates ne renvoie rien, rate vaut undefined. Toutes les divisions donnent alors NaN, ce qui affiche des prix cassés partout.
+
+4. Les variantes produit ne sont jamais sauvegardées
+L'interface de création produit (étape 2) permet d'ajouter des variantes, mais dans handleSubmit, seuls le produit principal et son image sont insérés en base. Le tableau form.variants est complètement ignoré.
+
+5. Bouton "Exporter CSV" des commandes inactif
+Dans orders/page.jsx, le bouton "Exporter CSV" n'a aucun gestionnaire onClick. Il est cliquable visuellement mais ne fait strictement rien.
+🟠 Problèmes fonctionnels
+
+6. Pas de redirection si déjà connecté
+Un vendeur déjà authentifié peut accéder manuellement à /login et /register sans être redirigé vers le dashboard.
+
+7. Création produit : image par URL seulement
+L'ajout d'un produit demande une URL d'image externe, alors que le profil et la boutique ont un vrai upload de fichier vers Supabase Storage. Incohérence importante.
+
+8. Metric "Croissance" figée à 0%
+Dans la page Statistiques, le taux de croissance affiche toujours "0%" — il est hardcodé, aucun calcul réel n'est effectué.
+
+9. Incohérence validation mot de passe
+Le placeholder des champs mot de passe sur l'inscription dit "Min. 6 caractères" mais le code en dur valide à partir de 8 caractères.
+
+10. Pas de lien "Mot de passe oublié" sur la page login
+Aucun accès à la récupération de compte depuis la page de connexion.
+🟡 Problèmes UX / interface
+
+11. Flèche du menu sidebar inversée
+Quand le menu profil est ouvert, l'icône affiche une flèche vers le bas (logique inverse). La condition menuOpen ? "down" : "up" est à l'envers.
+
+12. Aucune responsivité mobile
+Le DashboardLayout utilise marginLeft: 256px en dur. Sur mobile ou tablette, la sidebar recouvre le contenu ou crée un espace blanc. Pas de menu hamburger.
+
+13. Pas d'état de chargement sur le Dashboard
+La page d'accueil rend directement le layout avec des compteurs à zéro pendant que les données chargent, sans spinner ni squelette.
+
+14. La map des types de notifications a des doublons
+Dans les préférences notifications, "Commande livrée" et "Commande prête à expédier" sont toutes deux mappées sur 'order_update', ce qui écrase les préférences en base.
+🔵 Fonctionnalités manquantes / incomplètes
+
+15. Pas de bouton "Demander un paiement"
+La page Paiements est en lecture seule. Le vendeur ne peut pas initier une demande de versement lui-même.
+
+16. Messagerie cassée si aucun admin
+MessagingSection.jsx cherche un admin pour ouvrir un fil de discussion. Si aucun profil admin n'existe en base, le vendeur ne peut pas envoyer de message.
+
+17. Statistiques : croissance mensuelle non calculée
+Le graphique montre l'évolution des revenus mais ne calcule jamais la variation mois sur mois.
