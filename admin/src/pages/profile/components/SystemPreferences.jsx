@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
-import { StorageManager } from '@/lib/storage';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { formatXOF, formatNGN } from '@/components/base/DataTransformer';
 
@@ -11,8 +10,6 @@ export default function SystemPreferences() {
   const [ngnXofRate, setNgnXofRate] = useState(String(rate));
   const [hubs, setHubs] = useState([]);
   const [saved, setSaved] = useState(false);
-  const [showConfirmReset, setShowConfirmReset] = useState(false);
-
   useEffect(() => {
     supabase.from('hubs').select('*').order('code')
       .then(({ data }) => { if (data) setHubs(data); });
@@ -28,10 +25,6 @@ export default function SystemPreferences() {
     }
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
-  }
-
-  function handleReset() {
-    StorageManager.reset();
   }
 
   function toggleHub(code) {
@@ -100,45 +93,6 @@ export default function SystemPreferences() {
         Sauvegarder les paramètres système
       </button>
 
-      <div className="mt-12 pt-8 border-t border-slate-100">
-        <div className="bg-red-50/50 border border-red-100 rounded-2xl p-6">
-          <div className="flex items-start gap-4 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center flex-shrink-0">
-              <i className="ri-error-warning-fill text-red-600 text-xl" />
-            </div>
-            <div>
-              <h4 className="font-bold text-red-800 text-base" style={{ fontFamily: 'Poppins, sans-serif' }}>Zone de maintenance (Dev Only)</h4>
-              <p className="text-sm text-red-600/80 leading-relaxed mt-1">
-                La réinitialisation supprimera toutes les données stockées dans votre navigateur (taux, commandes modifiées, produits approuvés) et rechargera les données de test initiales.
-              </p>
-            </div>
-          </div>
-
-          {!showConfirmReset ? (
-            <button
-              onClick={() => setShowConfirmReset(true)}
-              className="w-full py-3 border-2 border-red-200 text-red-600 rounded-xl font-bold text-sm hover:bg-red-50 transition-colors cursor-pointer"
-            >
-              Réinitialiser toutes les données
-            </button>
-          ) : (
-            <div className="flex gap-3 animate-fade-in">
-              <button
-                onClick={() => setShowConfirmReset(false)}
-                className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-semibold text-sm cursor-pointer"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleReset}
-                className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-200 cursor-pointer active:scale-95 transition-all"
-              >
-                CONFIRMER LA SUPPRESSION
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

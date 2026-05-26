@@ -3,8 +3,8 @@ import { useAuth } from '@/lib/AuthContext';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: 'ri-dashboard-3-line', exact: true },
-  { path: '/orders', label: 'Commandes', icon: 'ri-shopping-bag-line', exact: false },
-  { path: '/orders/dispatch', label: 'Aux vendeurs', icon: 'ri-send-plane-line', exact: false },
+  { path: '/orders', label: 'Commandes', icon: 'ri-shopping-bag-line', exact: true },
+  { path: '/orders/dispatch', label: 'Aux vendeurs', icon: 'ri-send-plane-line', exact: true },
   { path: '/logistics', label: 'Logistique', icon: 'ri-truck-line', exact: false },
   { path: '/finance', label: 'Finance', icon: 'ri-bank-line', exact: false },
   { path: '/moderation', label: 'Modération', icon: 'ri-shield-check-line', exact: false },

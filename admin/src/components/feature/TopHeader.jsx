@@ -83,9 +83,9 @@ export default function TopHeader({ onSearchOpen, onMenuToggle }) {
       </div>
 
       <div className="flex items-center gap-4">
-        <button onClick={onSearchOpen} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-slate-100 cursor-pointer gap-1.5" title="Rechercher (⌘K)">
-          <i className="ri-search-line text-lg text-slate-600" />
-          <span className="hidden sm:inline text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">⌘K</span>
+        <button onClick={onSearchOpen} className="flex items-center gap-2 px-3 h-9 rounded-xl hover:bg-slate-100 cursor-pointer" title="Rechercher (⌘K)">
+          <i className="ri-search-line text-base text-slate-600" />
+          <span className="hidden sm:inline text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">⌘K</span>
         </button>
 
         <NotificationBadge />
