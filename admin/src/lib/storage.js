@@ -6,7 +6,7 @@ export const StorageManager = {
   init() {
     if (!localStorage.getItem(STORAGE_KEYS.EXCHANGE_RATE)) {
       localStorage.setItem(STORAGE_KEYS.EXCHANGE_RATE, JSON.stringify({
-        rate: 1.832,
+        rate: 0.4107,
         lastUpdated: new Date().toISOString()
       }));
     }

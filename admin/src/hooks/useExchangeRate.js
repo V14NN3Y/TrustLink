@@ -6,7 +6,7 @@ const STORAGE_KEYS = StorageManager.getKeys();
 const RATE_CHANGED_EVENT = 'trustlink-exchange-rate-changed';
 
 export function useExchangeRate() {
-  const [data, setData] = useState(() => StorageManager.getExchangeRate() || { rate: 1.832, lastUpdated: new Date().toISOString() });
+  const [data, setData] = useState(() => StorageManager.getExchangeRate() || { rate: 0.4107, lastUpdated: new Date().toISOString() });
 
   useEffect(() => {
     supabase
@@ -52,6 +52,6 @@ export function useExchangeRate() {
     rate: data.rate,
     lastUpdated: data.lastUpdated,
     setRate,
-    DEFAULT_RATE: 1.832
+    DEFAULT_RATE: 0.4107
   };
 }

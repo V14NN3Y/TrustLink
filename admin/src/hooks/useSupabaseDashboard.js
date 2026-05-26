@@ -13,7 +13,7 @@ export function useSupabaseDashboard() {
     try {
       // Get live exchange rate from storage (set by useExchangeRate)
       const rateData = StorageManager.getExchangeRate();
-      const liveRate = (rateData?.rate) || 1.832;
+      const liveRate = (rateData?.rate) || 0.4107;
 
       // Run all independent queries in parallel
       const [

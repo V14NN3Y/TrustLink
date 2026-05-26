@@ -20,7 +20,7 @@ export function useSupabaseFinance() {
 
     // Get live exchange rate
     const rateData = StorageManager.getExchangeRate();
-    const liveRate = rateData?.rate || 1.832;
+    const liveRate = rateData?.rate || 0.4107;
 
     // Run payouts + audit in parallel
     const [{ data: payoutsData, error: payoutsError }, { data: logsData }] = await Promise.all([
@@ -63,10 +63,10 @@ export function useSupabaseFinance() {
     const normalizedLogs = (logsData || []).map((log, idx) => ({
       id: log.id || `aud-${idx}`,
       type: log.action?.toUpperCase()?.includes('RATE') ? 'RATE_CHANGE' :
-            log.action?.toUpperCase()?.includes('PAYOUT') ? 'PAYOUT' :
-            log.action?.toUpperCase()?.includes('DISPUTE') ? 'DISPUTE' :
+        log.action?.toUpperCase()?.includes('PAYOUT') ? 'PAYOUT' :
+          log.action?.toUpperCase()?.includes('DISPUTE') ? 'DISPUTE' :
             log.action?.toUpperCase()?.includes('MODERATION') ? 'MODERATION' :
-            log.action?.toUpperCase()?.includes('SPREAD') ? 'SPREAD' : 'MODERATION',
+              log.action?.toUpperCase()?.includes('SPREAD') ? 'SPREAD' : 'MODERATION',
       description: `${log.action}${log.resource_type ? ` (${log.resource_type})` : ''}`,
       user: log.admin_id?.slice(0, 8) || 'Système',
       timestamp: log.created_at,

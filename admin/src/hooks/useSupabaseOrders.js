@@ -13,7 +13,7 @@ export function useSupabaseOrders() {
 
     // Get live exchange rate for NGN conversion
     const rateData = StorageManager.getExchangeRate();
-    const liveRate = rateData?.rate || 1.832;
+    const liveRate = rateData?.rate || 0.4107;
 
     const { data, error: err } = await supabase
       .from('orders')

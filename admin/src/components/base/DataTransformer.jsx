@@ -6,7 +6,7 @@ export function formatXOF(n) {
   return new Intl.NumberFormat('fr-BJ', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(n);
 }
 
-const DEFAULT_RATE = 1.832;
+const DEFAULT_RATE = 0.4107;
 
 export function convertNGNtoXOF(ngn, rate = DEFAULT_RATE) {
   return Math.round(ngn * rate);
