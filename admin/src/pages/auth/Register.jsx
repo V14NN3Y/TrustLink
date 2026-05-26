@@ -14,7 +14,7 @@ export default function Register() {
   const [error, setError] = useState('');
   const { register } = useAuth();
   const navigate = useNavigate();
-  const VALID_CODE = import.meta.env.VITE_ADMIN_INVITE_CODE || "trustlink_admin_avat_official";
+  const VALID_CODE = import.meta.env.VITE_ADMIN_INVITE_CODE;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
