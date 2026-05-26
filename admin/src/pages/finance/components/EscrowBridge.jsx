@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
-import { formatXOF, formatNGN, convertNGNtoXOF } from '@/components/base/DataTransformer';
+import { formatXOF, formatNGN, convertXOFtoNGN } from '@/components/base/DataTransformer';
 
 export default function EscrowBridge() {
   const { rate } = useExchangeRate();
@@ -12,18 +12,19 @@ export default function EscrowBridge() {
   const [draft, setDraft] = useState(null);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [hasOrders, setHasOrders] = useState(false);
+  const [escrowVolume, setEscrowVolume] = useState(0);
 
   useEffect(() => {
     Promise.all([
       supabase.from('escrow_config').select('*').limit(1).single(),
-      supabase.from('orders').select('id', { count: 'exact', head: true }).limit(1),
+      supabase.from('orders').select('total_amount').in('status', ['paid', 'processing', 'in_transit', 'delivered', 'confirmed']),
     ]).then(([configRes, ordersRes]) => {
       if (!configRes.error && configRes.data) {
         setConfig(configRes.data);
         setDraft(configRes.data);
       }
-      setHasOrders((ordersRes.count || 0) > 0);
+      const vol = (ordersRes.data || []).reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
+      setEscrowVolume(vol);
       setLoading(false);
     });
   }, []);
@@ -42,7 +43,11 @@ export default function EscrowBridge() {
     }
   }
 
-  if (loading || !config || !draft) return null;
+  if (loading || !config || !draft) return (
+    <div className="bg-white rounded-2xl border border-slate-100 h-64 flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-trustblue/20 border-t-trustblue rounded-full animate-spin" />
+    </div>
+  );
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
@@ -53,26 +58,27 @@ export default function EscrowBridge() {
             {editMode ? 'Annuler' : <><i className="ri-edit-line mr-1" />Modifier</>}
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          {hasOrders ? (
-            <>
-              <div>
-                <p className="text-xs text-white/60 mb-1">XOF (Bénin)</p>
-                <p className="font-bold text-white text-2xl" style={{ fontFamily: 'Poppins, sans-serif' }}>{formatXOF(convertNGNtoXOF(1000000, rate))}</p>
-                <p className="text-xs text-white/60 mt-0.5">pour 1M ₦</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-orange-200 mb-1">NGN (Nigeria)</p>
-                <p className="font-bold text-orange-400 text-2xl" style={{ fontFamily: 'Poppins, sans-serif' }}>{formatNGN(1000000)}</p>
-              </div>
-            </>
-          ) : (
-            <div className="col-span-2 py-4 text-center">
-              <p className="text-white/60 text-sm">En attente de commandes</p>
-              <p className="text-white/40 text-xs mt-1">Les volumes apparaîtront ici une fois les premières commandes traitées</p>
+
+        {escrowVolume > 0 ? (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-white/60 mb-1">Volume Escrow (XOF)</p>
+              <p className="font-bold text-white text-xl" style={{ fontFamily: 'Poppins, sans-serif' }}>{formatXOF(escrowVolume)}</p>
+              <p className="text-xs text-white/50 mt-0.5">commandes actives</p>
             </div>
-          )}
-        </div>
+            <div className="text-right">
+              <p className="text-xs text-orange-200 mb-1">Équivalent NGN</p>
+              <p className="font-bold text-orange-400 text-xl" style={{ fontFamily: 'Poppins, sans-serif' }}>{formatNGN(convertXOFtoNGN(escrowVolume, rate))}</p>
+              <p className="text-xs text-white/50 mt-0.5">au taux live</p>
+            </div>
+          </div>
+        ) : (
+          <div className="py-4 text-center">
+            <p className="text-white/60 text-sm">Aucun volume escrow actif</p>
+            <p className="text-white/40 text-xs mt-1">Les volumes apparaîtront dès les premières commandes</p>
+          </div>
+        )}
+
         <div className="mt-3 pt-3 border-t border-white/20 flex items-center justify-center gap-2">
           <span className="live-dot" />
           <span className="text-xs text-white/80">Taux live : 1 ₦ = {rate.toFixed(4)} FCFA</span>

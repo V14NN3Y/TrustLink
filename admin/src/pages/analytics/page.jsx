@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { formatXOF } from '@/components/base/DataTransformer';
 
 export default function AnalyticsPage() {
   const [profiles, setProfiles] = useState([]);
@@ -11,7 +12,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     Promise.all([
       supabase.from('profiles').select('created_at, role, kyc_identity_verified'),
-      supabase.from('products').select('id, name, price, status'),
+      supabase.from('products').select('id, name, price, status, stock_quantity'),
       supabase.from('dispatches').select('status, origin_hub, departure_date, actual_arrival, estimated_arrival'),
     ]).then(([profilesRes, productsRes, dispatchesRes]) => {
       setProfiles(profilesRes.data || []);
@@ -34,14 +35,15 @@ export default function AnalyticsPage() {
 
   const hubPerfMap = {};
   dispatches.forEach(d => {
-    if (!hubPerfMap[d.origin_hub]) hubPerfMap[d.origin_hub] = { total: 0, onTime: 0, delayed: 0, cancelled: 0 };
-    hubPerfMap[d.origin_hub].total++;
-    if (d.status === 'cancelled') hubPerfMap[d.origin_hub].cancelled++;
+    const hub = d.origin_hub || 'Inconnu';
+    if (!hubPerfMap[hub]) hubPerfMap[hub] = { total: 0, onTime: 0, delayed: 0, cancelled: 0 };
+    hubPerfMap[hub].total++;
+    if (d.status === 'cancelled') hubPerfMap[hub].cancelled++;
     else if (d.actual_arrival && d.estimated_arrival) {
       const delay = new Date(d.actual_arrival) - new Date(d.estimated_arrival);
-      if (delay > 86400000) hubPerfMap[d.origin_hub].delayed++;
-      else hubPerfMap[d.origin_hub].onTime++;
-    } else hubPerfMap[d.origin_hub].onTime++;
+      if (delay > 86400000) hubPerfMap[hub].delayed++;
+      else hubPerfMap[hub].onTime++;
+    } else hubPerfMap[hub].onTime++;
   });
 
   const topProducts = products.filter(p => p.status === 'approved').slice(0, 5);
@@ -55,7 +57,7 @@ export default function AnalyticsPage() {
         <p className="text-sm text-slate-500 mt-0.5">Indicateurs de performance et croissance</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-slate-100 p-4">
           <p className="text-xs text-slate-500">Total utilisateurs</p>
           <p className="text-2xl font-bold text-slate-900">{profiles.length}</p>
@@ -93,49 +95,57 @@ export default function AnalyticsPage() {
 
         <div className="bg-white rounded-2xl border border-slate-100 p-6">
           <h3 className="font-semibold text-slate-800 mb-4">Performance hubs</h3>
-          <table className="w-full">
-            <thead><tr className="border-b border-slate-100">
-              <th className="text-left py-2 text-xs font-semibold text-slate-500 uppercase">Hub</th>
-              <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase">Total</th>
-              <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase">À l'heure</th>
-              <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase">Retard</th>
-              <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase">Taux</th>
-            </tr></thead>
-            <tbody>
-              {Object.entries(hubPerfMap).map(([hub, d]) => (
-                <tr key={hub} className="border-b border-slate-50">
-                  <td className="py-2 text-sm font-medium text-slate-800">{hub}</td>
-                  <td className="py-2 text-sm text-right text-slate-600">{d.total}</td>
-                  <td className="py-2 text-sm text-right text-green-600">{d.onTime}</td>
-                  <td className="py-2 text-sm text-right text-red-500">{d.delayed}</td>
-                  <td className="py-2 text-sm text-right font-semibold text-slate-800">
-                    {d.total > 0 ? Math.round((d.onTime / d.total) * 100) : 0}%
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {Object.keys(hubPerfMap).length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-8">Aucun voyage enregistré</p>
+          ) : (
+            <table className="w-full">
+              <thead><tr className="border-b border-slate-100">
+                <th className="text-left py-2 text-xs font-semibold text-slate-500 uppercase">Hub</th>
+                <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase">Total</th>
+                <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase">À l'heure</th>
+                <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase">Retard</th>
+                <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase">Taux</th>
+              </tr></thead>
+              <tbody>
+                {Object.entries(hubPerfMap).map(([hub, d]) => (
+                  <tr key={hub} className="border-b border-slate-50">
+                    <td className="py-2 text-sm font-medium text-slate-800">{hub}</td>
+                    <td className="py-2 text-sm text-right text-slate-600">{d.total}</td>
+                    <td className="py-2 text-sm text-right text-green-600">{d.onTime}</td>
+                    <td className="py-2 text-sm text-right text-red-500">{d.delayed}</td>
+                    <td className="py-2 text-sm text-right font-semibold text-slate-800">
+                      {d.total > 0 ? Math.round((d.onTime / d.total) * 100) : 0}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 p-6">
         <h3 className="font-semibold text-slate-800 mb-4">Top produits approuvés</h3>
-        <table className="w-full">
-          <thead><tr className="border-b border-slate-100">
-            <th className="text-left py-2 text-xs font-semibold text-slate-500 uppercase">Produit</th>
-            <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase">Prix</th>
-            <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase">Stock</th>
-          </tr></thead>
-          <tbody>
-            {topProducts.map(p => (
-              <tr key={p.id} className="border-b border-slate-50">
-                <td className="py-2 text-sm text-slate-700">{p.name}</td>
-                <td className="py-2 text-sm text-right font-semibold text-slate-800">{Number(p.price).toLocaleString()} FCFA</td>
-                <td className="py-2 text-sm text-right text-slate-600">{p.stock_quantity || 0}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {topProducts.length === 0 ? (
+          <p className="text-sm text-slate-400 text-center py-8">Aucun produit approuvé</p>
+        ) : (
+          <table className="w-full">
+            <thead><tr className="border-b border-slate-100">
+              <th className="text-left py-2 text-xs font-semibold text-slate-500 uppercase">Produit</th>
+              <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase">Prix</th>
+              <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase">Stock</th>
+            </tr></thead>
+            <tbody>
+              {topProducts.map(p => (
+                <tr key={p.id} className="border-b border-slate-50">
+                  <td className="py-2 text-sm text-slate-700">{p.name}</td>
+                  <td className="py-2 text-sm text-right font-semibold text-slate-800">{formatXOF(Number(p.price) || 0)}</td>
+                  <td className="py-2 text-sm text-right text-slate-600">{p.stock_quantity || 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

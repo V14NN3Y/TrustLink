@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import StatusBadge from '@/components/base/StatusBadge';
 import { supabase } from '@/lib/supabaseClient';
 import { formatXOF, formatNGN, formatDate } from '@/components/base/DataTransformer';
@@ -29,6 +29,12 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
   const [selected, setSelected] = useState(new Set());
   const bulkActions = ['paid', 'processing', 'in_transit', 'delivered', 'cancelled'];
 
+  // Dynamic hub list from data
+  const hubOptions = useMemo(() => {
+    const hubs = [...new Set(orders.map(o => o.hub_origin).filter(h => h && h !== '—'))].sort();
+    return hubs;
+  }, [orders]);
+
   useEffect(() => {
     function handler(e) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownId(null);
@@ -58,54 +64,44 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
     setFlashId(order.id);
     setTimeout(() => setFlashId(null), 1000);
 
-    // Créer une notification pour le buyer
-    const { data: orderData } = await supabase
-      .from('orders')
-      .select('buyer_id')
-      .eq('id', order.id)
-      .single();
+    const [{ data: orderData }, { data: orderItems }, { data: { user: adminUser } }] = await Promise.all([
+      supabase.from('orders').select('buyer_id').eq('id', order.id).single(),
+      supabase.from('order_items').select('seller_id').eq('order_id', order.id).limit(1),
+      supabase.auth.getUser(),
+    ]);
 
+    const notifPromises = [];
     if (orderData?.buyer_id) {
-      await supabase.from('notifications').insert({
+      notifPromises.push(supabase.from('notifications').insert({
         user_id: orderData.buyer_id,
         type: 'order_update',
-        title: `Commande ${order.ref} : statut mis à jour → ${status}`,
+        title: `Commande ${order.ref} : statut → ${status}`,
         body: `Votre commande est maintenant : ${status}`,
         resource_type: 'order',
         resource_id: order.id,
         is_read: false,
-      });
+      }));
     }
-
-    // Créer une notification pour le seller
-    const { data: orderItems } = await supabase
-      .from('order_items')
-      .select('seller_id')
-      .eq('order_id', order.id)
-      .limit(1);
-
-    if (orderItems && orderItems.length > 0 && orderItems[0].seller_id) {
-      await supabase.from('notifications').insert({
+    if (orderItems?.[0]?.seller_id) {
+      notifPromises.push(supabase.from('notifications').insert({
         user_id: orderItems[0].seller_id,
         type: 'order_update',
-        title: `Commande ${order.ref} : statut mis à jour → ${status}`,
-        body: `Le statut de la commande a été changé en : ${status}`,
+        title: `Commande ${order.ref} : statut → ${status}`,
+        body: `Le statut a été changé en : ${status}`,
         resource_type: 'order',
         resource_id: order.id,
         is_read: false,
-      });
+      }));
     }
-
-    // Log admin
-    const { data: { user: adminUser } } = await supabase.auth.getUser();
-    await supabase.from('admin_logs').insert({
+    notifPromises.push(supabase.from('admin_logs').insert({
       admin_id: adminUser.id,
       action: 'order_status_changed',
       resource_type: 'order',
       resource_id: order.id,
       old_value: { status: order.status },
       new_value: { status },
-    });
+    }));
+    await Promise.all(notifPromises);
   }
 
   const inputClass = "px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-trustblue transition-colors bg-white";
@@ -127,8 +123,7 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
           </div>
           <select value={filterHub} onChange={e => setFilterHub(e.target.value)} className={inputClass + ' cursor-pointer'} style={{ fontFamily: 'Inter, sans-serif' }}>
             <option value="">Tous hubs</option>
-            <option value="Lagos">Lagos</option>
-            <option value="Abuja">Abuja</option>
+            {hubOptions.map(h => <option key={h} value={h}>{h}</option>)}
           </select>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className={inputClass + ' cursor-pointer'} style={{ fontFamily: 'Inter, sans-serif' }}>
             <option value="">Tous statuts</option>
@@ -182,15 +177,8 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
               <th className="px-4 py-3 w-10">
                 <input type="checkbox" checked={paginated.length > 0 && paginated.every(o => selected.has(o.id))}
                   onChange={e => {
-                    if (e.target.checked) {
-                      setSelected(prev => new Set([...prev, ...paginated.map(o => o.id)]));
-                    } else {
-                      setSelected(prev => {
-                        const next = new Set(prev);
-                        paginated.forEach(o => next.delete(o.id));
-                        return next;
-                      });
-                    }
+                    if (e.target.checked) setSelected(prev => new Set([...prev, ...paginated.map(o => o.id)]));
+                    else setSelected(prev => { const next = new Set(prev); paginated.forEach(o => next.delete(o.id)); return next; });
                   }}
                   className="w-4 h-4 rounded border-slate-300 text-trustblue focus:ring-trustblue cursor-pointer" />
               </th>
@@ -214,7 +202,7 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
                 </td>
                 <td className="px-4 py-3">
                   <p className="text-sm font-semibold text-slate-800" style={{ fontFamily: 'Inter, sans-serif' }}>{order.ref}</p>
-                  {order.voyage_id && <p className="text-xs text-slate-400">{order.voyage_id}</p>}
+                  {order.voyage_id && order.voyage_id !== '—' && <p className="text-xs text-slate-400">{order.voyage_id}</p>}
                 </td>
                 <td className="px-4 py-3 max-w-xs">
                   <p className="text-sm text-slate-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>{order.product}</p>
@@ -225,7 +213,7 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
                   <p className="text-xs text-slate-400">{order.seller_id}</p>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">{order.hub_origin}</span>
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">{order.hub_origin || '—'}</span>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <p className="text-sm font-semibold text-slate-800" style={{ fontFamily: 'Inter, sans-serif' }}>{formatXOF(order.amount_xof)}</p>
@@ -237,9 +225,11 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
                       <StatusBadge status={order.status} />
                     </button>
                     {dropdownId === order.id && (
-                      <div className="absolute top-8 left-0 z-20 bg-white border border-slate-100 rounded-xl py-1 min-w-max animate-fade-in">
-                        {VALID_TRANSITIONS[order.status]?.map(s => (
-                          <button key={s} onClick={() => handleStatusChange(order, s)} className={`w-full text-left px-4 py-2 text-xs hover:bg-slate-50 cursor-pointer ${s === order.status ? 'font-semibold text-trustblue' : 'text-slate-700'}`}>{s}</button>
+                      <div className="absolute top-8 left-0 z-20 bg-white border border-slate-100 rounded-xl py-1 min-w-max animate-fade-in shadow-lg">
+                        {(VALID_TRANSITIONS[order.status] || []).length === 0 ? (
+                          <p className="px-4 py-2 text-xs text-slate-400">Aucune transition possible</p>
+                        ) : VALID_TRANSITIONS[order.status].map(s => (
+                          <button key={s} onClick={() => handleStatusChange(order, s)} className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 cursor-pointer text-slate-700">{s}</button>
                         ))}
                       </div>
                     )}

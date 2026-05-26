@@ -29,44 +29,15 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
   const hasChanges = editStep !== order.journey_step || editStatus !== order.status;
 
   async function handleSave() {
-  setSaving(true);
+    setSaving(true);
+    const newStatus = editStatus.toLowerCase();
+    await supabase.from('orders').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', order.id);
 
-  const newStatus = editStatus.toLowerCase();
-  await supabase
-    .from('orders')
-    .update({ status: newStatus, updated_at: new Date().toISOString() })
-    .eq('id', order.id);
-
-  // Notification buyer
-  const { data: orderData } = await supabase
-    .from('orders')
-    .select('buyer_id')
-    .eq('id', order.id)
-    .single();
-
-  if (orderData?.buyer_id && editStatus !== order.status) {
-    await supabase.from('notifications').insert({
-      user_id: orderData.buyer_id,
-      type: 'order_update',
-      title: `Commande ${order.ref} mise à jour`,
-      body: `Nouveau statut : ${newStatus}`,
-      resource_type: 'order',
-      resource_id: order.id,
-      is_read: false,
-    });
-  }
-
-  // Notification seller
-  if (editStatus !== order.status) {
-    const { data: orderItems } = await supabase
-      .from('order_items')
-      .select('seller_id')
-      .eq('order_id', order.id)
-      .limit(1);
-
-    if (orderItems && orderItems.length > 0 && orderItems[0].seller_id) {
+    // Notification buyer
+    const { data: orderData } = await supabase.from('orders').select('buyer_id').eq('id', order.id).single();
+    if (orderData?.buyer_id && editStatus !== order.status) {
       await supabase.from('notifications').insert({
-        user_id: orderItems[0].seller_id,
+        user_id: orderData.buyer_id,
         type: 'order_update',
         title: `Commande ${order.ref} mise à jour`,
         body: `Nouveau statut : ${newStatus}`,
@@ -75,36 +46,55 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
         is_read: false,
       });
     }
-  }
 
-  // Admin log
-  const { data: { user: adminUser } } = await supabase.auth.getUser();
-  if (editStatus !== order.status || editStep !== order.journey_step) {
-    await supabase.from('admin_logs').insert({
-      admin_id: adminUser.id,
-      action: 'order_status_changed',
-      resource_type: 'order',
-      resource_id: order.id,
-      old_value: { status: order.status, journey_step: order.journey_step },
-      new_value: { status: editStatus, journey_step: editStep },
-    });
-  }
+    // Notification seller
+    if (editStatus !== order.status) {
+      const { data: orderItems } = await supabase.from('order_items').select('seller_id').eq('order_id', order.id).limit(1);
+      if (orderItems?.[0]?.seller_id) {
+        await supabase.from('notifications').insert({
+          user_id: orderItems[0].seller_id,
+          type: 'order_update',
+          title: `Commande ${order.ref} mise à jour`,
+          body: `Nouveau statut : ${newStatus}`,
+          resource_type: 'order',
+          resource_id: order.id,
+          is_read: false,
+        });
+      }
+    }
 
-  onUpdate({ ...order, journey_step: editStep, status: editStatus });
-  setSaving(false);
-  setSaved(true);
-  setTimeout(() => setSaved(false), 2000);
-}
+    // Admin log
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    if (editStatus !== order.status || editStep !== order.journey_step) {
+      await supabase.from('admin_logs').insert({
+        admin_id: adminUser.id,
+        action: 'order_status_changed',
+        resource_type: 'order',
+        resource_id: order.id,
+        old_value: { status: order.status, journey_step: order.journey_step },
+        new_value: { status: editStatus, journey_step: editStep },
+      });
+    }
+
+    onUpdate({ ...order, journey_step: editStep, status: editStatus });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
 
   async function handleDisputeConfirm() {
     if (!user) return;
-    await supabase.from('orders').update({ status: 'delivered' }).eq('id', order.id);
+    const newStatus = disputeAction === 'refund' ? 'refunded' : 'confirmed';
+    await supabase.from('orders').update({ status: newStatus }).eq('id', order.id);
     await supabase.from('admin_logs').insert({
-      admin_id: user.id, action: 'dispute_resolved_from_order',
-      resource_type: 'order', resource_id: order.id,
-      old_value: { status: 'disputed' }, new_value: { status: 'delivered' },
+      admin_id: user.id,
+      action: 'dispute_resolved_from_order',
+      resource_type: 'order',
+      resource_id: order.id,
+      old_value: { status: 'disputed' },
+      new_value: { status: newStatus },
     });
-    onUpdate({ ...order, status: 'delivered' });
+    onUpdate({ ...order, status: newStatus });
     setDisputePhase('done');
     setTimeout(() => onClose(), 1500);
   }
@@ -145,13 +135,13 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
               <div className="grid grid-cols-2 gap-4">
                 <InfoField label="Acheteur" value={order.buyer_name} />
                 <InfoField label="Vendeur" value={`${order.seller_name} (${order.seller_id})`} />
-                <InfoField label="Hub origine" value={order.hub_origin} />
+                <InfoField label="Hub origine" value={order.hub_origin || '—'} />
                 <InfoField label="Voyage" value={order.voyage_id || '—'} />
                 <InfoField label="Groupement" value={order.group_id ? `${order.group_id.slice(0, 8)}...` : '—'} />
                 <InfoField label="Montant XOF" value={formatXOF(order.amount_xof)} />
                 <InfoField label="Montant NGN" value={formatNGN(order.amount_ngn)} />
-                <InfoField label="Crée le" value={formatDate(order.created_at)} />
-                <InfoField label="Etape" value={order.journey_step} />
+                <InfoField label="Créé le" value={formatDate(order.created_at)} />
+                <InfoField label="Étape" value={order.journey_step || '—'} />
                 {order.dispute_reason && (
                   <div className="col-span-2">
                     <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">Motif du litige</label>
@@ -159,10 +149,6 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
                   </div>
                 )}
               </div>
-              <button onClick={() => window.open(`/invoice/${order.id}`, '_blank')}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
-                <i className="ri-printer-line" /> Facture
-              </button>
             </div>
           )}
 
@@ -215,7 +201,7 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
 
           {tab === 'dispute' && order.status === 'disputed' && (
             <div className="space-y-4">
-              {order.dispute_video_url && (
+              {order.dispute_video_url ? (
                 <div>
                   <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 block">Vidéo de preuve</label>
                   <div className="relative rounded-xl overflow-hidden border border-slate-100">
@@ -224,6 +210,11 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
                       <i className="ri-shield-check-line" />In-app · Certifiée
                     </span>
                   </div>
+                </div>
+              ) : (
+                <div className="py-6 text-center text-slate-400">
+                  <i className="ri-video-off-line text-3xl mb-2 block" />
+                  <p className="text-sm">Aucune vidéo fournie pour ce litige</p>
                 </div>
               )}
               {disputePhase === null && (

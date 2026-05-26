@@ -9,33 +9,41 @@ const TYPE_COLORS = { ORDER: 'bg-blue-50 text-blue-600', PAYOUT: 'bg-emerald-50 
 export default function RecentActivity() {
   const navigate = useNavigate();
   const { activity, hubStats } = useSupabaseActivity();
-  const totalVol = hubStats.Lagos.volume_xof + hubStats.Abuja.volume_xof;
+
+  const totalVol = Object.values(hubStats).reduce((s, h) => s + h.volume_xof, 0);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-6">
         <h3 className="font-semibold text-slate-800 text-base mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Activité récente</h3>
-        <div className="space-y-2">
-          {activity.map(item => (
-            <div key={item.id} onClick={() => navigate(TYPE_ROUTES[item.type])} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 cursor-pointer group">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${TYPE_COLORS[item.type]}`}>
-                <i className={`${TYPE_ICONS[item.type]} text-sm`} />
+        {activity.length === 0 ? (
+          <div className="text-center py-8 text-slate-400">
+            <i className="ri-history-line text-3xl mb-2 block" />
+            <p className="text-sm">Aucune activité récente</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {activity.map(item => (
+              <div key={item.id} onClick={() => navigate(TYPE_ROUTES[item.type] || '/')} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 cursor-pointer group">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${TYPE_COLORS[item.type] || 'bg-slate-50 text-slate-600'}`}>
+                  <i className={`${TYPE_ICONS[item.type] || 'ri-information-line'} text-sm`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-800 truncate group-hover:text-trustblue">{item.title}</p>
+                  <p className="text-xs text-slate-500 truncate">{item.sub}</p>
+                </div>
+                <p className="text-xs text-slate-400 flex-shrink-0">{formatDateTime(item.time)}</p>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-800 truncate group-hover:text-trustblue">{item.title}</p>
-                <p className="text-xs text-slate-500 truncate">{item.sub}</p>
-              </div>
-              <p className="text-xs text-slate-400 flex-shrink-0">{formatDateTime(item.time)}</p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">
         <div className="bg-white rounded-2xl border border-slate-100 p-6">
           <h3 className="font-semibold text-slate-800 text-base mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Hubs de collecte</h3>
           {Object.entries(hubStats).map(([hub, s]) => {
-            const pct = Math.round((s.volume_xof / totalVol) * 100);
+            const pct = totalVol > 0 ? Math.round((s.volume_xof / totalVol) * 100) : 0;
             return (
               <div key={hub} className="mb-4 last:mb-0">
                 <div className="flex items-center justify-between mb-1.5">
@@ -49,6 +57,9 @@ export default function RecentActivity() {
               </div>
             );
           })}
+          {Object.keys(hubStats).length === 0 && (
+            <p className="text-xs text-slate-400 text-center py-4">Aucune donnée hub</p>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-100 p-6">

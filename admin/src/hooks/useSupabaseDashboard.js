@@ -1,90 +1,77 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { StorageManager } from '@/lib/storage';
+
 export function useSupabaseDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   const fetchStats = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Total orders
-      const { count: totalOrders, error: e1 } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true });
+      // Get live exchange rate from storage (set by useExchangeRate)
+      const rateData = StorageManager.getExchangeRate();
+      const liveRate = (rateData?.rate) || 1.832;
+
+      // Run all independent queries in parallel
+      const [
+        { count: totalOrders, error: e1 },
+        { data: escrowData, error: e2 },
+        { count: sellerCount, error: e3 },
+        { count: pendingProducts, error: e4 },
+        { count: pendingPayouts, error: e5 },
+        { data: payoutOrders, error: e6 },
+        { count: disputesCount, error: e8 },
+        { count: activeVoyages, error: e9 },
+        { count: confirmedOrders, error: e10 },
+        { count: nonCancelledOrders, error: e11 },
+        { data: monthlyData, error: e12 },
+      ] = await Promise.all([
+        // 1. Total orders
+        supabase.from('orders').select('*', { count: 'exact', head: true }),
+        // 2. Escrow volume (active orders only)
+        supabase.from('orders').select('total_amount').in('status', ['paid', 'processing', 'in_transit', 'delivered', 'confirmed']),
+        // 3. Active sellers
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'seller'),
+        // 4. Pending catalogue products
+        supabase.from('products').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
+        // 5. Pending payouts count
+        supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'paid'),
+        // 6. Payout order IDs (for amount calculation)
+        supabase.from('orders').select('id').eq('status', 'paid'),
+        // 7. (index 6 = e8) Open disputes
+        supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'disputed'),
+        // 8. Active voyages
+        supabase.from('dispatches').select('*', { count: 'exact', head: true }).not('status', 'in', '("delivered","cancelled")'),
+        // 9. Confirmed orders
+        supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'confirmed'),
+        // 10. Non-cancelled orders
+        supabase.from('orders').select('*', { count: 'exact', head: true }).not('status', 'eq', 'cancelled'),
+        // 11. Monthly volume (last 6 months)
+        supabase.from('orders').select('total_amount, created_at').gte('created_at', new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000).toISOString()),
+      ]);
+
+      // Check critical errors
       if (e1) throw e1;
-      // Escrow volume (paid/processing/in_transit/delivered only)
-      const { data: escrowData, error: e2 } = await supabase
-        .from('orders')
-        .select('total_amount')
-        .in('status', ['paid', 'processing', 'in_transit', 'delivered', 'confirmed']);
       if (e2) throw e2;
-      const escrowVolume = escrowData?.reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0) || 0;
-      // Active sellers
-      const { count: sellerCount, error: e3 } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('role', 'seller');
-      if (e3) throw e3;
-      // Pending products
-      const { count: pendingProducts, error: e4 } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending_review');
-      if (e4) throw e4;
-      // Pending payouts (orders avec status 'paid')
-      const { count: pendingPayouts, error: e5 } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'paid');
-      if (e5) throw e5;
-      // Pending payouts amount (subtotal from order_items for orders.status = 'paid')
-      const { data: payoutOrders, error: e6 } = await supabase
-        .from('orders')
-        .select('id')
-        .eq('status', 'paid');
-      if (e6) throw e6;
+
+      const escrowVolume = (escrowData || []).reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0);
+
+      // Payout amount (depends on payoutOrders from step 6)
       let payoutsAmount = 0;
-      if (payoutOrders && payoutOrders.length > 0) {
+      if (!e6 && payoutOrders && payoutOrders.length > 0) {
         const orderIds = payoutOrders.map(o => o.id);
-        const { data: items, error: e7 } = await supabase
-          .from('order_items')
-          .select('subtotal')
-          .in('order_id', orderIds);
-        if (e7) throw e7;
-        payoutsAmount = items?.reduce((acc, i) => acc + (Number(i.subtotal) || 0), 0) || 0;
+        const { data: items } = await supabase.from('order_items').select('subtotal').in('order_id', orderIds);
+        payoutsAmount = (items || []).reduce((acc, i) => acc + (Number(i.subtotal) || 0), 0);
       }
-      // Disputes
-      const { count: disputesCount, error: e8 } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'disputed');
-      if (e8) throw e8;
-      // Active dispatches (voyages)
-      const { count: activeVoyages, error: e9 } = await supabase
-        .from('dispatches')
-        .select('*', { count: 'exact', head: true })
-        .not('status', 'in', '("delivered","cancelled")');
-      if (e9) throw e9;
-      // Success rate = confirmed orders / total non-cancelled
-      const { count: confirmedOrders, error: e10 } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'confirmed');
-      const { count: nonCancelledOrders, error: e11 } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .not('status', 'eq', 'cancelled');
+
       const successRate = nonCancelledOrders && nonCancelledOrders > 0
         ? Number(((confirmedOrders || 0) / nonCancelledOrders * 100).toFixed(1))
         : 0;
-      // Volume par mois (6 derniers mois)
-      const { data: monthlyData, error: e12 } = await supabase
-        .from('orders')
-        .select('total_amount, created_at')
-        .gte('created_at', new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000).toISOString());
-      if (e12) throw e12;
-      // Grouper par mois côté JS :
+
+      // Group volume by month (use live exchange rate for NGN)
       const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
       const volumeByMonth = {};
       (monthlyData || []).forEach(o => {
@@ -92,9 +79,10 @@ export function useSupabaseDashboard() {
         const key = months[d.getMonth()];
         if (!volumeByMonth[key]) volumeByMonth[key] = { month: key, xof: 0, ngn: 0 };
         volumeByMonth[key].xof += Number(o.total_amount) || 0;
-        volumeByMonth[key].ngn += Math.round((Number(o.total_amount) || 0) / 1.832);
+        volumeByMonth[key].ngn += Math.round((Number(o.total_amount) || 0) / liveRate);
       });
       const volumeData = Object.values(volumeByMonth);
+
       setStats({
         total_orders: totalOrders || 0,
         escrow_volume_xof: escrowVolume,
@@ -115,8 +103,10 @@ export function useSupabaseDashboard() {
       setLoading(false);
     }
   }, []);
+
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
   return { stats, loading, error, refresh: fetchStats };
 }
