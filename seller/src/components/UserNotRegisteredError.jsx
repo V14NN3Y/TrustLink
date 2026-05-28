@@ -1,8 +1,10 @@
 import React from 'react';
 import { useAuth } from '@/lib/AuthContext';
+import { useLocale } from '@/lib/i18n';
 
 const UserNotRegisteredError = () => {
   const { logout } = useAuth();
+  const { t } = useLocale();
 
   const handleLogout = async () => {
     await logout();
@@ -34,7 +36,7 @@ const UserNotRegisteredError = () => {
             onClick={handleLogout}
             className="mt-6 w-full py-3 px-4 rounded-2xl font-semibold text-white bg-red-500 hover:bg-red-600 transition-all cursor-pointer"
           >
-            Me déconnecter
+            {t('common.signOut')}
           </button>
         </div>
       </div>

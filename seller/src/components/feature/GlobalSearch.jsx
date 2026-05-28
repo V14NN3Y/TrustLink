@@ -2,12 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
+import { useLocale } from '@/lib/i18n';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export default function GlobalSearch() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const debouncedQuery = useDebounce(query, 300);
   const [results, setResults] = useState([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const inputRef = useRef(null);
@@ -21,18 +25,18 @@ export default function GlobalSearch() {
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 100); }, [open]);
 
   useEffect(() => {
-    if (query.length < 2 || !user?.id) { setResults([]); return; }
-    const q = `%${query}%`;
+    if (debouncedQuery.length < 2 || !user?.id) { setResults([]); return; }
+    const q = `%${debouncedQuery}%`;
     Promise.all([
       supabase.from('order_items').select('id, product_name, order_id').eq('seller_id', user.id).ilike('product_name', q).limit(5),
       supabase.from('products').select('id, name').eq('seller_id', user.id).ilike('name', q).limit(5),
     ]).then(([orders, products]) => {
-      const o = (orders.data || []).map(d => ({ id: d.id, label: d.product_name, sub: `Commande #${d.order_id?.slice(0, 8)}`, path: '/orders', icon: 'ri-shopping-bag-line' }));
-      const p = (products.data || []).map(d => ({ id: d.id, label: d.name, sub: 'Produit', path: '/catalog', icon: 'ri-archive-line' }));
+      const o = (orders.data || []).map(d => ({ id: d.id, label: d.product_name, sub: `${t('search.orderSub')}${d.order_id?.slice(0, 8)}`, path: '/orders', icon: 'ri-shopping-bag-line' }));
+      const p = (products.data || []).map(d => ({ id: d.id, label: d.name, sub: t('search.productSub'), path: '/catalog', icon: 'ri-archive-line' }));
       setResults([...o, ...p]);
       setSelectedIdx(0);
     });
-  }, [query, user]);
+  }, [debouncedQuery, user]);
 
   const handleSelect = (item) => { navigate(item.path); setOpen(false); setQuery(''); };
   const handleKeyDown = (e) => {
@@ -49,7 +53,7 @@ export default function GlobalSearch() {
         <div className="flex items-center gap-3 px-4 py-3 border-b">
           <i className="ri-search-line text-gray-400" />
           <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={handleKeyDown}
-            placeholder="Rechercher commandes, produits..."
+            placeholder={t('search.placeholder')}
             className="flex-1 text-sm outline-none bg-transparent" />
           <span className="text-[10px] font-medium px-2 py-1 rounded bg-slate-100 text-slate-400">ESC</span>
         </div>
@@ -65,8 +69,8 @@ export default function GlobalSearch() {
             ))}
           </div>
         )}
-        {query.length >= 2 && results.length === 0 && <div className="px-4 py-6 text-center text-sm text-gray-400">Aucun résultat</div>}
-        {query.length < 2 && <div className="px-4 py-6 text-center text-xs text-gray-400">Tapez au moins 2 caractères<span className="block mt-2">⌘K pour ouvrir · ↑↓ naviguer · ⏎ ouvrir</span></div>}
+        {query.length >= 2 && results.length === 0 && <div className="px-4 py-6 text-center text-sm text-gray-400">{t('search.noResults')}</div>}
+        {query.length < 2 && <div className="px-4 py-6 text-center text-xs text-gray-400">{t('search.typeHint')}<span className="block mt-2">{t('search.keyboardHint')}</span></div>}
       </div>
     </div>
   );

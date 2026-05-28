@@ -25,15 +25,6 @@ const navItems = [
   { path: "/messages", icon: "ri-message-3-line", key: "messages" },
 ];
 
-const profileLabelsFr = {
-  profile: "Mon Profil", boutique: "Boutique & Marque",
-  notifications: "Notifications", securite: "Sécurité", langue: "Langue & Devise",
-};
-const profileLabelsEn = {
-  profile: "My Profile", boutique: "Store & Brand",
-  notifications: "Notifications", securite: "Security", langue: "Language & Currency",
-};
-
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -41,8 +32,6 @@ export default function Sidebar() {
   const { user, profile, logout } = useAuth();
   const { open: sidebarOpen, close } = useSidebar();
   const { locale, t } = useLocale();
-
-  const profileLabels = locale === "en" ? profileLabelsEn : profileLabelsFr;
 
   const isActive = (path) => {
     if (path === "/") return location.pathname === "/";
@@ -74,7 +63,7 @@ export default function Sidebar() {
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           <p className="text-white/30 text-[9px] font-bold uppercase tracking-widest px-3 mb-3">
-            {locale === "en" ? "Main Menu" : "Menu Principal"}
+            {t('sidebar.mainMenu')}
           </p>
           <div className="space-y-0.5">
             {navItems.map((item) => {
@@ -101,7 +90,7 @@ export default function Sidebar() {
           {menuOpen && (
             <div className="absolute bottom-full left-3 right-3 mb-2 bg-[#0E3A4F] border border-white/15 rounded-xl overflow-hidden shadow-2xl">
               <div className="px-4 py-3 border-b border-white/10">
-                <p className="text-white text-sm font-semibold">{profile?.business_name || "Vendeur"}</p>
+                <p className="text-white text-sm font-semibold">{profile?.business_name || t('common.seller')}</p>
                 <p className="text-white/50 text-xs">{profile?.email || ""}</p>
               </div>
               <div className="py-1">
@@ -112,7 +101,7 @@ export default function Sidebar() {
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-white/70 hover:text-white hover:bg-white/5 transition-all text-left"
                   >
                     <i className={`${item.icon} text-sm w-4 text-center flex-shrink-0`}></i>
-                    <span className="text-sm">{profileLabels[item.key]}</span>
+                    <span className="text-sm">{t(`pages.${item.key}.title`)}</span>
                   </button>
                 ))}
               </div>
@@ -122,7 +111,7 @@ export default function Sidebar() {
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-red-400 hover:text-red-300 hover:bg-white/5 transition-all text-left"
                 >
                   <i className="ri-logout-box-r-line text-sm w-4 text-center flex-shrink-0"></i>
-                  <span className="text-sm font-medium">{locale === "en" ? "Sign out" : "Déconnexion"}</span>
+                  <span className="text-sm font-medium">{t('common.signOut')}</span>
                 </button>
               </div>
             </div>
@@ -135,7 +124,7 @@ export default function Sidebar() {
             <div className="relative flex-shrink-0">
               <img
                 src={profile?.avatar_url || ""}
-                alt={profile?.business_name || "Vendeur"}
+                alt={profile?.business_name || t('common.seller')}
                 className="w-9 h-9 rounded-full object-cover"
                 onError={(e) => { e.target.style.display = "none"; if (e.target.nextSibling) e.target.nextSibling.style.display = "flex"; }}
               />
@@ -145,9 +134,9 @@ export default function Sidebar() {
               <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#10B981] border-2 border-[#0E3A4F]"></span>
             </div>
             <div className="flex-1 min-w-0 text-left">
-              <div className="text-white text-sm font-semibold truncate">{profile?.business_name || "Vendeur"}</div>
+              <div className="text-white text-sm font-semibold truncate">{profile?.business_name || t('common.seller')}</div>
               <div className="text-white/50 text-[10px] truncate">
-                {profile?.default_city || "Hub"} · {locale === "en" ? "Verified" : "Vérifié"}
+                {profile?.default_city || "Hub"} · {t('sidebar.verified')}
               </div>
             </div>
             <i className={`ri-arrow-${menuOpen ? "up" : "down"}-s-line text-white/40 text-sm flex-shrink-0`}></i>
