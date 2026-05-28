@@ -20,7 +20,8 @@ export function useCurrency() {
           setRate(data.rate);
           localStorage.setItem(RATE_KEY, data.rate.toString());
         }
-      });
+      })
+      .catch(err => console.error("Error fetching exchange rate:", err));
   }, []);
 
   useEffect(() => {

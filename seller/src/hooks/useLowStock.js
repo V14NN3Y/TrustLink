@@ -13,7 +13,8 @@ export function useLowStock(sellerId, threshold = 5) {
       .lte('stock_quantity', threshold)
       .in('status', ['approved', 'pending_review'])
       .order('stock_quantity', { ascending: true })
-      .then(({ data }) => { setLowStock(data || []); setLoading(false); });
+      .then(({ data }) => { setLowStock(data || []); setLoading(false); })
+      .catch(err => { console.error("Error fetching low stock:", err); setLoading(false); });
   }, [sellerId, threshold]);
 
   return { lowStock, loading };

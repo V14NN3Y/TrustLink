@@ -8,33 +8,38 @@ export function useProductPerformance(sellerId) {
   const fetchData = useCallback(async () => {
     if (!sellerId) { setLoading(false); return; }
     setLoading(true);
-    const { data: prodData } = await supabase.from('products')
-      .select('id, name, price, stock_quantity, status, created_at')
-      .eq('seller_id', sellerId);
-    if (!prodData) { setLoading(false); return; }
-    const ids = prodData.map(p => p.id);
+    try {
+      const { data: prodData } = await supabase.from('products')
+        .select('id, name, price, stock_quantity, status, created_at')
+        .eq('seller_id', sellerId);
+      if (!prodData) { setLoading(false); return; }
+      const ids = prodData.map(p => p.id);
 
-    const { data: viewData } = await supabase.from('product_views')
-      .select('product_id', { count: 'exact' })
-      .in('product_id', ids);
-    const viewCounts = {};
-    (viewData || []).forEach(v => { viewCounts[v.product_id] = (viewCounts[v.product_id] || 0) + 1; });
+      const { data: viewData } = await supabase.from('product_views')
+        .select('product_id', { count: 'exact' })
+        .in('product_id', ids);
+      const viewCounts = {};
+      (viewData || []).forEach(v => { viewCounts[v.product_id] = (viewCounts[v.product_id] || 0) + 1; });
 
-    const { data: salesData } = await supabase.from('order_items')
-      .select('product_id, quantity')
-      .in('product_id', ids)
-      .not('status', 'in', '("cancelled","refunded","disputed")');
-    const salesMap = {};
-    (salesData || []).forEach(s => { salesMap[s.product_id] = (salesMap[s.product_id] || 0) + (s.quantity || 1); });
+      const { data: salesData } = await supabase.from('order_items')
+        .select('product_id, quantity')
+        .in('product_id', ids)
+        .not('status', 'in', '("cancelled","refunded","disputed")');
+      const salesMap = {};
+      (salesData || []).forEach(s => { salesMap[s.product_id] = (salesMap[s.product_id] || 0) + (s.quantity || 1); });
 
-    const formatted = prodData.map(p => ({
-      id: p.id, name: p.name, price: Number(p.price), stock: p.stock_quantity,
-      status: p.status, views: viewCounts[p.id] || 0, sales: salesMap[p.id] || 0,
-      conversion: viewCounts[p.id] > 0 ? Math.round(((salesMap[p.id] || 0) / viewCounts[p.id]) * 100) : 0,
-      created_at: p.created_at,
-    }));
-    setProducts(formatted);
-    setLoading(false);
+      const formatted = prodData.map(p => ({
+        id: p.id, name: p.name, price: Number(p.price), stock: p.stock_quantity,
+        status: p.status, views: viewCounts[p.id] || 0, sales: salesMap[p.id] || 0,
+        conversion: viewCounts[p.id] > 0 ? Math.round(((salesMap[p.id] || 0) / viewCounts[p.id]) * 100) : 0,
+        created_at: p.created_at,
+      }));
+      setProducts(formatted);
+    } catch (err) {
+      console.error("Error fetching product performance:", err);
+    } finally {
+      setLoading(false);
+    }
   }, [sellerId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);

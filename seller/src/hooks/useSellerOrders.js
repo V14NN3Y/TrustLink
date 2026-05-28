@@ -20,80 +20,85 @@ export function useSellerOrders(sellerId) {
     }
     if (mountedRef.current) setLoading(true);
 
-    const { data: rateData } = await supabase
-      .from("exchange_rates")
-      .select("rate")
-      .eq("from_currency", "NGN")
-      .eq("to_currency", "XOF")
-      .maybeSingle();
-    const rate = rateData?.rate || 1;
+    try {
+      const { data: rateData } = await supabase
+        .from("exchange_rates")
+        .select("rate")
+        .eq("from_currency", "NGN")
+        .eq("to_currency", "XOF")
+        .maybeSingle();
+      const rate = rateData?.rate || 1;
 
-    const { data, error: supaError } = await supabase
-      .from("order_items")
-      .select(`id, status, dispatched_at, quantity, product_name, product_price, subtotal, created_at, order_id, product:product_id ( id, name )`)
-      .eq("seller_id", sellerId)
-      .order("created_at", { ascending: false });
+      const { data, error: supaError } = await supabase
+        .from("order_items")
+        .select(`id, status, dispatched_at, quantity, product_name, product_price, subtotal, created_at, order_id, product:product_id ( id, name )`)
+        .eq("seller_id", sellerId)
+        .order("created_at", { ascending: false });
 
-    if (!mountedRef.current) return;
+      if (!mountedRef.current) return;
 
-    if (supaError) {
-      setError(supaError.message);
-      setOrders([]);
-    } else {
-      const orderIds = [...new Set((data || []).map((item) => item.order_id))];
+      if (supaError) {
+        setError(supaError.message);
+        setOrders([]);
+      } else {
+        const orderIds = [...new Set((data || []).map((item) => item.order_id))];
 
-      let ordersData = [];
-      if (orderIds.length > 0) {
-        const { data: od } = await supabase
-          .from("orders")
-          .select(`id, shipping_address_line1, shipping_city, shipping_country, notes, buyer:buyer_id ( full_name )`)
-          .in("id", orderIds);
-        ordersData = od || [];
-      }
-
-      const orderMap = ordersData.reduce((acc, o) => { acc[o.id] = o; return acc; }, {});
-
-      const grouped = (data || []).reduce((acc, item) => {
-        const oid = item.order_id;
-        if (!acc[oid]) {
-          const order = orderMap[oid];
-          acc[oid] = {
-            id: oid.slice(0, 8),
-            order_id: oid,
-            buyer: order?.buyer?.full_name,
-            buyer_city: order?.shipping_city,
-            status: item.status,
-            created_at: item.created_at,
-            amount_ngn: 0,
-            amount_fcfa: 0,
-            items: [],
-            order_address: order ? {
-              line1: order.shipping_address_line1,
-              city: order.shipping_city,
-              country: order.shipping_country,
-            } : null,
-            notes: order?.notes || "",
-            qr_code: oid,
-          };
+        let ordersData = [];
+        if (orderIds.length > 0) {
+          const { data: od } = await supabase
+            .from("orders")
+            .select(`id, shipping_address_line1, shipping_city, shipping_country, notes, buyer:buyer_id ( full_name )`)
+            .in("id", orderIds);
+          ordersData = od || [];
         }
-        const xof = item.subtotal || (item.product_price * item.quantity);
-        acc[oid].amount_fcfa += xof;
-        acc[oid].amount_ngn += Math.round(xof / rate);
-        acc[oid].items.push({
-          item_id: item.id,
-          product: item.product_name || item.product?.name,
-          product_image: "",
-          variant: "Standard",
-          qty: item.quantity,
-          unit_price: item.product_price,
-          total: item.subtotal || item.product_price * item.quantity,
-        });
-        return acc;
-      }, {});
 
-      if (mountedRef.current) setOrders(Object.values(grouped));
+        const orderMap = ordersData.reduce((acc, o) => { acc[o.id] = o; return acc; }, {});
+
+        const grouped = (data || []).reduce((acc, item) => {
+          const oid = item.order_id;
+          if (!acc[oid]) {
+            const order = orderMap[oid];
+            acc[oid] = {
+              id: oid.slice(0, 8),
+              order_id: oid,
+              buyer: order?.buyer?.full_name,
+              buyer_city: order?.shipping_city,
+              status: item.status,
+              created_at: item.created_at,
+              amount_ngn: 0,
+              amount_fcfa: 0,
+              items: [],
+              order_address: order ? {
+                line1: order.shipping_address_line1,
+                city: order.shipping_city,
+                country: order.shipping_country,
+              } : null,
+              notes: order?.notes || "",
+              qr_code: oid,
+            };
+          }
+          const xof = item.subtotal || (item.product_price * item.quantity);
+          acc[oid].amount_fcfa += xof;
+          acc[oid].amount_ngn += Math.round(xof / rate);
+          acc[oid].items.push({
+            item_id: item.id,
+            product: item.product_name || item.product?.name,
+            product_image: "",
+            variant: "Standard",
+            qty: item.quantity,
+            unit_price: item.product_price,
+            total: item.subtotal || item.product_price * item.quantity,
+          });
+          return acc;
+        }, {});
+
+        if (mountedRef.current) setOrders(Object.values(grouped));
+      }
+      if (mountedRef.current) setLoading(false);
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+      if (mountedRef.current) { setError(err.message); setLoading(false); }
     }
-    if (mountedRef.current) setLoading(false);
   }, [sellerId]);
 
   useEffect(() => {

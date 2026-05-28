@@ -18,62 +18,67 @@ export function useSellerProducts(sellerId) {
     }
     if (mountedRef.current) setLoading(true);
 
-    const { data: rateData } = await supabase
-      .from("exchange_rates")
-      .select("rate")
-      .eq("from_currency", "NGN")
-      .eq("to_currency", "XOF")
-      .maybeSingle();
-    const rate = rateData?.rate || 1;
+    try {
+      const { data: rateData } = await supabase
+        .from("exchange_rates")
+        .select("rate")
+        .eq("from_currency", "NGN")
+        .eq("to_currency", "XOF")
+        .maybeSingle();
+      const rate = rateData?.rate || 1;
 
-    const { data, error } = await supabase
-      .from("products")
-      .select(`*, images:product_images(url, is_primary), category:categories(name)`)
-      .eq("seller_id", sellerId)
-      .order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("products")
+        .select(`*, images:product_images(url, is_primary), category:categories(name)`)
+        .eq("seller_id", sellerId)
+        .order("created_at", { ascending: false });
 
-    if (!mountedRef.current) return;
+      if (!mountedRef.current) return;
 
-    if (error) {
-      setProducts([]);
-      setLoading(false);
-      return;
-    }
-
-    let salesMap = {};
-    if (data && data.length > 0) {
-      const productIds = data.map((p) => p.id);
-      const { data: salesData } = await supabase
-        .from("order_items")
-        .select("product_id, quantity")
-        .in("product_id", productIds)
-        .not("status", "in", '("cancelled","refunded","disputed")');
-      if (salesData) {
-        salesData.forEach((item) => {
-          salesMap[item.product_id] = (salesMap[item.product_id] || 0) + (item.quantity || 1);
-        });
+      if (error) {
+        setProducts([]);
+        setLoading(false);
+        return;
       }
-    }
 
-    if (!mountedRef.current) return;
+      let salesMap = {};
+      if (data && data.length > 0) {
+        const productIds = data.map((p) => p.id);
+        const { data: salesData } = await supabase
+          .from("order_items")
+          .select("product_id, quantity")
+          .in("product_id", productIds)
+          .not("status", "in", '("cancelled","refunded","disputed")');
+        if (salesData) {
+          salesData.forEach((item) => {
+            salesMap[item.product_id] = (salesMap[item.product_id] || 0) + (item.quantity || 1);
+          });
+        }
+      }
 
-    const formatted = (data || []).map((p) => ({
-      id: p.id,
-      name: p.name,
-      category: p.category?.name || "—",
-      price_fcfa: p.price,
-      price_ngn: Math.round(p.price / rate),
-      image: p.images?.find((i) => i.is_primary)?.url || p.images?.[0]?.url || "",
-      status: p.status,
-      stock_total: p.stock_quantity,
-      sales_count: salesMap[p.id] || 0,
-      description: p.description,
-      created_at: p.created_at,
-    }));
+      if (!mountedRef.current) return;
 
-    if (mountedRef.current) {
-      setProducts(formatted);
-      setLoading(false);
+      const formatted = (data || []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        category: p.category?.name || "—",
+        price_fcfa: p.price,
+        price_ngn: Math.round(p.price / rate),
+        image: p.images?.find((i) => i.is_primary)?.url || p.images?.[0]?.url || "",
+        status: p.status,
+        stock_total: p.stock_quantity,
+        sales_count: salesMap[p.id] || 0,
+        description: p.description,
+        created_at: p.created_at,
+      }));
+
+      if (mountedRef.current) {
+        setProducts(formatted);
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error("Error fetching products:", err);
+      if (mountedRef.current) setLoading(false);
     }
   }, [sellerId]);
 
