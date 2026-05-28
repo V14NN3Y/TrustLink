@@ -22,6 +22,7 @@ export const getProductReviews = async (productId) => {
  * Vérifie si le buyer a déjà reviewé ce produit
  */
 export const getBuyerReview = async (productId, buyerId) => {
+  if (!buyerId) return null;
   const { data, error } = await supabase
     .from('reviews')
     .select('*')
@@ -36,7 +37,7 @@ export const getBuyerReview = async (productId, buyerId) => {
  * (condition pour pouvoir reviewer)
  */
 export const canBuyerReview = async (productId, buyerId) => {
-  // Récupère les commandes livrées du buyer
+  if (!buyerId) return false;
   const { data: orders, error: ordersError } = await supabase
     .from('orders')
     .select('id')
@@ -58,6 +59,7 @@ export const canBuyerReview = async (productId, buyerId) => {
  * Soumet une review (création ou mise à jour)
  */
 export const submitReview = async ({ productId, buyerId, orderId, rating, comment }) => {
+  if (!buyerId) throw new Error('buyerId required');
   // Vérifie si une review existe déjà
   const existing = await getBuyerReview(productId, buyerId);
   if (existing) {

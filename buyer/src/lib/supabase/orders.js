@@ -83,6 +83,7 @@ export const createOrder = async ({ buyerId, items, address, paymentMethod, tota
 };
 
 export const fetchOrders = async (buyerId) => {
+  if (!buyerId) return [];
   const { data, error } = await supabase
     .from('orders')
     .select(`
@@ -187,6 +188,7 @@ export const fetchOrders = async (buyerId) => {
 };
 
 export const fetchOrderById = async (orderId) => {
+  if (!orderId) return null;
   const { data, error } = await supabase
     .from('orders')
     .select(`
@@ -232,6 +234,7 @@ export const fetchOrderById = async (orderId) => {
 };
 
 export const updateOrdersAfterPayment = async ({ groupId, paymentReference }) => {
+  if (!groupId) return;
   const updateData = { status: 'paid', updated_at: new Date().toISOString() };
   if (paymentReference) updateData.payment_reference = paymentReference;
 

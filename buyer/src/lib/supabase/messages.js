@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 export const fetchThreads = async (userId) => {
+    if (!userId) return [];
     const { data, error } = await supabase
         .from('messages')
         .select(`
@@ -64,6 +65,7 @@ export const fetchThreadMessages = async (threadId) => {
     return data || [];
 };
 export const sendNewMessage = async ({ senderId, subject, body }) => {
+    if (!senderId) throw new Error('senderId required');
     const { data: admin, error: adminError } = await supabase
         .from('profiles')
         .select('id')

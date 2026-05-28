@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
  * Récupère ou crée le panier de l'utilisateur connecté.
  */
 const getOrCreateCart = async (userId) => {
+  if (!userId) throw new Error('User ID required');
   const { data: existing } = await supabase
     .from('carts')
     .select('id')

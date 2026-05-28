@@ -120,7 +120,11 @@ export const AuthProvider = ({ children }) => {
     return { success: true };
   }, []);
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Error during logout:", err);
+    }
     setUser(null);
     setProfile(null);
     setIsAuthenticated(false);

@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
  * Fetch tous les IDs produits de la wishlist.
  */
 export const fetchWishlistIds = async (userId) => {
+  if (!userId) return [];
   const { data, error } = await supabase
     .from('wishlists')
     .select('product_id')
@@ -14,6 +15,7 @@ export const fetchWishlistIds = async (userId) => {
  * Fetch les produits complets de la wishlist.
  */
 export const fetchWishlistProducts = async (userId) => {
+  if (!userId) return [];
   const { data, error } = await supabase
     .from('wishlists')
     .select(`
@@ -48,6 +50,7 @@ export const fetchWishlistProducts = async (userId) => {
  * Ajoute un produit à la wishlist.
  */
 export const addToWishlist = async (userId, productId) => {
+  if (!userId) return;
   const { error } = await supabase
     .from('wishlists')
     .insert({ buyer_id: userId, product_id: productId });
@@ -57,6 +60,7 @@ export const addToWishlist = async (userId, productId) => {
  * Retire un produit de la wishlist.
  */
 export const removeFromWishlist = async (userId, productId) => {
+  if (!userId) return;
   const { error } = await supabase
     .from('wishlists')
     .delete()

@@ -13,6 +13,7 @@ const uploadDisputeVideo = async (blob, buyerId, orderId) => {
  * Accepte soit un Blob (via videoBlob, upload automatique), soit un chemin déjà uploadé (via videoFilePath).
  */
 export const createDispute = async ({ orderId, buyerId, reason, videoBlob, videoFilePath }) => {
+    if (!buyerId || !orderId) throw new Error('buyerId and orderId required');
     let videoUrl = null;
     let videoId = null;
     const resolvedPath = videoFilePath
@@ -33,17 +34,13 @@ export const createDispute = async ({ orderId, buyerId, reason, videoBlob, video
         .select()
         .single();
     if (error) throw error;
-    // Met la commande en litige
-    await supabase
-        .from('orders')
-        .update({ status: 'disputed', updated_at: new Date().toISOString() })
-        .eq('id', orderId);
     return { dispute: data, videoUrl };
 };
 /**
  * Récupère les litiges du buyer connecté.
  */
 export const fetchBuyerDisputes = async (buyerId) => {
+    if (!buyerId) return [];
     const { data, error } = await supabase
         .from('disputes')
         .select(`

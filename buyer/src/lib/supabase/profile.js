@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
  * Fetch le profil complet d'un utilisateur.
  */
 export const fetchProfile = async (userId) => {
+  if (!userId) return null;
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
@@ -15,6 +16,7 @@ export const fetchProfile = async (userId) => {
  * Met à jour le profil d'un utilisateur.
  */
 export const updateProfile = async (userId, updates) => {
+  if (!userId) throw new Error('userId required');
   const { data, error } = await supabase
     .from('profiles')
     .update({

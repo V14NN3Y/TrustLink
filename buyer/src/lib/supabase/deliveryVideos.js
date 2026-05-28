@@ -14,6 +14,7 @@ export const createDeliveryVideoRecord = async ({
     videoUrl,
     durationSeconds,
 }) => {
+    if (!buyerId || !orderId) throw new Error('buyerId and orderId required');
     const { data, error } = await supabase
         .from('delivery_videos')
         .insert({
