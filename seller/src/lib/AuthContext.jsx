@@ -117,40 +117,50 @@ export const AuthProvider = ({ children }) => {
     };
   }, [checkUserAuth]);
   const login = async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    await checkUserAuth();
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      await checkUserAuth();
+    } catch (err) {
+      setAuthError({ type: 'login_error', message: err.message });
+    }
   };
   const register = async (email, password, metadata = {}) => {
-    // Inscription avec role='seller' dans les metadata pour le trigger
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          role: 'seller',
-          ...metadata,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            role: 'seller',
+            ...metadata,
+          },
         },
-      },
-    });
+      });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    // Mettre à jour le profil avec les infos business après création
-    if (data?.user?.id) {
-      await new Promise(r => setTimeout(r, 500)); // Attendre le trigger
+      if (data?.user?.id) {
+        await new Promise(r => setTimeout(r, 500));
 
-      const updates = {};
-      if (metadata.full_name) updates.full_name = metadata.full_name;
-      if (metadata.business_name) updates.business_name = metadata.business_name;
+        const updates = {};
+        if (metadata.full_name) updates.full_name = metadata.full_name;
+        if (metadata.business_name) updates.business_name = metadata.business_name;
 
-      if (Object.keys(updates).length > 0) {
-        await supabase.from('profiles').update(updates).eq('id', data.user.id);
+        if (Object.keys(updates).length > 0) {
+          await supabase.from('profiles').update(updates).eq('id', data.user.id);
+        }
       }
+    } catch (err) {
+      setAuthError({ type: 'register_error', message: err.message });
     }
   };
   const logout = async (shouldRedirect = true) => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
     setUser(null);
     setProfile(null);
     setIsAuthenticated(false);
