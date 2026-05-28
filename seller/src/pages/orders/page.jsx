@@ -185,7 +185,7 @@ export default function OrdersPage() {
                       <button
                         onClick={(e) => { e.stopPropagation(); setDetailOrder(order); }}
                         className="w-7 h-7 rounded-md flex items-center justify-center bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors cursor-pointer"
-                        title={locale === "en" ? "Detail" : "Détail"}
+                        title={t('orders.viewDetail')}
                       >
                         <i className="ri-eye-line text-xs"></i>
                       </button>

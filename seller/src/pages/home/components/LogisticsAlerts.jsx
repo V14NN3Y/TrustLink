@@ -23,21 +23,17 @@ const alertConfig = {
 
 export default function LogisticsAlerts({ orders = [] }) {
   const navigate = useNavigate();
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
   const [dispatchAlerts, setDispatchAlerts] = useState([]);
 
   const statusLabel = (s) => {
-    if (locale === "en") {
-      const m = { preparing: "Preparing", in_transit: "In transit", delivered: "Delivered", cancelled: "Cancelled" };
-      return m[s] || s;
-    }
-    const m = { preparing: "En préparation", in_transit: "En transit", delivered: "Livré", cancelled: "Annulé" };
-    return m[s] || s;
+    const m = { preparing: 'home.statusPreparing', in_transit: 'home.statusInTransit', delivered: 'home.statusDelivered', cancelled: 'home.statusCancelled' };
+    return t(m[s]) || s;
   };
 
   const alertLabel = (type) => {
-    if (locale === "en") return { critical: "Critical", warning: "Warning", info: "Info" }[type] || type;
-    return { critical: "Critique", warning: "Attention", info: "Info" }[type] || type;
+    const m = { critical: 'home.alertCritical', warning: 'home.alertWarning', info: 'home.alertInfo' };
+    return t(m[type]) || type;
   };
 
   useEffect(() => {
@@ -53,11 +49,12 @@ export default function LogisticsAlerts({ orders = [] }) {
             deadline: new Date(d.created_at).toLocaleDateString(locale === "en" ? "en-GB" : "fr-FR"),
           })));
         }
-      });
+      })
+      .catch(err => console.error("Error fetching dispatches:", err));
   }, []);
 
   const getDispatchMessage = (alert) => {
-    const trip = locale === "en" ? "Trip" : "Voyage";
+    const trip = t('home.trip');
     const label = statusLabel(alert.statusKey);
     return `${trip} ${alert.order_id} — ${label}${alert.driver_name ? ` (${alert.driver_name})` : ""}`;
   };
@@ -66,11 +63,11 @@ export default function LogisticsAlerts({ orders = [] }) {
     .filter((o) => o.status === "processing" || o.status === "paid" || o.status === "in_transit")
     .slice(0, 3)
     .map((o) => {
-      const order = locale === "en" ? "Order" : "Commande";
+      const order = t('home.orderLabel');
       const msgMap = {
-        paid: locale === "en" ? `${order} ${o.id} — Awaiting processing` : `${order} ${o.id} — En attente de traitement`,
-        in_transit: locale === "en" ? `${order} ${o.id} — In transit` : `${order} ${o.id} — En transit`,
-        processing: locale === "en" ? `${order} ${o.id} — Being prepared` : `${order} ${o.id} — En cours de préparation`,
+        paid: `${order} ${o.id} — ${t('home.awaitingProcessing')}`,
+        in_transit: `${order} ${o.id} — ${t('home.statusInTransit')}`,
+        processing: `${order} ${o.id} — ${t('home.beingPrepared')}`,
       };
       return {
         id: o.items?.[0]?.item_id || o.id,
@@ -88,7 +85,7 @@ export default function LogisticsAlerts({ orders = [] }) {
     <div className="bg-white rounded-xl border border-gray-100 p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
-          {locale === "en" ? "Logistics Alerts" : "Alertes logistiques"}
+          {t('home.logisticsAlerts')}
         </h3>
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white whitespace-nowrap" style={{ backgroundColor: "#FF6A00" }}>
           {alerts.length}
@@ -116,7 +113,7 @@ export default function LogisticsAlerts({ orders = [] }) {
                 <p className="text-xs text-gray-600 leading-tight">{alert.message}</p>
                 {alert.deadline && (
                   <p className="text-[10px] text-gray-400 mt-1">
-                    <i className="ri-time-line mr-0.5"></i>{locale === "en" ? "Date" : "Date"} : {alert.deadline}
+                    <i className="ri-time-line mr-0.5"></i>{t('home.date')} : {alert.deadline}
                   </p>
                 )}
               </div>
@@ -126,7 +123,7 @@ export default function LogisticsAlerts({ orders = [] }) {
         })}
         {alerts.length === 0 && (
           <p className="text-xs text-gray-400 text-center py-4">
-            {locale === "en" ? "No active alerts" : "Aucune alerte active"}
+            {t('home.noActiveAlerts')}
           </p>
         )}
       </div>

@@ -82,9 +82,7 @@ export default function StatsPage() {
   }, []);
 
   const exportCSV = useCallback(() => {
-    const headers = locale === "en"
-      ? ["Month", "Revenue (FCFA)", "Orders", "Confirmed", "Cancelled", "Disputed", "Conversion (%)"]
-      : ["Mois", "Revenus (FCFA)", "Commandes", "Confirmées", "Annulées", "Litiges", "Taux conversion (%)"];
+    const headers = [t('stats.csvMonth'), t('stats.csvRevenue'), t('stats.csvOrders'), t('stats.csvConfirmed'), t('stats.csvCancelled'), t('stats.csvDisputed'), t('stats.csvConversion')];
     const monthMap = {};
     orders.forEach((o) => {
       const d = new Date(o.created_at);
@@ -111,11 +109,11 @@ export default function StatsPage() {
   }, [orders, locale]);
 
   const statusLabel = (s) => {
-    if (locale === "en") {
-      const m = { processing: "Processing", confirmed: "Confirmed", delivered: "Delivered", disputed: "Disputed", cancelled: "Cancelled", paid: "Paid" };
-      return m[s] || s;
-    }
-    const m = { processing: "En cours", confirmed: "Confirmée", delivered: "Livrée", disputed: "Litige", cancelled: "Annulée", paid: "Payée" };
+    const m = {
+      processing: t('stats.sProcessing'), confirmed: t('stats.sConfirmed'),
+      delivered: t('stats.sDelivered'), disputed: t('stats.sDisputed'),
+      cancelled: t('stats.sCancelled'), paid: t('stats.sPaid'),
+    };
     return m[s] || s;
   };
 
@@ -290,11 +288,11 @@ export default function StatsPage() {
             {lowStock.map(p => (
               <div key={p.id} className="bg-amber-50 border border-amber-100 rounded-lg p-3">
                 <p className="text-xs font-semibold text-gray-900 truncate">{p.name}</p>
-                <p className="text-[10px] text-gray-400">{locale === "en" ? "Stock" : "Stock"}: <span className="font-bold text-amber-600">{p.stock_quantity}</span></p>
+                <p className="text-[10px] text-gray-400">{t('stats.colStock')}: <span className="font-bold text-amber-600">{p.stock_quantity}</span></p>
                 <p className="text-[10px] text-gray-400">
                   {p.status === "pending_review"
-                    ? (locale === "en" ? "Pending" : "En attente")
-                    : (locale === "en" ? "Approved" : "Approuvé")}
+                    ? t('stats.sPendingReview')
+                    : t('stats.sApproved')}
                 </p>
               </div>
             ))}
@@ -345,9 +343,9 @@ export default function StatsPage() {
                       p.status === "rejected" ? "bg-[#EF4444]/10 text-[#EF4444]" :
                       "bg-gray-100 text-gray-500"
                     }`}>
-                      {p.status === "approved" ? (locale === "en" ? "Approved" : "Approuvé")
-                       : p.status === "pending_review" ? (locale === "en" ? "Pending" : "En attente")
-                       : p.status === "rejected" ? (locale === "en" ? "Rejected" : "Rejeté")
+                      {p.status === "approved" ? t('stats.sApproved')
+                       : p.status === "pending_review" ? t('stats.sPendingReview')
+                       : p.status === "rejected" ? t('stats.sRejected')
                        : p.status}
                     </span>
                   </td>
@@ -399,7 +397,7 @@ export default function StatsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-gray-900 truncate">{product.name}</p>
-                  <p className="text-[10px] text-gray-400">{(product.sales_count || 0)} {locale === "en" ? "sold" : "vendus"}</p>
+                  <p className="text-[10px] text-gray-400">{(product.sales_count || 0)} {locale === "en" ? "sold" : "sold"}</p>
                 </div>
                 <p className="text-xs font-bold text-[#10B981] whitespace-nowrap flex-shrink-0">
                   {formatPrice(product.price_fcfa || product.price_xof || 0)}

@@ -14,13 +14,18 @@ export default function NotificationsPage() {
   useEffect(() => {
     if (!user?.id) return;
     const fetch = async () => {
-      const { data } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      setNotifications(data || []);
-      setLoading(false);
+      try {
+        const { data } = await supabase
+          .from("notifications")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        setNotifications(data || []);
+      } catch (err) {
+        console.error("Error fetching notifications:", err);
+      } finally {
+        setLoading(false);
+      }
     };
     fetch();
     const channel = supabase
@@ -31,13 +36,21 @@ export default function NotificationsPage() {
   }, [user]);
 
   const markAsRead = async (id) => {
-    await supabase.from("notifications").update({ is_read: true }).eq("id", id);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    try {
+      await supabase.from("notifications").update({ is_read: true }).eq("id", id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    } catch (err) {
+      console.error("Error marking notification as read:", err);
+    }
   };
 
   const markAllAsRead = async () => {
-    await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    try {
+      await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (err) {
+      console.error("Error marking all notifications as read:", err);
+    }
   };
 
   const filtered = filter === "unread" ? notifications.filter(n => !n.is_read) : notifications;

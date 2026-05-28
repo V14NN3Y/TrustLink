@@ -69,9 +69,9 @@ export default function Home() {
     supabase.from("order_items").select("order_id").eq("seller_id", user.id).then(({ data: items }) => {
       if (!items?.length) return;
       const oids = [...new Set(items.map(i => i.order_id))];
-      supabase.from("disputes").select("id", { count: "exact", head: true }).in("order_id", oids).then(({ count }) => setDisputeCount(count || 0));
-      supabase.from("delivery_videos").select("id", { count: "exact", head: true }).in("order_id", oids).then(({ count }) => setVideoCount(count || 0));
-    });
+      supabase.from("disputes").select("id", { count: "exact", head: true }).in("order_id", oids).then(({ count }) => setDisputeCount(count || 0)).catch(err => console.error("Error fetching disputes:", err));
+      supabase.from("delivery_videos").select("id", { count: "exact", head: true }).in("order_id", oids).then(({ count }) => setVideoCount(count || 0)).catch(err => console.error("Error fetching videos:", err));
+    }).catch(err => console.error("Error fetching order items:", err));
   }, [user]);
 
   const isLoading = ordersLoading || productsLoading;

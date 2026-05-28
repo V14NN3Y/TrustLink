@@ -1,18 +1,24 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useLocale } from "@/lib/i18n";
 
 export default function ExchangeRate() {
+  const { t } = useLocale();
   const [ngnInput, setNgnInput] = useState(50000);
   const [rate, setRate] = useState(null);
   useEffect(() => {
     const fetchRate = async () => {
-      const { data } = await supabase
-        .from("exchange_rates")
-        .select("rate")
-        .eq("from_currency", "NGN")
-        .eq("to_currency", "XOF")
-        .maybeSingle();
-      if (data) setRate(data.rate);
+      try {
+        const { data } = await supabase
+          .from("exchange_rates")
+          .select("rate")
+          .eq("from_currency", "NGN")
+          .eq("to_currency", "XOF")
+          .maybeSingle();
+        if (data) setRate(data.rate);
+      } catch (err) {
+        console.error("Error fetching exchange rate:", err);
+      }
     };
     fetchRate();
   }, []);
@@ -21,13 +27,13 @@ export default function ExchangeRate() {
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>Simulateur de change</h3>
+        <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>{t('home.exchangeSimulator')}</h3>
         <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-[#10B981]/10">
           <i className="ri-exchange-dollar-line text-sm text-[#10B981]"></i>
         </div>
       </div>
       <div className="flex items-center justify-center gap-2 bg-[#F9FAFB] rounded-lg p-2 mb-4">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Taux affiché</span>
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">{t('home.rateDisplayed')}</span>
         <span className="text-sm font-bold text-[#125C8D]">1 NGN = {rate ? rate.toFixed(2) : '...'} XOF</span>
       </div>
       <div className="flex items-center gap-2 mb-4">

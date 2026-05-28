@@ -6,7 +6,7 @@ import DashboardLayout from '@/components/feature/DashboardLayout';
 
 export default function QuestionsPage() {
   const { user } = useAuth();
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [answers, setAnswers] = useState({});
@@ -21,21 +21,27 @@ export default function QuestionsPage() {
         .select('*, product:product_id(name), buyer:buyer_id(full_name)')
         .in('product_id', ids)
         .order('created_at', { ascending: false })
-        .then(({ data }) => { setQuestions(data || []); setLoading(false); });
-    });
+        .then(({ data }) => { setQuestions(data || []); setLoading(false); })
+        .catch(err => { console.error("Error fetching questions:", err); setLoading(false); });
+    }).catch(err => { console.error("Error fetching products for questions:", err); setLoading(false); });
   }, [user]);
 
   const handleAnswer = async (qId) => {
     if (!answers[qId]?.trim() || !user) return;
     setSaving(qId);
-    await supabase.from('product_questions').update({
-      answer: answers[qId].trim(),
-      answered_by: user.id,
-      answered_at: new Date().toISOString(),
-    }).eq('id', qId);
-    setSaving(null);
-    setQuestions(q => q.map(x => x.id === qId ? { ...x, answer: answers[qId].trim(), answered_by: user.id } : x));
-    setAnswers(a => ({ ...a, [qId]: '' }));
+    try {
+      await supabase.from('product_questions').update({
+        answer: answers[qId].trim(),
+        answered_by: user.id,
+        answered_at: new Date().toISOString(),
+      }).eq('id', qId);
+      setQuestions(q => q.map(x => x.id === qId ? { ...x, answer: answers[qId].trim(), answered_by: user.id } : x));
+      setAnswers(a => ({ ...a, [qId]: '' }));
+    } catch (err) {
+      console.error("Error answering question:", err);
+    } finally {
+      setSaving(null);
+    }
   };
 
   const unanswered = questions.filter(q => !q.answer);
@@ -44,10 +50,10 @@ export default function QuestionsPage() {
     <DashboardLayout>
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
-          {locale === "en" ? "Customer Questions" : "Questions clients"}
+          {t('questions.heading')}
         </h2>
         <p className="text-sm text-gray-400">
-          {unanswered.length} {locale === "en" ? "unanswered question(s)" : "question(s) sans réponse"}
+          {unanswered.length} {t('questions.unanswered')}
         </p>
       </div>
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -58,7 +64,7 @@ export default function QuestionsPage() {
         ) : questions.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <i className="ri-question-answer-line text-3xl mb-2 block" />
-            <p className="text-sm">{locale === "en" ? "No questions yet" : "Aucune question pour le moment"}</p>
+            <p className="text-sm">{t('questions.noQuestions')}</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
@@ -70,24 +76,24 @@ export default function QuestionsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold text-gray-500">{q.buyer?.full_name || (locale === "en" ? "Anonymous" : "Anonyme")}</span>
+                      <span className="text-xs font-semibold text-gray-500">{q.buyer?.full_name || t('questions.anonymous')}</span>
                       <span className="text-[10px] text-gray-400">
                         {new Date(q.created_at).toLocaleDateString(locale === "en" ? "en-GB" : "fr-FR")}
                       </span>
                       {!q.answer && (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600">
-                          {locale === "en" ? "Pending" : "En attente"}
+                          {t('questions.pending')}
                         </span>
                       )}
                     </div>
                     <p className="text-xs text-gray-400 mb-1">
-                      {locale === "en" ? "On" : "Sur"} <span className="font-medium text-gray-600">{q.product?.name || '—'}</span>
+                      {t('questions.onProduct')} <span className="font-medium text-gray-600">{q.product?.name || '—'}</span>
                     </p>
                     <p className="text-sm font-medium text-gray-800 mb-2">{q.question}</p>
                     {q.answer ? (
                       <div className="p-3 rounded-lg bg-green-50 border border-green-100">
                         <p className="text-xs font-semibold text-green-700 mb-1">
-                          {locale === "en" ? "Your answer" : "Votre réponse"}
+                          {t('questions.yourAnswer')}
                         </p>
                         <p className="text-sm text-gray-700">{q.answer}</p>
                       </div>
@@ -96,7 +102,7 @@ export default function QuestionsPage() {
                         <input
                           value={answers[q.id] || ''}
                           onChange={e => setAnswers(a => ({ ...a, [q.id]: e.target.value }))}
-                          placeholder={locale === "en" ? "Write a reply..." : "Écrire une réponse..."}
+                          placeholder={t('questions.writeReply')}
                           className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#125C8D]"
                           onKeyDown={e => { if (e.key === 'Enter') handleAnswer(q.id); }}
                         />
@@ -105,7 +111,7 @@ export default function QuestionsPage() {
                           disabled={saving === q.id || !answers[q.id]?.trim()}
                           className="px-4 py-2 text-xs font-semibold text-white bg-[#125C8D] rounded-lg disabled:opacity-50 cursor-pointer"
                         >
-                          {saving === q.id ? '...' : (locale === "en" ? "Reply" : "Répondre")}
+                          {saving === q.id ? '...' : t('questions.replyBtn')}
                         </button>
                       </div>
                     )}

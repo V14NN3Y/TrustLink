@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
+import { useLocale } from "@/lib/i18n";
 
 export default function QRBordereau({ order, onClose }) {
+  const { t } = useLocale();
   const canvasRef = useRef(null);
   const [qrDataUrl, setQrDataUrl] = useState("");
 
@@ -32,7 +34,7 @@ export default function QRBordereau({ order, onClose }) {
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
-            Bordereau QR
+            {t('orders.qrModalTitle')}
           </h3>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 cursor-pointer">
             <i className="ri-close-line"></i>
@@ -58,7 +60,7 @@ export default function QRBordereau({ order, onClose }) {
             className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer whitespace-nowrap transition-colors"
             onClick={onClose}
           >
-            Fermer
+            {t('common.close')}
           </button>
           <button
             className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer whitespace-nowrap transition-colors disabled:opacity-40"
@@ -66,7 +68,7 @@ export default function QRBordereau({ order, onClose }) {
             onClick={handleDownload}
             disabled={!qrDataUrl}
           >
-            <i className="ri-download-line mr-1.5"></i>Télécharger
+            <i className="ri-download-line mr-1.5"></i>{t('common.download')}
           </button>
         </div>
       </div>

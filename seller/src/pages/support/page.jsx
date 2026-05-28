@@ -3,19 +3,20 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/AuthContext";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import { toast } from "@/components/ui/use-toast";
+import { useLocale } from "@/lib/i18n";
 
 const statusConfig = {
-  verified: { label: "Vérifié", color: "text-[#10B981]", bg: "bg-[#10B981]/5 border-[#10B981]/20", dot: "bg-[#10B981]" },
-  pending: { label: "En cours", color: "text-amber-600", bg: "bg-amber-50 border-amber-200", dot: "bg-amber-500" },
-  rejected: { label: "Rejeté", color: "text-red-500", bg: "bg-red-50 border-red-200", dot: "bg-red-500" },
-  not_started: { label: "Non commencé", color: "text-gray-400", bg: "bg-gray-50 border-gray-200", dot: "bg-gray-300" },
+  verified: { labelKey: "pages.support.verified", color: "text-[#10B981]", bg: "bg-[#10B981]/5 border-[#10B981]/20", dot: "bg-[#10B981]" },
+  pending: { labelKey: "pages.support.pending", color: "text-amber-600", bg: "bg-amber-50 border-amber-200", dot: "bg-amber-500" },
+  rejected: { labelKey: "pages.support.rejected", color: "text-red-500", bg: "bg-red-50 border-red-200", dot: "bg-red-500" },
+  not_started: { labelKey: "pages.support.notStarted", color: "text-gray-400", bg: "bg-gray-50 border-gray-200", dot: "bg-gray-300" },
 };
 
 const KYC_CONFIG = [
-  { key: "identity", label: "Identité", flag: "kyc_identity_verified", icon: "ri-user-3-line", detail: "Pièce d'identité" },
-  { key: "address", label: "Adresse", flag: "kyc_address_verified", icon: "ri-map-pin-line", detail: "Justificatif de domicile" },
-  { key: "activity", label: "Activité", flag: "kyc_business_verified", icon: "ri-store-2-line", detail: "Registre de commerce" },
-  { key: "bank", label: "Bancaire", flag: null, icon: "ri-bank-line", detail: "RIB bancaire" },
+  { key: "identity", labelKey: "pages.support.stepIdentity", flag: "kyc_identity_verified", icon: "ri-user-3-line", detailKey: "pages.support.docIdentity" },
+  { key: "address", labelKey: "pages.support.stepAddress", flag: "kyc_address_verified", icon: "ri-map-pin-line", detailKey: "pages.support.docAddress" },
+  { key: "activity", labelKey: "pages.support.stepActivity", flag: "kyc_business_verified", icon: "ri-store-2-line", detailKey: "pages.support.docBusiness" },
+  { key: "bank", labelKey: "pages.support.stepBank", flag: null, icon: "ri-bank-line", detailKey: "pages.support.docBank" },
 ];
 
 const KYC_URL_MAP = {
@@ -39,6 +40,7 @@ const uploadKycDocument = async (user, file, key) => {
 
 export default function SupportPage() {
   const { user } = useAuth();
+  const { t } = useLocale();
   const [activeTab, setActiveTab] = useState("kyc");
   const [kycSteps, setKycSteps] = useState([]);
   const [profile, setProfile] = useState(null);
@@ -57,10 +59,13 @@ export default function SupportPage() {
             return {
               ...k,
               status: !k.flag ? 'not_started' : isVerified ? 'verified' : hasDoc ? 'pending' : 'not_started',
+              label: t(k.labelKey),
+              detail: t(k.detailKey),
             };
           }));
         }
-      });
+      })
+      .catch(err => console.error("Error loading KYC status:", err));
   };
 
   useEffect(() => { loadKycStatus(); }, [user]);
@@ -77,7 +82,7 @@ export default function SupportPage() {
         await uploadKycDocument(user, file, key);
         loadKycStatus();
       } catch (err) {
-        toast({ title: "Erreur KYC", description: err.message || "Erreur lors de l'upload du document KYC", variant: "destructive" });
+        toast({ title: t('pages.support.kycUploadError'), description: err.message || t('pages.support.kycUploadError'), variant: "destructive" });
       } finally {
         setUploadingKey(null);
       }
@@ -93,8 +98,8 @@ export default function SupportPage() {
     <DashboardLayout>
       {/* Page header */}
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>Support & KYC</h2>
-        <p className="text-sm text-gray-400">Gérez votre vérification d'identité et vos demandes d'assistance</p>
+        <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>{t('pages.support.title')}</h2>
+        <p className="text-sm text-gray-400">{t('pages.support.sub')}</p>
       </div>
 
       {/* KPI mini cards */}
@@ -105,7 +110,7 @@ export default function SupportPage() {
           </div>
           <div>
             <p className="text-xl font-bold text-gray-900">{kycCompletion}%</p>
-            <p className="text-[11px] text-gray-400">KYC complété</p>
+            <p className="text-[11px] text-gray-400">{t('pages.support.kycCompleted')}</p>
           </div>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-3">
@@ -114,7 +119,7 @@ export default function SupportPage() {
           </div>
           <div>
             <p className="text-xl font-bold text-gray-900">—</p>
-            <p className="text-[11px] text-gray-400">Tickets ouverts</p>
+            <p className="text-[11px] text-gray-400">{t('pages.support.openTickets')}</p>
           </div>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-3">
@@ -123,7 +128,7 @@ export default function SupportPage() {
           </div>
           <div>
             <p className="text-xl font-bold text-gray-900">&lt; 24h</p>
-            <p className="text-[11px] text-gray-400">Temps de réponse moyen</p>
+            <p className="text-[11px] text-gray-400">{t('pages.support.avgResponse')}</p>
           </div>
         </div>
       </div>
@@ -131,9 +136,9 @@ export default function SupportPage() {
       {/* Tabs */}
       <div className="flex gap-1 mb-6">
         {[
-          { id: "kyc", label: "Vérification KYC", icon: "ri-shield-check-line" },
-          { id: "tickets", label: "Mes tickets", icon: "ri-message-2-line" },
-          { id: "faq", label: "Centre d'aide", icon: "ri-question-line" },
+          { id: "kyc", label: t('pages.support.tabKyc'), icon: "ri-shield-check-line" },
+          { id: "tickets", label: t('pages.support.tabTickets'), icon: "ri-message-2-line" },
+          { id: "faq", label: t('pages.support.tabFaq'), icon: "ri-question-line" },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -157,12 +162,12 @@ export default function SupportPage() {
           <div className="bg-white rounded-xl border border-gray-100 p-5">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h3 className="text-base font-bold text-gray-900">Statut de vérification KYC</h3>
-                <p className="text-xs text-gray-400">Complétez la vérification pour débloquer toutes les fonctionnalités</p>
+                <h3 className="text-base font-bold text-gray-900">{t('pages.support.kycStatus')}</h3>
+                <p className="text-xs text-gray-400">{t('pages.support.kycSub')}</p>
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold text-[#125C8D]">{kycCompletion}%</p>
-                <p className="text-[10px] text-gray-400">{kycSteps.filter(s => s.status === "verified").length}/{kycSteps.length} étapes</p>
+                <p className="text-[10px] text-gray-400">{kycSteps.filter(s => s.status === "verified").length}/{kycSteps.length} {t('pages.support.steps')}</p>
               </div>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-2 mb-5">
@@ -184,7 +189,7 @@ export default function SupportPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-gray-800">{step.label}</p>
-                        <span className={`text-[10px] font-bold ${cfg.color}`}>{cfg.label}</span>
+                        <span className={`text-[10px] font-bold ${cfg.color}`}>{t(cfg.labelKey)}</span>
                       </div>
                       <p className="text-xs text-gray-400">{step.detail}</p>
                     </div>
@@ -195,7 +200,7 @@ export default function SupportPage() {
                         className="text-[10px] font-semibold text-[#125C8D] border border-[#125C8D]/30 px-2 py-1 rounded-lg whitespace-nowrap hover:bg-[#125C8D]/5 disabled:opacity-50 cursor-pointer"
                       >
                         <i className="ri-upload-2-line mr-0.5"></i>
-                        {uploadingKey === step.key ? 'Upload...' : step.status === 'pending' ? 'Remplacer' : 'Soumettre'}
+                        {uploadingKey === step.key ? t('pages.support.uploading') : step.status === 'pending' ? t('pages.support.replace') : t('pages.support.upload')}
                       </button>
                     )}
                   </div>
@@ -206,12 +211,12 @@ export default function SupportPage() {
 
           {/* Accepted docs */}
           <div className="bg-white rounded-xl border border-gray-100 p-5">
-            <h3 className="text-sm font-bold text-gray-900 mb-4">Documents acceptés</h3>
+            <h3 className="text-sm font-bold text-gray-900 mb-4">{t('pages.support.acceptedDocs')}</h3>
             <div className="space-y-4">
               {[
-                { title: "Pièce d'identité", desc: "Carte nationale d'identité NIN, Passeport international, Permis de conduire nigérian" },
-                { title: "Justificatif de domicile", desc: "Facture d'électricité ou d'eau (moins de 3 mois), Relevé bancaire, Lettre d'hébergement officielle" },
-                { title: "Activité commerciale", desc: "Certificat CAC d'enregistrement de l'entreprise, Licence commerciale Lagos State, Permis d'exercice" },
+                { title: t('pages.support.docIdentity'), desc: t('pages.support.docIdentityDesc') },
+                { title: t('pages.support.docAddress'), desc: t('pages.support.docAddressDesc') },
+                { title: t('pages.support.docBusiness'), desc: t('pages.support.docBusinessDesc') },
               ].map((doc) => (
                 <div key={doc.title} className="flex items-start gap-3 pb-4 border-b border-gray-50 last:border-0 last:pb-0">
                   <i className="ri-file-text-line text-[#125C8D] text-base flex-shrink-0 mt-0.5"></i>
@@ -230,7 +235,7 @@ export default function SupportPage() {
       {activeTab === "tickets" && (
         <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-400">
           <i className="ri-message-2-line text-3xl mb-2 block"></i>
-          <p className="text-sm">Utilisez l'onglet "Messages" pour contacter le support</p>
+          <p className="text-sm">{t('pages.support.emptyTickets')}</p>
         </div>
       )}
 
@@ -238,7 +243,7 @@ export default function SupportPage() {
       {activeTab === "faq" && (
         <div className="bg-white rounded-xl border border-gray-100 p-5 text-center py-12">
           <i className="ri-question-answer-line text-4xl text-gray-200 mb-3 block" />
-          <p className="text-sm text-gray-500">Section FAQ — bientôt disponible</p>
+          <p className="text-sm text-gray-500">{t('pages.support.faqSoon')}</p>
         </div>
       )}
     </DashboardLayout>

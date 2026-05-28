@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/AuthContext";
+import { useLocale } from "@/lib/i18n";
 import VariantsEditor from "../components/VariantsEditor";
 
 const initialForm = {
@@ -22,6 +23,7 @@ const initialForm = {
 export default function NewProductPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t, locale } = useLocale();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
@@ -32,10 +34,18 @@ export default function NewProductPage() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    supabase.from("categories").select("id, name").order("name").then(({ data }) => { if (data) setCategories(data); });
+    supabase.from("categories").select("id, name").order("name").then(({ data }) => { if (data) setCategories(data); }).catch(err => console.error("Error fetching categories:", err));
     supabase.from("exchange_rates").select("rate").eq("from_currency", "NGN").eq("to_currency", "XOF").maybeSingle()
-      .then(({ data }) => { if (data?.rate) setExchangeRate(data.rate); });
+      .then(({ data }) => { if (data?.rate) setExchangeRate(data.rate); }).catch(err => console.error("Error fetching exchange rate:", err));
   }, []);
+
+  useEffect(() => {
+    const isDirty = form.name || form.imageFile || form.price_ngn > 0;
+    if (!isDirty) return;
+    const handler = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [form.name, form.imageFile, form.price_ngn]);
 
   const getCatName = (id) => categories.find(c => c.id === id)?.name || id;
 
@@ -51,11 +61,11 @@ export default function NewProductPage() {
   const handleImageFile = (file) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setError("Veuillez sélectionner un fichier image valide");
+      setError(t('catalog.invalidImage'));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setError("L'image ne doit pas dépasser 5 Mo");
+      setError(t('catalog.imageTooLarge'));
       return;
     }
     const preview = URL.createObjectURL(file);
@@ -74,10 +84,7 @@ export default function NewProductPage() {
     const path = `products/${user.id}/${productId}_${Date.now()}.${ext}`;
     const { error: uploadErr } = await supabase.storage.from("product-images").upload(path, file, { upsert: true, contentType: file.type });
     if (uploadErr) {
-      const { error: uploadErr2 } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
-      if (uploadErr2) throw new Error("Impossible d'uploader l'image. Vérifiez les permissions du bucket.");
-      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
-      return publicUrl;
+      throw new Error(t('catalog.uploadError'));
     }
     const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(path);
     return publicUrl;
@@ -139,7 +146,7 @@ export default function NewProductPage() {
 
       navigate("/catalog");
     } catch (err) {
-      setError(err.message || "Erreur lors de la création du produit");
+      setError(err.message || t('catalog.createError'));
     } finally {
       setSubmitting(false);
     }
@@ -154,17 +161,17 @@ export default function NewProductPage() {
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
-            Nouveau produit
+            {t('catalog.newProduct')}
           </h2>
-          <p className="text-sm text-gray-400">Créez un nouveau produit pour votre catalogue</p>
+          <p className="text-sm text-gray-400">{t('catalog.newProductSub')}</p>
         </div>
 
         {/* Steps indicator */}
         <div className="flex items-center mb-6">
           {[
-            { num: 1, label: "Informations" },
-            { num: 2, label: "Prix & Stock" },
-            { num: 3, label: "Confirmation" },
+            { num: 1, label: t('catalog.step1') },
+            { num: 2, label: t('catalog.step2') },
+            { num: 3, label: t('catalog.step3') },
           ].map((s, i) => (
             <div key={s.num} className="flex items-center flex-1">
               <div className="flex items-center gap-2">
@@ -182,42 +189,42 @@ export default function NewProductPage() {
         {step === 1 && (
           <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-5">
             <div>
-              <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 block mb-1.5">Nom du produit *</label>
+              <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 block mb-1.5">{t('catalog.fieldName')}</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => handleChange("name", e.target.value)}
-                placeholder="Ex : Robe africaine brodée en coton"
+                placeholder={t('catalog.fieldNamePlaceholder')}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#125C8D] transition-colors"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 block mb-1.5">Catégorie *</label>
+              <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 block mb-1.5">{t('catalog.fieldCategory')}</label>
               <select
                 value={form.category_id}
                 onChange={(e) => handleChange("category_id", e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#125C8D] bg-white"
               >
-                <option value="">Sélectionner une catégorie</option>
+                <option value="">{t('catalog.selectCategory')}</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 block mb-1.5">Description</label>
+              <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 block mb-1.5">{t('catalog.fieldDescription')}</label>
               <textarea
                 value={form.description}
                 onChange={(e) => handleChange("description", e.target.value)}
                 rows={4}
-                placeholder="Décrivez votre produit : matières, utilisation, caractéristiques..."
+                placeholder={t('catalog.descriptionPlaceholder')}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#125C8D] resize-none transition-colors"
               />
             </div>
 
             {/* Image upload */}
             <div>
-              <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 block mb-1.5">Photo principale</label>
+              <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 block mb-1.5">{t('catalog.photoMain')}</label>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -244,8 +251,8 @@ export default function NewProductPage() {
                   onDragOver={e => e.preventDefault()}
                 >
                   <i className="ri-image-add-line text-3xl text-gray-300 group-hover:text-[#125C8D] transition-colors mb-2 block"></i>
-                  <p className="text-sm font-medium text-gray-500 group-hover:text-[#125C8D]">Cliquez ou glissez une image ici</p>
-                  <p className="text-xs text-gray-400 mt-1">PNG, JPG, WebP · Max 5 Mo</p>
+                  <p className="text-sm font-medium text-gray-500 group-hover:text-[#125C8D]">{t('catalog.dropImage')}</p>
+                  <p className="text-xs text-gray-400 mt-1">{t('catalog.imageFormat')}</p>
                 </div>
               )}
             </div>
@@ -262,7 +269,7 @@ export default function NewProductPage() {
                 className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer whitespace-nowrap disabled:opacity-40 hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: "#125C8D" }}
               >
-                Suivant <i className="ri-arrow-right-line ml-1"></i>
+                {t('catalog.next')} <i className="ri-arrow-right-line ml-1"></i>
               </button>
             </div>
           </div>
@@ -273,7 +280,7 @@ export default function NewProductPage() {
           <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 block mb-1.5">Prix NGN (₦) *</label>
+                <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 block mb-1.5">{t('catalog.priceNgn')}</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">₦</span>
                   <input
@@ -286,7 +293,7 @@ export default function NewProductPage() {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 block mb-1.5">Prix FCFA (calculé)</label>
+                <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 block mb-1.5">{t('catalog.priceFcfa')}</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">F</span>
                   <input
@@ -300,13 +307,13 @@ export default function NewProductPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 block mb-1.5">Stock total *</label>
+              <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 block mb-1.5">{t('catalog.stockTotal')}</label>
               <input
                 type="number"
                 min="0"
                 value={form.stock_total || ""}
                 onChange={(e) => handleChange("stock_total", Number(e.target.value))}
-                placeholder="Ex : 50"
+                placeholder={t('catalog.stockPlaceholder')}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#125C8D]"
               />
             </div>
@@ -323,7 +330,7 @@ export default function NewProductPage() {
                 onClick={() => setStep(1)}
                 className="px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50 cursor-pointer whitespace-nowrap transition-colors"
               >
-                <i className="ri-arrow-left-line mr-1"></i>Retour
+                <i className="ri-arrow-left-line mr-1"></i>{t('catalog.back')}
               </button>
               <button
                 onClick={() => setStep(3)}
@@ -331,7 +338,7 @@ export default function NewProductPage() {
                 className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer whitespace-nowrap disabled:opacity-40 hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: "#125C8D" }}
               >
-                Suivant <i className="ri-arrow-right-line ml-1"></i>
+                {t('catalog.next')} <i className="ri-arrow-right-line ml-1"></i>
               </button>
             </div>
           </div>
@@ -340,7 +347,7 @@ export default function NewProductPage() {
         {/* Step 3 — Récapitulatif */}
         {step === 3 && (
           <div className="bg-white rounded-xl border border-gray-100 p-6">
-            <h3 className="text-sm font-bold text-gray-900 mb-4">Récapitulatif</h3>
+            <h3 className="text-sm font-bold text-gray-900 mb-4">{t('catalog.summary')}</h3>
 
             {/* Image preview */}
             {form.imagePreview && (
@@ -351,30 +358,30 @@ export default function NewProductPage() {
 
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-500">Nom</span>
+                <span className="text-gray-500">{t('catalog.summaryName')}</span>
                 <span className="font-semibold text-gray-900 text-right max-w-xs truncate">{form.name}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-500">Catégorie</span>
+                <span className="text-gray-500">{t('catalog.summaryCategory')}</span>
                 <span className="font-semibold text-gray-900">{getCatName(form.category_id)}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-500">Prix</span>
+                <span className="text-gray-500">{t('catalog.summaryPrice')}</span>
                 <span className="font-semibold text-gray-900">₦{form.price_ngn.toLocaleString()} / {form.price_fcfa.toLocaleString()} F</span>
               </div>
               <div className="flex justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-500">Stock</span>
-                <span className="font-semibold text-gray-900">{form.stock_total} unités</span>
+                <span className="text-gray-500">{t('catalog.summaryStock')}</span>
+                <span className="font-semibold text-gray-900">{form.stock_total} {t('common.units')}</span>
               </div>
               {form.variants?.length > 0 && (
                 <div className="flex justify-between py-2 border-b border-gray-100">
-                  <span className="text-gray-500">Variantes</span>
-                  <span className="font-semibold text-gray-900">{form.variants.length} variante(s)</span>
+                  <span className="text-gray-500">{t('catalog.summaryVariants')}</span>
+                  <span className="font-semibold text-gray-900">{form.variants.length} {locale === "en" ? "variant(s)" : "variante(s)"}</span>
                 </div>
               )}
               <div className="flex justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-500">Statut initial</span>
-                <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-50 text-amber-600">En révision</span>
+                <span className="text-gray-500">{t('catalog.summaryInitialStatus')}</span>
+                <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-50 text-amber-600">{t('catalog.pendingReview')}</span>
               </div>
             </div>
 
@@ -389,7 +396,7 @@ export default function NewProductPage() {
                 onClick={() => setStep(2)}
                 className="px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50 cursor-pointer whitespace-nowrap transition-colors"
               >
-                <i className="ri-arrow-left-line mr-1"></i>Retour
+                <i className="ri-arrow-left-line mr-1"></i>{t('catalog.back')}
               </button>
               <button
                 onClick={handleSubmit}
@@ -400,10 +407,10 @@ export default function NewProductPage() {
                 {submitting ? (
                   <span className="flex items-center gap-2">
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                    {uploadingImage ? "Upload image..." : "Création..."}
+                    {uploadingImage ? t('catalog.uploading') : t('catalog.creating')}
                   </span>
                 ) : (
-                  <><i className="ri-check-line mr-1"></i>Publier le produit</>
+                  <><i className="ri-check-line mr-1"></i>{t('catalog.publishProduct')}</>
                 )}
               </button>
             </div>

@@ -64,7 +64,8 @@ export default function ActivityPage() {
       .eq('seller_id', user.id)
       .order('created_at', { ascending: false })
       .limit(100)
-      .then(({ data }) => { setLogs(data || []); setLoading(false); });
+      .then(({ data }) => { setLogs(data || []); setLoading(false); })
+      .catch(err => { console.error("Error fetching activity logs:", err); setLoading(false); });
   }, [user]);
 
   const getActionLabel = (action) => {

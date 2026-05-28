@@ -12,7 +12,7 @@ export default function RecentOrders({ orders = [] }) {
     return (
       <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-400">
         <i className="ri-inbox-line text-3xl mb-2 block"></i>
-        <p className="text-sm">{locale === "en" ? "No recent orders" : "Aucune commande récente"}</p>
+        <p className="text-sm">{t('home.noRecentOrders')}</p>
       </div>
     );
   }
@@ -21,24 +21,24 @@ export default function RecentOrders({ orders = [] }) {
     <div className="bg-white rounded-xl border border-gray-100">
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
         <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
-          {locale === "en" ? "Recent Orders" : "Commandes récentes"}
+          {t('home.recentOrdersTitle')}
         </h3>
         <button
           onClick={() => navigate("/orders")}
           className="text-[10px] font-semibold text-[#125C8D] hover:underline cursor-pointer whitespace-nowrap"
         >
-          {locale === "en" ? "View all" : "Voir toutes"}
+          {t('home.viewAll')}
         </button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-100">
-              <th className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">{locale === "en" ? "Order" : "Commande"}</th>
-              <th className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">{locale === "en" ? "Product" : "Produit"}</th>
-              <th className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">{locale === "en" ? "Buyer" : "Acheteur"}</th>
-              <th className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">{locale === "en" ? "Amount" : "Montant"}</th>
-              <th className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">{locale === "en" ? "Status" : "Statut"}</th>
+              <th className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">{t('home.orderCol')}</th>
+              <th className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">{t('home.productCol')}</th>
+              <th className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">{t('home.buyerCol')}</th>
+              <th className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">{t('home.amountCol')}</th>
+              <th className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">{t('home.statusCol')}</th>
             </tr>
           </thead>
           <tbody>

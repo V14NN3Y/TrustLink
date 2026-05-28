@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useLocale } from "@/lib/i18n";
 
 const PRESET_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL", "Unique"];
 const PRESET_MATERIALS = ["Coton", "Polyester", "Lin", "Soie", "Laine", "Cuir", "Jean"];
@@ -71,6 +72,7 @@ function ColorSwatch({ color, selected, onClick }) {
 }
 
 export default function VariantsEditor({ productId, onVariantsChange }) {
+  const { t } = useLocale();
   const [variants, setVariants] = useState([]);
   const [loading, setLoading] = useState(!!productId);
   const [selectedValues, setSelectedValues] = useState({ size: [], color: [], material: [] });
@@ -211,11 +213,11 @@ export default function VariantsEditor({ productId, onVariantsChange }) {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
-          Variantes produit
+          {t('catalog.variantsTitle')}
         </p>
         {totalSelected > 0 && (
           <span className="px-2 py-0.5 rounded-full text-[#125C8D] bg-[#125C8D]/10 text-[10px] font-bold">
-            {totalSelected} sélectionnée{totalSelected > 1 ? "s" : ""}
+            {totalSelected} {totalSelected > 1 ? t('catalog.variantPlural') : t('catalog.variantSingular')}
           </span>
         )}
       </div>
@@ -224,7 +226,7 @@ export default function VariantsEditor({ productId, onVariantsChange }) {
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <i className="ri-palette-line text-gray-400 text-sm"></i>
-          <p className="text-xs font-semibold text-gray-700">Couleurs</p>
+          <p className="text-xs font-semibold text-gray-700">{t('catalog.sectionColors')}</p>
           {selectedValues.color.length > 0 && (
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#125C8D]/10 text-[#125C8D]">
               {selectedValues.color.length}
@@ -254,11 +256,11 @@ export default function VariantsEditor({ productId, onVariantsChange }) {
             value={customInputs.color}
             onChange={e => setCustomInputs(p => ({ ...p, color: e.target.value }))}
             onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom("color"); } }}
-            placeholder="Autre couleur..."
+            placeholder={t('catalog.otherColor')}
             className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-[#125C8D]"
           />
           <button type="button" onClick={() => addCustom("color")} className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 cursor-pointer whitespace-nowrap">
-            + Ajouter
+            {t('catalog.add')}
           </button>
         </div>
       </div>
@@ -269,7 +271,7 @@ export default function VariantsEditor({ productId, onVariantsChange }) {
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <i className="ri-ruler-line text-gray-400 text-sm"></i>
-          <p className="text-xs font-semibold text-gray-700">Tailles</p>
+          <p className="text-xs font-semibold text-gray-700">{t('catalog.sectionSizes')}</p>
           {selectedValues.size.length > 0 && (
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#125C8D]/10 text-[#125C8D]">
               {selectedValues.size.length}
@@ -301,11 +303,11 @@ export default function VariantsEditor({ productId, onVariantsChange }) {
             value={customInputs.size}
             onChange={e => setCustomInputs(p => ({ ...p, size: e.target.value }))}
             onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom("size"); } }}
-            placeholder="Autre taille (ex: 38, 40, 2XL...)"
+            placeholder={t('catalog.otherSize')}
             className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-[#125C8D]"
           />
           <button type="button" onClick={() => addCustom("size")} className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 cursor-pointer whitespace-nowrap">
-            + Ajouter
+            {t('catalog.add')}
           </button>
         </div>
       </div>
@@ -316,7 +318,7 @@ export default function VariantsEditor({ productId, onVariantsChange }) {
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <i className="ri-t-shirt-line text-gray-400 text-sm"></i>
-          <p className="text-xs font-semibold text-gray-700">Matériaux</p>
+          <p className="text-xs font-semibold text-gray-700">{t('catalog.sectionMaterials')}</p>
           {selectedValues.material.length > 0 && (
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#125C8D]/10 text-[#125C8D]">
               {selectedValues.material.length}
@@ -348,11 +350,11 @@ export default function VariantsEditor({ productId, onVariantsChange }) {
             value={customInputs.material}
             onChange={e => setCustomInputs(p => ({ ...p, material: e.target.value }))}
             onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom("material"); } }}
-            placeholder="Autre matériau..."
+            placeholder={t('catalog.otherMaterial')}
             className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-[#125C8D]"
           />
           <button type="button" onClick={() => addCustom("material")} className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 cursor-pointer whitespace-nowrap">
-            + Ajouter
+            {t('catalog.add')}
           </button>
         </div>
       </div>
@@ -363,14 +365,14 @@ export default function VariantsEditor({ productId, onVariantsChange }) {
           <div className="border-t border-gray-100"></div>
           <div className="border border-gray-100 rounded-xl overflow-hidden">
             <div className="bg-gray-50 px-3 py-2 border-b border-gray-100 flex items-center justify-between">
-              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Stock & prix par variante</p>
-              <p className="text-[10px] text-gray-400">{totalSelected} variante{totalSelected > 1 ? "s" : ""}</p>
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">{t('catalog.stockPriceHeader')}</p>
+              <p className="text-[10px] text-gray-400">{totalSelected} {totalSelected > 1 ? t('catalog.variantPlural') : t('catalog.variantSingular')}</p>
             </div>
             <div className="divide-y divide-gray-50">
               {Object.entries(selectedValues).flatMap(([type, values]) =>
                 values.map(value => {
                   const key = `${type}:${value}`;
-                  const typeLabel = type === "size" ? "Taille" : type === "color" ? "Couleur" : "Matériau";
+                  const typeLabel = type === "size" ? t('catalog.typeSize') : type === "color" ? t('catalog.typeColor') : t('catalog.typeMaterial');
                   const colorHex = type === "color"
                     ? (PRESET_COLORS.find(c => c.name === value)?.hex || "#888")
                     : null;
@@ -391,7 +393,7 @@ export default function VariantsEditor({ productId, onVariantsChange }) {
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">
                         <div className="flex flex-col items-center gap-0.5">
-                          <label className="text-[9px] text-gray-400 uppercase tracking-widest">Stock</label>
+                          <label className="text-[9px] text-gray-400 uppercase tracking-widest">{t('catalog.stockCol')}</label>
                           <input
                             type="number"
                             min="0"
@@ -402,7 +404,7 @@ export default function VariantsEditor({ productId, onVariantsChange }) {
                           />
                         </div>
                         <div className="flex flex-col items-center gap-0.5">
-                          <label className="text-[9px] text-gray-400 uppercase tracking-widest">+NGN</label>
+                          <label className="text-[9px] text-gray-400 uppercase tracking-widest">{t('catalog.modifierCol')}</label>
                           <input
                             type="number"
                             value={modifierMap[key] ?? 0}
@@ -434,7 +436,7 @@ export default function VariantsEditor({ productId, onVariantsChange }) {
 
       {totalSelected === 0 && (
         <p className="text-xs text-gray-400 text-center py-3 bg-gray-50 rounded-xl">
-          Sélectionnez des couleurs, tailles ou matériaux pour créer des variantes
+          {t('catalog.selectHint')}
         </p>
       )}
     </div>

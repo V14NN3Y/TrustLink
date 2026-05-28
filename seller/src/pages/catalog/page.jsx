@@ -10,12 +10,13 @@ import { useSellerLog } from "@/hooks/useSellerLog";
 import { useCurrency } from "@/hooks/useCurrency";
 import { supabase } from "@/lib/supabaseClient";
 import { exportToCSV } from "@/lib/export";
-import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n";
 import { toast } from "@/components/ui/use-toast";
 
 export default function CatalogPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t, locale } = useLocale();
   const { products, loading, refetch } = useSellerProducts(user?.id);
   const { logAction } = useSellerLog();
   const { formatPrice } = useCurrency();
@@ -46,16 +47,20 @@ export default function CatalogPage() {
       return;
     }
     if (updated.image) {
-      const { data: existingImage } = await supabase
-        .from("product_images")
-        .select("id")
-        .eq("product_id", updated.id)
-        .eq("is_primary", true)
-        .maybeSingle();
-      if (existingImage) {
-        await supabase.from("product_images").update({ url: updated.image }).eq("id", existingImage.id);
-      } else {
-        await supabase.from("product_images").insert({ product_id: updated.id, url: updated.image, is_primary: true });
+      try {
+        const { data: existingImage } = await supabase
+          .from("product_images")
+          .select("id")
+          .eq("product_id", updated.id)
+          .eq("is_primary", true)
+          .maybeSingle();
+        if (existingImage) {
+          await supabase.from("product_images").update({ url: updated.image }).eq("id", existingImage.id);
+        } else {
+          await supabase.from("product_images").insert({ product_id: updated.id, url: updated.image, is_primary: true });
+        }
+      } catch (err) {
+        console.error("Error updating product image:", err);
       }
     }
     setEditingProduct(null);
@@ -138,11 +143,11 @@ export default function CatalogPage() {
   };
 
   const statusLabels = {
-    all: "Tous",
-    approved: "Approuvés",
-    pending_review: "En révision",
-    rejected: "Rejetés",
-    draft: "Brouillons",
+    all: t('catalog.all'),
+    approved: t('catalog.approved'),
+    pending_review: t('catalog.pendingReview'),
+    rejected: t('catalog.rejected'),
+    draft: t('catalog.drafts'),
   };
 
   if (loading) {
@@ -160,11 +165,11 @@ export default function CatalogPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
         {[
-          { label: "Produits total", value: products.length, icon: "ri-store-2-line", color: "text-[#125C8D]", bg: "bg-[#125C8D]/10" },
-          { label: "Actifs", value: products.filter((p) => p.status === "approved").length, icon: "ri-checkbox-circle-line", color: "text-[#10B981]", bg: "bg-[#10B981]/10" },
-          { label: "Brouillons", value: products.filter((p) => p.status === "draft").length, icon: "ri-file-edit-line", color: "text-gray-500", bg: "bg-gray-100" },
-          { label: "Stock total", value: totalStock, icon: "ri-stack-line", color: "text-amber-600", bg: "bg-amber-50" },
-          { label: "Ventes totales", value: totalSales, icon: "ri-bar-chart-line", color: "text-[#FF6A00]", bg: "bg-[#FF6A00]/10" },
+          { label: t('catalog.statTotal'), value: products.length, icon: "ri-store-2-line", color: "text-[#125C8D]", bg: "bg-[#125C8D]/10" },
+          { label: t('catalog.statActive'), value: products.filter((p) => p.status === "approved").length, icon: "ri-checkbox-circle-line", color: "text-[#10B981]", bg: "bg-[#10B981]/10" },
+          { label: t('catalog.statDrafts'), value: products.filter((p) => p.status === "draft").length, icon: "ri-file-edit-line", color: "text-gray-500", bg: "bg-gray-100" },
+          { label: t('catalog.statStock'), value: totalStock, icon: "ri-stack-line", color: "text-amber-600", bg: "bg-amber-50" },
+          { label: t('catalog.statSales'), value: totalSales, icon: "ri-bar-chart-line", color: "text-[#FF6A00]", bg: "bg-[#FF6A00]/10" },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${s.bg}`}>
@@ -183,7 +188,7 @@ export default function CatalogPage() {
           <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
           <input
             type="text"
-            placeholder={t("Rechercher un produit...")}
+              placeholder={t('catalog.search')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full border border-gray-200 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-700 outline-none focus:border-[#125C8D] transition-colors"
@@ -218,21 +223,21 @@ export default function CatalogPage() {
           onClick={handleExport}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-[#125C8D] border border-[#125C8D] cursor-pointer whitespace-nowrap hover:bg-[#125C8D]/5 transition-colors"
         >
-          <i className="ri-download-line"></i>Export CSV
+          <i className="ri-download-line"></i>{t('catalog.exportCSV')}
         </button>
         <button
           onClick={() => setImportOpen(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white cursor-pointer whitespace-nowrap hover:opacity-90 transition-opacity"
           style={{ backgroundColor: "#10B981" }}
         >
-          <i className="ri-upload-line"></i>Import CSV
+          <i className="ri-upload-line"></i>{t('catalog.importCSV')}
         </button>
         <button
           onClick={() => navigate("/catalog/new")}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white cursor-pointer whitespace-nowrap hover:opacity-90 transition-opacity"
           style={{ backgroundColor: "#125C8D" }}
         >
-          <i className="ri-add-line"></i>Nouveau produit
+          <i className="ri-add-line"></i>{t('catalog.newProduct')}
         </button>
       </div>
       {/* Grid view */}
@@ -250,7 +255,7 @@ export default function CatalogPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-[#F9FAFB] border-b border-gray-100">
-                  {[t("Produit"), t("Catégorie"), t("Prix"), t("Stock"), t("Statut"), t("Actions")].map((h) => (
+                  {[t('stats.colProduct'), t('catalog.summaryCategory'), t('catalog.summaryPrice'), t('catalog.summaryStock'), t('common.status'), t('orders.colActions')].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">{h}</th>
                   ))}
                 </tr>
@@ -299,7 +304,7 @@ export default function CatalogPage() {
                         product.status === "draft" ? "bg-gray-100 text-gray-500" :
                         "bg-gray-100 text-gray-400"
                       }`}>
-                        {product.status === "approved" ? "Approuvé" : product.status === "pending_review" ? "En révision" : product.status === "draft" ? "Brouillon" : "Rejeté"}
+                        {product.status === "approved" ? t('catalog.approved') : product.status === "pending_review" ? t('catalog.pendingReview') : product.status === "draft" ? t('catalog.drafts') : t('catalog.rejected')}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -311,13 +316,13 @@ export default function CatalogPage() {
                               disabled={savingQuick}
                               className="text-xs font-semibold text-white bg-[#125C8D] px-2.5 py-1.5 rounded-lg hover:opacity-90 cursor-pointer whitespace-nowrap transition-colors disabled:opacity-50"
                             >
-                              {savingQuick ? "..." : "Save"}
+                              {savingQuick ? "..." : t('common.save')}
                             </button>
                             <button
                               onClick={cancelQuickEdit}
                               className="text-xs font-semibold text-gray-500 border border-gray-200 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer whitespace-nowrap transition-colors"
                             >
-                              Annuler
+                              {t('common.cancel')}
                             </button>
                           </>
                         ) : (
@@ -325,7 +330,7 @@ export default function CatalogPage() {
                             <button
                               onClick={() => startQuickEdit(product)}
                               className="text-xs font-semibold text-gray-500 border border-gray-200 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer whitespace-nowrap transition-colors"
-                              title="Modification rapide"
+                              title={t('catalog.quickEdit')}
                             >
                               <i className="ri-pencil-line"></i>
                             </button>
@@ -333,13 +338,13 @@ export default function CatalogPage() {
                               onClick={() => setEditingProduct(product)}
                               className="text-xs font-semibold text-[#125C8D] border border-[#125C8D]/30 px-2.5 py-1.5 rounded-lg hover:bg-[#125C8D]/5 cursor-pointer whitespace-nowrap transition-colors"
                             >
-                              <i className="ri-settings-4-line mr-1"></i>Modifier
+                              <i className="ri-settings-4-line mr-1"></i>{t('common.edit')}
                             </button>
                             <button
                               onClick={() => setDeletingProduct(product)}
                               className="text-xs font-semibold text-red-500 border border-red-200 px-2.5 py-1.5 rounded-lg hover:bg-red-50 cursor-pointer whitespace-nowrap transition-colors"
                             >
-                              <i className="ri-delete-bin-line mr-1"></i>Supprimer
+                              <i className="ri-delete-bin-line mr-1"></i>{t('common.delete')}
                             </button>
                           </>
                         )}
@@ -355,7 +360,7 @@ export default function CatalogPage() {
       {filtered.length === 0 && (
         <div className="text-center py-16 text-gray-400">
           <i className="ri-inbox-line text-4xl mb-3 block"></i>
-          <p className="text-sm">Aucun produit trouvé</p>
+          <p className="text-sm">{t('catalog.noProducts')}</p>
         </div>
       )}
       {/* Import CSV Modal */}
@@ -373,16 +378,16 @@ export default function CatalogPage() {
             <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mx-auto mb-4">
               <i className="ri-delete-bin-line text-red-500 text-xl"></i>
             </div>
-            <h3 className="text-base font-bold text-gray-900 text-center mb-2">Supprimer ce produit ?</h3>
+            <h3 className="text-base font-bold text-gray-900 text-center mb-2">{t('catalog.confirmDeleteTitle')}</h3>
             <p className="text-sm text-gray-500 text-center mb-6">
-              <strong>{deletingProduct.name}</strong> sera définitivement supprimé. Cette action est irréversible.
+              <strong>{deletingProduct.name}</strong> {t('catalog.confirmDeleteDesc')}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeletingProduct(null)}
                 className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50 cursor-pointer whitespace-nowrap transition-colors"
               >
-                Annuler
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleDeleteProduct}
@@ -390,7 +395,7 @@ export default function CatalogPage() {
                 className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer whitespace-nowrap transition-colors disabled:opacity-50"
                 style={{ backgroundColor: "#DC2626" }}
               >
-                {deleting ? "Suppression..." : "Supprimer"}
+                {deleting ? t('common.deleting') : t('common.delete')}
               </button>
             </div>
           </div>
