@@ -1,64 +1,68 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useI18n } from '@/lib/I18nContext';
 
-const CATEGORIES = [
-  {
-    id: 'orders', label: 'Commandes', icon: 'ri-shopping-bag-line',
-    items: [
-      { q: 'Comment passer une commande sur TrustLink ?', a: 'Parcourez notre catalogue, ajoutez des produits au panier, puis validez votre commande en renseignant votre adresse et en choisissant votre méthode de paiement Mobile Money.' },
-      { q: 'Puis-je modifier ou annuler ma commande ?', a: 'Vous pouvez annuler dans les 30 minutes suivant la commande depuis Mon Compte → Mes Commandes. Après ce délai, contactez notre support.' },
-      { q: 'Comment suivre ma commande ?', a: 'Rendez-vous dans Mon Compte → Mes Commandes. Vous trouverez le statut en temps réel et le numéro de suivi au format TL-XXXXXXXX.' },
-      { q: 'Quels sont les délais de livraison ?', a: 'La livraison prend entre 2 et 7 jours ouvrables depuis Lagos jusqu\'à Cotonou. Les délais varient selon votre ville au Bénin.' },
-    ],
-  },
-  {
-    id: 'escrow', label: 'Paiement & Escrow', icon: 'ri-shield-check-line',
-    items: [
-      { q: 'Comment fonctionne le système Escrow ?', a: 'Vous payez TrustLink qui sécurise vos fonds. Le vendeur prépare et expédie votre commande. Une fois livrée et confirmée, le paiement est libéré au vendeur.' },
-      { q: 'Quelles méthodes de paiement acceptez-vous ?', a: 'MTN Mobile Money, Moov Money et Wave sont acceptés. Ces paiements sont chiffrés et sécurisés.' },
-      { q: 'Quand suis-je débité ?', a: 'Le débit intervient au moment de la validation de commande. Les fonds sont retenus sur un compte Escrow sécurisé jusqu\'à votre confirmation.' },
-      { q: 'Comment ouvrir un litige Escrow ?', a: 'Dans les 48h après livraison, soumettez une vidéo de déballage dans Mon Compte → Mes Commandes → Ouvrir un litige.' },
-    ],
-  },
-  {
-    id: 'returns', label: 'Litiges & Remboursements', icon: 'ri-arrow-go-back-line',
-    items: [
-      { q: 'Quelle est la politique de retour ?', a: 'Vous disposez de 30 jours pour retourner un article non conforme, défectueux ou endommagé. Les articles utilisés ou personnalisés ne sont pas éligibles.' },
-      { q: 'Comment initier un retour ?', a: 'Ouvrez un litige dans Mon Compte → Mes Commandes et soumettez une vidéo de déballage. Notre équipe traite le dossier sous 48h.' },
-      { q: 'Combien de temps pour être remboursé ?', a: '3 à 5 jours ouvrables après validation du retour. Le remboursement est effectué sur votre compte Mobile Money.' },
-      { q: 'Qui prend en charge les frais de retour ?', a: 'TrustLink prend en charge les frais si l\'article est défectueux ou non conforme. Dans les autres cas, les frais sont à la charge du client.' },
-    ],
-  },
-  {
-    id: 'account', label: 'Mon Compte', icon: 'ri-user-3-line',
-    items: [
-      { q: 'Comment créer un compte TrustLink ?', a: 'Cliquez sur l\'icône Compte en haut à droite, puis Inscription. Renseignez vos informations et vérifiez votre numéro de téléphone par SMS.' },
-      { q: 'J\'ai oublié mon mot de passe', a: 'Sur la page de connexion, cliquez sur "Mot de passe oublié". Un lien de réinitialisation valable 24h vous sera envoyé.' },
-      { q: 'Comment modifier mes informations ?', a: 'Allez dans Mon Compte → Paramètres. Vous pouvez modifier votre adresse, numéro de téléphone et préférences de notification.' },
-      { q: 'Comment supprimer mon compte ?', a: 'Dans Mon Compte → Paramètres → Zone de danger → Supprimer mon compte. Cette action est irréversible.' },
-    ],
-  },
-];
+function getCategories(t) {
+  return [
+    {
+      id: 'orders', label: t('help.catOrders'), icon: 'ri-shopping-bag-line',
+      items: [
+        { q: t('help.orders_q0'), a: t('help.orders_a0') },
+        { q: t('help.orders_q1'), a: t('help.orders_a1') },
+        { q: t('help.orders_q2'), a: t('help.orders_a2') },
+        { q: t('help.orders_q3'), a: t('help.orders_a3') },
+      ],
+    },
+    {
+      id: 'escrow', label: t('help.catEscrow'), icon: 'ri-shield-check-line',
+      items: [
+        { q: t('help.escrow_q0'), a: t('help.escrow_a0') },
+        { q: t('help.escrow_q1'), a: t('help.escrow_a1') },
+        { q: t('help.escrow_q2'), a: t('help.escrow_a2') },
+        { q: t('help.escrow_q3'), a: t('help.escrow_a3') },
+      ],
+    },
+    {
+      id: 'returns', label: t('help.catReturns'), icon: 'ri-arrow-go-back-line',
+      items: [
+        { q: t('help.returns_q0'), a: t('help.returns_a0') },
+        { q: t('help.returns_q1'), a: t('help.returns_a1') },
+        { q: t('help.returns_q2'), a: t('help.returns_a2') },
+        { q: t('help.returns_q3'), a: t('help.returns_a3') },
+      ],
+    },
+    {
+      id: 'account', label: t('help.catAccount'), icon: 'ri-user-3-line',
+      items: [
+        { q: t('help.account_q0'), a: t('help.account_a0') },
+        { q: t('help.account_q1'), a: t('help.account_a1') },
+        { q: t('help.account_q2'), a: t('help.account_a2') },
+        { q: t('help.account_q3'), a: t('help.account_a3') },
+      ],
+    },
+  ];
+}
 
 export default function Help() {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState('orders');
   const [activeSidebar, setActiveSidebar] = useState('orders');
   const [open, setOpen] = useState(null);
   const [search, setSearch] = useState('');
 
+  const CATEGORIES = getCategories(t);
   const activeCategory = CATEGORIES.find((c) => c.id === activeSidebar);
 
   return (
     <div className="pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
-      {/* Hero */}
       <div style={{ backgroundColor: '#0E3A4F' }} className="text-white py-14">
         <div className="max-w-[860px] mx-auto px-4 text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 mb-5">
             <i className="ri-customer-service-2-line text-sm"></i>
-            <span className="text-sm font-poppins font-medium">Centre d'aide TrustLink</span>
+            <span className="text-sm font-poppins font-medium">{t('help.heroBadge')}</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-poppins font-bold mb-3">Comment pouvons-nous vous aider ?</h1>
-          <p className="text-base font-inter text-white/70 mb-8">Trouvez rapidement des réponses à vos questions sur les commandes, paiements et litiges.</p>
+          <h1 className="text-3xl md:text-4xl font-poppins font-bold mb-3">{t('help.heroTitle')}</h1>
+          <p className="text-base font-inter text-white/70 mb-8">{t('help.heroDesc')}</p>
           <div className="max-w-xl mx-auto">
             <div className="flex items-center bg-white rounded-xl overflow-hidden px-4 py-3 gap-3">
               <i className="ri-search-line text-lg" style={{ color: '#9CA3AF' }}></i>
@@ -66,7 +70,7 @@ export default function Help() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Rechercher une question..."
+                placeholder={t('help.searchPlaceholder')}
                 className="flex-1 text-sm font-inter outline-none"
                 style={{ color: '#111827' }}
               />
@@ -75,7 +79,6 @@ export default function Help() {
         </div>
       </div>
 
-      {/* Tab bar */}
       <div className="bg-white border-b border-gray-100 sticky z-30" style={{ top: '80px' }}>
         <div className="max-w-[1100px] mx-auto px-4 md:px-6">
           <div className="flex gap-1 overflow-x-auto py-2">
@@ -98,9 +101,8 @@ export default function Help() {
 
       <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-8">
         <div className="flex flex-col md:flex-row gap-6">
-          {/* Sidebar */}
           <aside className="md:w-56 flex-shrink-0">
-            <p className="text-xs font-poppins font-semibold uppercase tracking-wider mb-3" style={{ color: '#9CA3AF' }}>Catégories</p>
+            <p className="text-xs font-poppins font-semibold uppercase tracking-wider mb-3" style={{ color: '#9CA3AF' }}>{t('help.sidebarTitle')}</p>
             <div className="space-y-1">
               {CATEGORIES.map((cat) => (
                 <button
@@ -118,17 +120,16 @@ export default function Help() {
             </div>
 
             <div className="mt-6 pt-5 border-t border-gray-200">
-              <p className="text-xs font-poppins font-semibold mb-3" style={{ color: '#9CA3AF' }}>Besoin d'aide directe ?</p>
+              <p className="text-xs font-poppins font-semibold mb-3" style={{ color: '#9CA3AF' }}>{t('help.sidebarCtaTitle')}</p>
               <Link to="/support"
                 className="flex items-center justify-center gap-2 w-full py-2.5 text-white text-sm font-poppins font-semibold rounded-lg transition-opacity hover:opacity-90"
                 style={{ backgroundColor: '#FF6A00' }}>
                 <i className="ri-customer-service-2-line text-sm"></i>
-                Contacter le support
+                {t('help.sidebarCta')}
               </Link>
             </div>
           </aside>
 
-          {/* Content */}
           <div className="flex-1">
             <div className="bg-white rounded-xl overflow-hidden mb-4" style={{ border: '1px solid #E5E7EB' }}>
               <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
@@ -152,17 +153,16 @@ export default function Help() {
               })}
             </div>
 
-            {/* CTA */}
             <div className="bg-white rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4" style={{ border: '1px solid #E5E7EB' }}>
               <div>
-                <p className="text-sm font-poppins font-semibold mb-0.5" style={{ color: '#111827' }}>Vous n'avez pas trouvé votre réponse ?</p>
-                <p className="text-xs font-inter" style={{ color: '#9CA3AF' }}>Notre équipe répond en moins de 5 minutes.</p>
+                <p className="text-sm font-poppins font-semibold mb-0.5" style={{ color: '#111827' }}>{t('help.ctaTitle')}</p>
+                <p className="text-xs font-inter" style={{ color: '#9CA3AF' }}>{t('help.ctaDesc')}</p>
               </div>
               <Link to="/support"
                 className="flex items-center gap-2 px-5 py-2.5 text-white text-sm font-poppins font-semibold rounded-lg flex-shrink-0 transition-opacity hover:opacity-90"
                 style={{ backgroundColor: '#FF6A00' }}>
                 <i className="ri-customer-service-2-line text-sm"></i>
-                Contacter le support
+                {t('help.ctaButton')}
               </Link>
             </div>
           </div>

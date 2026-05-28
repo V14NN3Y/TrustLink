@@ -3,15 +3,18 @@ import { Link } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
 import { useCurrencyContext } from '@/lib/CurrencyContext';
 import { supabase } from '@/lib/supabaseClient';
+import { useI18n } from '@/lib/I18nContext';
 
 export default function Cart() {
+  const { t } = useI18n();
   const { items, loading, removeItem, updateQuantity, totalPrice } = useCart();
   const { formatPrice } = useCurrencyContext();
   const [deliveryFee, setDeliveryFee] = useState(0);
 
   useEffect(() => {
     supabase.from('escrow_config').select('delivery_fee').limit(1).single()
-      .then(({ data }) => { if (data?.delivery_fee) setDeliveryFee(data.delivery_fee); });
+      .then(({ data }) => { if (data?.delivery_fee) setDeliveryFee(data.delivery_fee); })
+      .catch(err => console.error("Error loading delivery fee:", err));
   }, []);
 
   if (loading) {
@@ -51,16 +54,16 @@ export default function Cart() {
     return (
       <div className="pt-24 pb-12 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
         <div className="max-w-[1200px] mx-auto px-4 md:px-6">
-          <h1 className="text-2xl font-poppins font-bold mb-12" style={{ color: '#111827' }}>Mon Panier</h1>
+          <h1 className="text-2xl font-poppins font-bold mb-12" style={{ color: '#111827' }}>{t('cart.title')}</h1>
           <div className="flex flex-col items-center justify-center py-16">
             <div className="w-20 h-20 rounded-full flex items-center justify-center mb-5" style={{ backgroundColor: '#E1F0F9' }}>
               <i className="ri-shopping-cart-line text-3xl" style={{ color: '#125C8D' }}></i>
             </div>
-            <h2 className="text-lg font-poppins font-semibold mb-2" style={{ color: '#111827' }}>Votre panier est vide</h2>
-            <p className="text-sm font-inter mb-8" style={{ color: '#9CA3AF' }}>Découvrez nos produits et ajoutez-en à votre panier</p>
+            <h2 className="text-lg font-poppins font-semibold mb-2" style={{ color: '#111827' }}>{t('cart.empty')}</h2>
+            <p className="text-sm font-inter mb-8" style={{ color: '#9CA3AF' }}>{t('cart.emptyDesc')}</p>
             <Link to="/" className="flex items-center gap-2 px-6 py-3 text-white font-poppins font-semibold rounded-full transition-opacity hover:opacity-90" style={{ backgroundColor: '#0E3A4F' }}>
               <i className="ri-store-2-line text-sm"></i>
-              Continuer mes achats
+              {t('cart.continue')}
             </Link>
           </div>
         </div>
@@ -72,7 +75,7 @@ export default function Cart() {
     <div className="pt-24 pb-12 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       <div className="max-w-[1200px] mx-auto px-4 md:px-6">
         <h1 className="text-2xl font-poppins font-bold mb-6" style={{ color: '#111827' }}>
-          Mon Panier <span className="text-base font-inter font-normal" style={{ color: '#6B7280' }}>({items.length} articles)</span>
+          {t('cart.title')} <span className="text-base font-inter font-normal" style={{ color: '#6B7280' }}>({items.length} {t('cart.items')})</span>
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -84,8 +87,8 @@ export default function Cart() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-inter font-medium mb-1 truncate" style={{ color: '#111827' }}>{item.name}</p>
-                  {item.selectedSize && <p className="text-xs font-inter mb-0.5" style={{ color: '#6B7280' }}>Taille: {item.selectedSize}</p>}
-                  {item.selectedColor && <p className="text-xs font-inter mb-2" style={{ color: '#6B7280' }}>Couleur: {item.selectedColor}</p>}
+                  {item.selectedSize && <p className="text-xs font-inter mb-0.5" style={{ color: '#6B7280' }}>{t('cart.sizeLabel')}: {item.selectedSize}</p>}
+                  {item.selectedColor && <p className="text-xs font-inter mb-2" style={{ color: '#6B7280' }}>{t('cart.colorLabel')}: {item.selectedColor}</p>}
                   <p className="text-sm font-poppins font-bold mb-3" style={{ color: '#125C8D' }}>{formatPrice(item.price)}</p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
@@ -107,31 +110,31 @@ export default function Cart() {
 
           <div className="lg:col-span-1">
             <div className="bg-white border border-gray-100 rounded-xl p-6 sticky top-24">
-              <h2 className="text-base font-poppins font-semibold mb-4" style={{ color: '#111827' }}>Récapitulatif</h2>
+              <h2 className="text-base font-poppins font-semibold mb-4" style={{ color: '#111827' }}>{t('cart.summary')}</h2>
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between text-sm font-inter">
-                  <span style={{ color: '#6B7280' }}>Sous-total</span>
+                  <span style={{ color: '#6B7280' }}>{t('cart.subtotal')}</span>
                   <span style={{ color: '#111827' }}>{formatPrice(totalPrice)}</span>
                 </div>
                 <div className="flex justify-between text-sm font-inter">
-                  <span style={{ color: '#6B7280' }}>Frais de livraison</span>
+                  <span style={{ color: '#6B7280' }}>{t('cart.shipping')}</span>
                   <span style={{ color: '#111827' }}>{formatPrice(deliveryFee)}</span>
                 </div>
                 <hr className="border-gray-100" />
                 <div className="flex justify-between font-poppins font-bold">
-                  <span style={{ color: '#111827' }}>Total</span>
+                  <span style={{ color: '#111827' }}>{t('cart.total')}</span>
                   <span style={{ color: '#125C8D' }}>{formatPrice(totalPrice + deliveryFee)}</span>
                 </div>
               </div>
               <div className="rounded-xl p-3 mb-4" style={{ backgroundColor: '#E1F0F9' }}>
                 <div className="flex items-center gap-2">
                   <i className="ri-shield-check-line text-sm" style={{ color: '#125C8D' }}></i>
-                  <p className="text-xs font-poppins font-semibold" style={{ color: '#125C8D' }}>Paiement Escrow sécurisé</p>
+                  <p className="text-xs font-poppins font-semibold" style={{ color: '#125C8D' }}>{t('cart.secureEscrow')}</p>
                 </div>
-                <p className="text-xs font-inter mt-1" style={{ color: '#6B7280' }}>Vos fonds sont protégés jusqu'à la réception de votre commande.</p>
+                <p className="text-xs font-inter mt-1" style={{ color: '#6B7280' }}>{t('cart.escrowDesc')}</p>
               </div>
               <Link to="/checkout" className="block text-center text-white font-poppins font-bold py-3 rounded-full transition-opacity hover:opacity-90" style={{ backgroundColor: '#FF6A00' }}>
-                Passer la commande
+                {t('cart.checkout')}
               </Link>
             </div>
           </div>

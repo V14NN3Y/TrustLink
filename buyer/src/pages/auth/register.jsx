@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
+import { useI18n } from '@/lib/I18nContext';
 
-function getPasswordStrength(password) {
+function getPasswordStrength(password, t) {
   if (!password) return { score: 0, label: '', color: '' };
   let score = 0;
   if (password.length >= 6) score++;
@@ -10,14 +11,15 @@ function getPasswordStrength(password) {
   if (/[A-Z]/.test(password)) score++;
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
-  if (score <= 1) return { score, label: 'Très faible', color: '#EF4444' };
-  if (score === 2) return { score, label: 'Faible', color: '#F97316' };
-  if (score === 3) return { score, label: 'Moyen', color: '#EAB308' };
-  if (score === 4) return { score, label: 'Bon', color: '#22C55E' };
-  return { score, label: 'Excellent', color: '#15803D' };
+  if (score <= 1) return { score, label: t('auth.passwordVeryWeak'), color: '#EF4444' };
+  if (score === 2) return { score, label: t('auth.passwordWeak'), color: '#F97316' };
+  if (score === 3) return { score, label: t('auth.passwordMedium'), color: '#EAB308' };
+  if (score === 4) return { score, label: t('auth.passwordGood'), color: '#22C55E' };
+  return { score, label: t('auth.passwordExcellent'), color: '#15803D' };
 }
 
 export default function Register() {
+  const { t } = useI18n();
   const { registerWithEmail, loginWithGoogle, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [fullName, setFullName] = useState('');
@@ -31,7 +33,7 @@ export default function Register() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
 
-  const strength = getPasswordStrength(password);
+  const strength = getPasswordStrength(password, t);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -43,30 +45,39 @@ export default function Register() {
     e.preventDefault();
     setError(null);
     if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas.');
+      setError(t('auth.passwordsDontMatch'));
       return;
     }
     if (password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères.');
+      setError(t('auth.passwordTooShort'));
       return;
     }
     setLoading(true);
-    const result = await registerWithEmail(email, password, fullName);
-    if (!result.success) {
-      setError(result.error?.message || "Erreur lors de l'inscription.");
+    try {
+      const result = await registerWithEmail(email, password, fullName);
+      if (!result.success) {
+        setError(result.error?.message || t('auth.registerError'));
+        return;
+      }
+      setSuccess(true);
+    } catch (err) {
+      setError(err.message || t('auth.registerError'));
+    } finally {
       setLoading(false);
-      return;
     }
-    setSuccess(true);
-    setLoading(false);
   };
 
   const handleGoogleLogin = async () => {
     setError(null);
     setGoogleLoading(true);
-    const result = await loginWithGoogle();
-    if (!result.success) {
-      setError(result.error?.message || 'Erreur lors de la connexion Google.');
+    try {
+      const result = await loginWithGoogle();
+      if (!result.success) {
+        setError(result.error?.message || t('auth.googleError'));
+      }
+    } catch (err) {
+      setError(err.message || t('auth.googleError'));
+    } finally {
       setGoogleLoading(false);
     }
   };
@@ -79,17 +90,16 @@ export default function Register() {
             <i className="ri-mail-check-line text-green-600 text-xl"></i>
           </div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Vérifie ton email
+            {t('auth.registerSuccess')}
           </h2>
           <p className="text-sm text-gray-500 mb-6">
-            Un lien de confirmation a été envoyé à{' '}
-            <strong>{email}</strong>. Clique dessus pour activer ton compte.
+            {t('auth.registerSuccessDesc').replace('{email}', email)}
           </p>
           <Link
             to="/login"
             className="text-sm text-slate-800 font-medium underline"
           >
-            Retour à la connexion
+            {t('auth.backToLogin')}
           </Link>
         </div>
       </div>
@@ -103,12 +113,12 @@ export default function Register() {
           <img src="/TrustLink_Logo_Bleu-125C8D.png" alt="TrustLink" className="h-12 w-auto" />
         </div>
         <h1 className="text-2xl font-semibold text-gray-900 mb-2 text-center">
-          Créer un compte
+          {t('auth.createAccount')}
         </h1>
         <p className="text-sm text-gray-500 mb-6 text-center">
-          Déjà inscrit ?{' '}
+          {t('auth.hasAccount')}{' '}
           <Link to="/login" className="text-slate-800 font-medium underline">
-            Se connecter
+            {t('auth.signIn')}
           </Link>
         </p>
         {error && (
@@ -119,7 +129,7 @@ export default function Register() {
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nom complet
+              {t('auth.name')}
             </label>
             <input
               type="text"
@@ -128,12 +138,12 @@ export default function Register() {
               required
               autoComplete="name"
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#125C8D]"
-              placeholder="Jean Dupont"
+              placeholder={t('auth.placeholderName')}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              {t('auth.email')}
             </label>
             <input
               type="email"
@@ -142,12 +152,12 @@ export default function Register() {
               required
               autoComplete="email"
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#125C8D]"
-              placeholder="vous@exemple.com"
+              placeholder={t('auth.emailPlaceholder')}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mot de passe
+              {t('auth.password')}
             </label>
             <div className="relative">
               <input
@@ -157,7 +167,7 @@ export default function Register() {
                 required
                 autoComplete="new-password"
                 className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#125C8D]"
-                placeholder="Minimum 6 caractères"
+                placeholder={t('auth.minChars')}
               />
               <button
                 type="button"
@@ -185,7 +195,7 @@ export default function Register() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Confirmer le mot de passe
+              {t('auth.confirmPassword')}
             </label>
             <div className="relative">
               <input
@@ -199,7 +209,7 @@ export default function Register() {
                     ? 'border-red-300 bg-red-50'
                     : 'border-gray-300'
                 }`}
-                placeholder="Confirmez votre mot de passe"
+                placeholder={t('auth.confirmPasswordPlaceholder')}
               />
               <button
                 type="button"
@@ -211,7 +221,7 @@ export default function Register() {
               </button>
             </div>
             {confirmPassword && confirmPassword !== password && (
-              <p className="text-xs text-red-500 mt-1">Les mots de passe ne correspondent pas</p>
+              <p className="text-xs text-red-500 mt-1">{t('auth.passwordsDontMatch')}</p>
             )}
           </div>
           <button
@@ -220,12 +230,12 @@ export default function Register() {
             className="w-full py-2.5 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 whitespace-nowrap cursor-pointer"
             style={{ backgroundColor: '#125C8D' }}
           >
-            {loading ? 'Création...' : 'Créer mon compte'}
+            {loading ? t('auth.creating') : t('auth.createAccount')}
           </button>
         </form>
         <div className="my-5 flex items-center gap-3">
           <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-xs text-gray-400">ou</span>
+          <span className="text-xs text-gray-400">{t('general.or')}</span>
           <div className="flex-1 h-px bg-gray-200" />
         </div>
         <button
@@ -234,7 +244,7 @@ export default function Register() {
           className="w-full flex items-center justify-center gap-3 py-2.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 whitespace-nowrap cursor-pointer"
         >
           <i className="ri-google-fill text-base"></i>
-          {googleLoading ? 'Redirection...' : 'Continuer avec Google'}
+          {googleLoading ? t('auth.redirecting') : t('auth.continueWithGoogle')}
         </button>
       </div>
     </div>

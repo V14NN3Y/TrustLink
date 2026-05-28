@@ -9,7 +9,9 @@ export default function ReviewsSection({ productId }) {
     const { reviews, stats, myReview, canReview, loading, submitting, submit } = useReviews(productId);
     const [showForm, setShowForm] = useState(false);
     const handleSubmit = async (data) => {
-        await submit(data);
+        try {
+            await submit(data);
+        } catch {}
         setShowForm(false);
     };
     return (

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
+import { useI18n } from '@/lib/I18nContext';
 export default function ResetPassword() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,29 +28,34 @@ export default function ResetPassword() {
     e.preventDefault();
     setError(null);
     if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas.');
+      setError(t('auth.passwordsDontMatch'));
       return;
     }
     if (password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères.');
+      setError(t('auth.passwordTooShort'));
       return;
     }
     setLoading(true);
-    const { error: updateError } = await supabase.auth.updateUser({ password });
-    if (updateError) {
-      setError(updateError.message || 'Erreur lors de la réinitialisation.');
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) {
+        setError(updateError.message || t('auth.resetError'));
+        setLoading(false);
+        return;
+      }
+      await supabase.auth.signOut();
+      navigate('/login?reset=success', { replace: true });
+    } catch (err) {
+      setError(t('auth.resetError'));
       setLoading(false);
-      return;
     }
-    await supabase.auth.signOut();
-    navigate('/login?reset=success', { replace: true });
   };
 
   if (!ready) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-white gap-4">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-[#125C8D] rounded-full animate-spin"></div>
-        <p className="text-sm text-gray-500">Vérification du lien...</p>
+        <p className="text-sm text-gray-500">{t('auth.verifyLink')}</p>
       </div>
     );
   }
@@ -60,10 +67,10 @@ export default function ResetPassword() {
           <img src="/TrustLink_Logo_Bleu-125C8D.png" alt="TrustLink" className="h-12 w-auto" />
         </div>
         <h1 className="text-2xl font-semibold text-gray-900 mb-2 text-center">
-          Nouveau mot de passe
+          {t('auth.newPassword')}
         </h1>
         <p className="text-sm text-gray-500 mb-6 text-center">
-          Choisis un nouveau mot de passe pour ton compte.
+          {t('auth.resetPasswordDesc')}
         </p>
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -73,7 +80,7 @@ export default function ResetPassword() {
         <form onSubmit={handleReset} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nouveau mot de passe
+              {t('auth.newPassword')}
             </label>
             <div className="relative">
               <input
@@ -83,7 +90,7 @@ export default function ResetPassword() {
                 required
                 autoComplete="new-password"
                 className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#125C8D]"
-                placeholder="Minimum 6 caractères"
+                placeholder={t('auth.minChars')}
               />
               <button
                 type="button"
@@ -97,7 +104,7 @@ export default function ResetPassword() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Confirmer le mot de passe
+              {t('auth.confirmPassword')}
             </label>
             <div className="relative">
               <input
@@ -111,7 +118,7 @@ export default function ResetPassword() {
                     ? 'border-red-300 bg-red-50'
                     : 'border-gray-300'
                 }`}
-                placeholder="Confirmez votre mot de passe"
+                placeholder={t('auth.confirmPasswordPlaceholder')}
               />
               <button
                 type="button"
@@ -123,7 +130,7 @@ export default function ResetPassword() {
               </button>
             </div>
             {confirmPassword && confirmPassword !== password && (
-              <p className="text-xs text-red-500 mt-1">Les mots de passe ne correspondent pas</p>
+              <p className="text-xs text-red-500 mt-1">{t('auth.passwordsDontMatch')}</p>
             )}
           </div>
           <button
@@ -132,7 +139,7 @@ export default function ResetPassword() {
             className="w-full py-2.5 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 whitespace-nowrap cursor-pointer"
             style={{ backgroundColor: '#125C8D' }}
           >
-            {loading ? 'Mise à jour...' : 'Réinitialiser le mot de passe'}
+            {loading ? t('settings.updating') : t('auth.resetPassword')}
           </button>
         </form>
       </div>

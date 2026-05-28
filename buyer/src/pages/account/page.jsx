@@ -9,29 +9,31 @@ import DisputeModal from './components/DisputeModal';
 import ConfirmDeliveryModal from './components/ConfirmDeliveryModal';
 import { Link } from 'react-router-dom';
 import { useCurrencyContext } from '@/lib/CurrencyContext';
+import { useI18n } from '@/lib/I18nContext';
 import { STATUS_CONFIG } from '@/lib/config';
 
-const ORDER_FILTERS = [
-  { id: 'all', label: 'Toutes' },
-  { id: 'pending', label: 'En attente' },
-  { id: 'paid', label: 'Payée' },
-  { id: 'processing', label: 'En cours de traitement' },
-  { id: 'in_transit', label: 'En cours de livraison' },
-  { id: 'delivered', label: 'Livrée' },
-  { id: 'confirmed', label: 'Confirmée' },
-  { id: 'disputed', label: 'Litige' },
-  { id: 'cancelled', label: 'Annulée' },
-  { id: 'refunded', label: 'Remboursée' },
-];
-
-const NAV = [
-  { id: 'orders', label: 'Mes commandes', icon: 'ri-shopping-bag-line' },
-  { id: 'wishlist', label: 'Ma wishlist', icon: 'ri-heart-line' },
-  { id: 'disputes', label: 'Mes litiges', icon: 'ri-shield-star-line' },
-  { id: 'settings', label: 'Paramètres', icon: 'ri-settings-3-line' },
-];
-
 export default function Account() {
+  const { t, locale } = useI18n();
+  const ORDER_FILTERS = [
+    { id: 'all', label: t('general.all') },
+    { id: 'pending', label: t('order.status.pending') },
+    { id: 'paid', label: t('order.status.paid') },
+    { id: 'processing', label: t('order.status.processing') },
+    { id: 'in_transit', label: t('order.status.in_transit') },
+    { id: 'delivered', label: t('order.status.delivered') },
+    { id: 'confirmed', label: t('order.status.confirmed') },
+    { id: 'disputed', label: t('order.status.disputed') },
+    { id: 'cancelled', label: t('order.status.cancelled') },
+    { id: 'refunded', label: t('order.status.refunded') },
+  ];
+
+  const NAV = [
+    { id: 'orders', label: t('account.myOrders'), icon: 'ri-shopping-bag-line' },
+    { id: 'wishlist', label: t('account.myWishlist'), icon: 'ri-heart-line' },
+    { id: 'disputes', label: t('account.myDisputes'), icon: 'ri-shield-star-line' },
+    { id: 'settings', label: t('nav.settings'), icon: 'ri-settings-3-line' },
+  ];
+
   const [tab, setTab] = useState('orders');
   const [orderFilter, setOrderFilter] = useState('all');
   const [expandedOrder, setExpandedOrder] = useState(null);
@@ -57,9 +59,9 @@ export default function Account() {
       <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-8">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs font-inter mb-6" style={{ color: '#6B7280' }}>
-          <Link to="/" className="hover:underline">Boutique</Link>
+          <Link to="/" className="hover:underline">{t('account.breadcrumbStore')}</Link>
           <span>/</span>
-          <span style={{ color: '#111827' }}>Mon Compte</span>
+          <span style={{ color: '#111827' }}>{t('account.title')}</span>
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
@@ -69,20 +71,20 @@ export default function Account() {
             <div className="bg-white rounded-xl overflow-hidden mb-4" style={{ border: '1px solid #E5E7EB' }}>
               <div className="h-20 relative" style={{ background: 'linear-gradient(135deg, #125C8D 0%, #0E3A4F 100%)' }}>
                 <button onClick={() => setTab('settings')} className="absolute top-2 right-2 flex items-center gap-1.5 text-xs font-poppins text-white/80 bg-white/10 rounded-lg px-2.5 py-1 hover:bg-white/20 transition-colors">
-                  <i className="ri-edit-line text-xs"></i> Modifier le profil
+                  <i className="ri-edit-line text-xs"></i> {t('account.editProfile')}
                 </button>
               </div>
               <div className="px-5 pb-5">
                 <div className="w-16 h-16 rounded-full bg-amber-200 flex items-center justify-center -mt-8 mb-3 border-3 border-white overflow-hidden" style={{ border: '3px solid white' }}>
                   <span className="text-xl font-poppins font-bold text-amber-800">
-                    {userProfile?.full_name
-                      ? userProfile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                    {(userProfile?.full_name || user?.user_metadata?.full_name)
+                      ? (userProfile?.full_name || user?.user_metadata?.full_name).split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2)
                       : user?.email?.[0]?.toUpperCase() || '?'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mb-1">
                   <h2 className="text-base font-poppins font-bold" style={{ color: '#111827' }}>
-                    {userProfile?.full_name || user?.email?.split('@')[0] || 'Mon Compte'}
+                    {userProfile?.full_name || user?.email?.split('@')[0] || t('account.title')}
                   </h2>
                   <i className="ri-verified-badge-fill text-sm" style={{ color: '#125C8D' }}></i>
                 </div>
@@ -92,19 +94,19 @@ export default function Account() {
                 </div>
                 <div className="flex items-center gap-1.5 text-xs font-inter mb-1" style={{ color: '#6B7280' }}>
                   <i className="ri-phone-line text-xs"></i>
-                  <span>{userProfile?.phone || 'Non renseigné'}</span>
+                  <span>{userProfile?.phone || t('account.notProvided')}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs font-inter mb-4" style={{ color: '#6B7280' }}>
                   <i className="ri-map-pin-line text-xs"></i>
-                  <span>{userProfile?.default_city ? `${userProfile.default_city}, Bénin` : 'Non renseigné'}</span>
+                  <span>{userProfile?.default_city ? `${userProfile.default_city}, Bénin` : t('account.notProvided')}</span>
                 </div>
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-3 py-3 border-t border-gray-100">
                   {[
-                    { icon: 'ri-shopping-bag-line', value: orders.length, label: 'Commandes' },
-                    { icon: 'ri-money-cny-circle-line', value: new Intl.NumberFormat('fr-FR').format(orders.reduce((sum, o) => sum + o.total, 0)), label: 'FCFA Dépensés' },
-                    { icon: 'ri-shield-check-line', value: orders.length, label: 'Protégées Escrow' },
+                    { icon: 'ri-shopping-bag-line', value: orders.length, label: t('account.statsOrders') },
+                    { icon: 'ri-money-cny-circle-line', value: new Intl.NumberFormat(locale === 'fr' ? 'fr-FR' : 'en-US').format(orders.reduce((sum, o) => sum + o.total, 0)), label: t('account.statsSpent') },
+                    { icon: 'ri-shield-check-line', value: orders.length, label: t('account.statsProtected') },
                   ].map((s) => (
                     <div key={s.label} className="text-center">
                       <i className={`${s.icon} text-base mb-1 block`} style={{ color: '#125C8D' }}></i>
@@ -146,7 +148,7 @@ export default function Account() {
                     ))}
                     <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-poppins text-red-500 hover:bg-red-50 transition-colors cursor-pointer">
                     <i className="ri-logout-box-r-line text-base"></i>
-                    Se déconnecter
+                    {t('account.logout')}
                     </button>
                   </div>
 
@@ -154,13 +156,13 @@ export default function Account() {
             <div className="rounded-xl p-4" style={{ backgroundColor: '#FFF3EC', border: '1px solid #FFD0B0' }}>
               <div className="flex items-center gap-2 mb-2">
                 <i className="ri-shield-star-line" style={{ color: '#FF6A00' }}></i>
-                <p className="text-sm font-poppins font-semibold" style={{ color: '#FF6A00' }}>Protection Escrow</p>
+                <p className="text-sm font-poppins font-semibold" style={{ color: '#FF6A00' }}>{t('account.escrowProtection')}</p>
               </div>
               <p className="text-xs font-inter leading-relaxed mb-3" style={{ color: '#6B7280' }}>
-                Toutes vos commandes sont protégées. Le paiement n'est libéré qu'après votre accord.
+                {t('account.escrowDesc')}
               </p>
               <Link to="/legal?tab=escrow" className="text-xs font-poppins font-semibold" style={{ color: '#FF6A00' }}>
-                En savoir plus →
+                {t('account.learnMore')}
               </Link>
             </div>
           </aside>
@@ -170,7 +172,7 @@ export default function Account() {
             {/* Orders */}
             {tab === 'orders' && (
               <div>
-                <h1 className="text-xl font-poppins font-bold mb-5" style={{ color: '#111827' }}>Mes commandes</h1>
+                <h1 className="text-xl font-poppins font-bold mb-5" style={{ color: '#111827' }}>{t('account.myOrders')}</h1>
                 <div className="flex flex-wrap gap-2 mb-5">
                   {ORDER_FILTERS.map((f) => {
                     const count = f.id === 'all' ? orders.length : orders.filter((o) => o.status === f.id).length;
@@ -213,7 +215,7 @@ export default function Account() {
                                 <span className="text-xs font-poppins font-semibold rounded-full px-2 py-0.5" style={{ backgroundColor: cfg.bg, color: cfg.color }}>{cfg.label}</span>
                               </div>
                               <p className="text-xs font-inter" style={{ color: '#9CA3AF' }}>
-                                Commandé le {new Date(order.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                {t('account.orderedOn')} {new Date(order.createdAt).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                               </p>
                             </div>
                           </div>
@@ -237,7 +239,7 @@ export default function Account() {
                             </div>
                           )}
                           <span className="text-xs font-inter self-center ml-1" style={{ color: '#9CA3AF' }}>
-                            {order.items.length} article{order.items.length > 1 ? 's' : ''}
+                            {order.items.length} {order.items.length > 1 ? t('account.items') : t('account.item')}
                           </span>
                         </div>
 
@@ -252,17 +254,17 @@ export default function Account() {
                               ))}
                             </div>
                             <p className="text-xs font-inter mb-2" style={{ color: '#6B7280' }}>
-                              N° suivi : <span className="font-medium" style={{ color: '#125C8D' }}>{order.trackingNumber}</span>
+                              {t('account.tracking')} : <span className="font-medium" style={{ color: '#125C8D' }}>{order.trackingNumber}</span>
                             </p>
                             {order.dispatches && order.dispatches.length > 0 && order.dispatches.map((d) => (
                               <div key={d.id} className="rounded-lg p-3 mb-4" style={{ backgroundColor: '#F5F3FF' }}>
                                 <div className="flex items-center gap-2 mb-1">
                                   <i className="ri-truck-line text-xs" style={{ color: '#7C3AED' }} />
-                                  <span className="text-xs font-poppins font-semibold" style={{ color: '#7C3AED' }}>Expédition {d.dispatch_code}</span>
+                                  <span className="text-xs font-poppins font-semibold" style={{ color: '#7C3AED' }}>{t('account.dispatch')} {d.dispatch_code}</span>
                                 </div>
                                 <p className="text-xs font-inter" style={{ color: '#6B7280' }}>
                                   {d.origin_hub} → {d.destination_hub}
-                                  {d.estimated_arrival && ` · Arrivée estimée : ${new Date(d.estimated_arrival).toLocaleDateString('fr-FR')}`}
+                                  {d.estimated_arrival && ` · ${t('account.estimatedArrival')} : ${new Date(d.estimated_arrival).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}`}
                                 </p>
                               </div>
                             ))}
@@ -274,18 +276,18 @@ export default function Account() {
                                      className="flex items-center gap-1.5 px-4 py-2 text-xs font-poppins font-semibold text-white rounded-lg cursor-pointer whitespace-nowrap"
                                      style={{ backgroundColor: '#16A34A' }}
                                    >
-                                     <i className="ri-checkbox-circle-line"></i> Confirmer la réception
+                                      <i className="ri-checkbox-circle-line"></i> {t('account.confirmDelivery')}
                                    </button>
                                    <button
                                      onClick={() => setDisputeOrder(order)}
                                      className="flex items-center gap-1.5 px-4 py-2 text-xs font-poppins font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors cursor-pointer whitespace-nowrap"
                                    >
-                                     <i className="ri-error-warning-line"></i> Produit défectueux ?
+                                      <i className="ri-error-warning-line"></i> {t('account.defectiveProduct')}
                                    </button>
                                  </>
                                )}
                               <button className="flex items-center gap-1.5 px-4 py-2 text-xs font-poppins font-semibold rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer" style={{ color: '#374151' }}>
-                                <i className="ri-eye-line"></i> Détails
+                                <i className="ri-eye-line"></i> {t('account.details')}
                               </button>
                             </div>
                           </div>
@@ -301,20 +303,20 @@ export default function Account() {
             {tab === 'wishlist' && (
               <div>
                 <h1 className="text-xl font-poppins font-bold mb-5" style={{ color: '#111827' }}>
-                  Ma wishlist <span className="text-sm font-normal" style={{ color: '#9CA3AF' }}>({wishlistProducts.length} articles)</span>
+                  {t('account.myWishlist')} <span className="text-sm font-normal" style={{ color: '#9CA3AF' }}>({wishlistProducts.length} {t('account.items')})</span>
                 </h1>
                 {wishlistProducts.length === 0 ? (
                   <div className="text-center py-16">
                     <div className="text-6xl mb-4">💝</div>
-                    <p className="text-sm font-inter mb-4" style={{ color: '#6B7280' }}>Votre wishlist est vide</p>
-                    <Link to="/" className="px-6 py-2.5 text-white text-sm font-poppins font-semibold rounded-full" style={{ backgroundColor: '#FF6A00' }}>Découvrir les produits</Link>
+                    <p className="text-sm font-inter mb-4" style={{ color: '#6B7280' }}>{t('account.wishlistEmpty')}</p>
+                    <Link to="/" className="px-6 py-2.5 text-white text-sm font-poppins font-semibold rounded-full" style={{ backgroundColor: '#FF6A00' }}>{t('account.discoverProducts')}</Link>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {wishlistProducts.map((p) => (
                       <Link key={p.id} to={`/product/${p.id}`} className="bg-white rounded-xl overflow-hidden hover:-translate-y-1 transition-all" style={{ border: '1px solid #E5E7EB' }}>
                         <div className="h-40 overflow-hidden" style={{ backgroundColor: '#F8FAFC' }}>
-                          <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
+                          <img src={p.images?.[0] || ''} alt={p.name} className="w-full h-full object-cover" />
                         </div>
                         <div className="p-3">
                           <p className="text-xs font-inter font-medium line-clamp-2 mb-1" style={{ color: '#111827' }}>{p.name}</p>
@@ -329,7 +331,7 @@ export default function Account() {
             {/* Disputes */}
             {tab === 'disputes' && (
               <div>
-                <h1 className="text-xl font-poppins font-bold mb-5" style={{ color: '#111827' }}>Mes litiges</h1>
+                <h1 className="text-xl font-poppins font-bold mb-5" style={{ color: '#111827' }}>{t('account.myDisputes')}</h1>
                 {disputesLoading ? (
                   <div className="space-y-3">
                     {[1, 2, 3].map((i) => (
@@ -339,8 +341,8 @@ export default function Account() {
                 ) : disputes.length === 0 ? (
                   <div className="text-center py-16">
                     <div className="text-6xl mb-4">🛡️</div>
-                    <p className="text-sm font-inter mb-2" style={{ color: '#6B7280' }}>Aucun litige ouvert</p>
-                    <p className="text-xs font-inter" style={{ color: '#9CA3AF' }}>Un problème avec une commande livrée ? Ouvrez un litige depuis vos commandes.</p>
+                    <p className="text-sm font-inter mb-2" style={{ color: '#6B7280' }}>{t('account.noOpenDispute')}</p>
+                    <p className="text-xs font-inter" style={{ color: '#9CA3AF' }}>{t('account.disputeDesc')}</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -349,10 +351,10 @@ export default function Account() {
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <p className="text-sm font-poppins font-bold" style={{ color: '#111827' }}>
-                              Litige #{d.id.slice(0, 8).toUpperCase()}
+                              {t('account.disputeLabel')} #{d.id.slice(0, 8).toUpperCase()}
                             </p>
                             <p className="text-xs font-inter" style={{ color: '#9CA3AF' }}>
-                              Commande #{d.order?.id?.slice(0, 8)} · {formatPrice(d.order?.total_amount || 0)}
+                              {t('account.orderLabel')} #{d.order?.id?.slice(0, 8)} · {formatPrice(d.order?.total_amount || 0)}
                             </p>
                           </div>
                           <span className="text-xs font-poppins font-bold px-2 py-1 rounded-full"
@@ -360,7 +362,7 @@ export default function Account() {
                               backgroundColor: d.status === 'open' ? '#FEF3C7' : d.status === 'resolved_refund' ? '#DCFCE7' : '#FEE2E2',
                               color: d.status === 'open' ? '#B45309' : d.status === 'resolved_refund' ? '#15803D' : '#DC2626',
                             }}>
-                            {d.status === 'open' ? 'En cours d\'examen' : d.status === 'resolved_refund' ? 'Remboursé' : 'Non remboursé'}
+                            {d.status === 'open' ? t('account.disputeUnderReview') : d.status === 'resolved_refund' ? t('account.refunded') : t('account.notRefunded')}
                           </span>
                         </div>
                         <p className="text-sm font-inter mb-2" style={{ color: '#374151' }}>{d.reason}</p>
@@ -368,13 +370,13 @@ export default function Account() {
                           <a href={d.video.video_url} target="_blank" rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 text-xs font-poppins font-medium mb-2 cursor-pointer hover:underline"
                             style={{ color: '#125C8D' }}>
-                            <i className="ri-video-line"></i> Voir la vidéo de déballage
+                            <i className="ri-video-line"></i> {t('account.viewUnboxing')}
                           </a>
                         )}
                         {d.resolution_notes && (
                           <div className="rounded-lg p-3 mt-2" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E5E7EB' }}>
                             <p className="text-xs font-inter" style={{ color: '#6B7280' }}>
-                              <strong>Décision admin :</strong> {d.resolution_notes}
+                              <strong>{t('account.adminDecision')} :</strong> {d.resolution_notes}
                             </p>
                           </div>
                         )}

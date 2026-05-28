@@ -2,8 +2,10 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useAuth } from '@/lib/AuthContext';
+import { useI18n } from '@/lib/I18nContext';
 import ProductCard from '@/pages/home/components/ProductCard';
 export default function Wishlist() {
+  const { t } = useI18n();
   const { isAuthenticated } = useAuth();
   const { products, loading, loadWishlistProducts, items } = useWishlist();
   useEffect(() => {
@@ -17,14 +19,14 @@ export default function Wishlist() {
         <div className="flex items-start justify-between mb-8">
           <div>
             <h1 className="text-2xl font-poppins font-bold" style={{ color: '#111827' }}>
-              Ma Liste de Souhaits
+              {t('wishlist.title')}
             </h1>
             <p className="text-sm font-inter mt-1" style={{ color: '#9CA3AF' }}>
-              {items.length} produit{items.length !== 1 ? 's' : ''} sauvegardé{items.length !== 1 ? 's' : ''}
+              {items.length} {items.length === 1 ? t('wishlist.product') : t('wishlist.products')} {t('wishlist.saved')}
             </p>
           </div>
           <Link to="/" className="text-sm font-inter flex items-center gap-1 hover:underline" style={{ color: '#125C8D' }}>
-            <span>+</span> Ajouter des produits
+            <span>+</span> {t('wishlist.addProducts')}
           </Link>
         </div>
         {/* Non connecté */}
@@ -34,17 +36,17 @@ export default function Wishlist() {
               <i className="ri-lock-line text-2xl" style={{ color: '#125C8D' }}></i>
             </div>
             <h2 className="text-lg font-poppins font-semibold mb-2" style={{ color: '#111827' }}>
-              Connectez-vous pour voir votre wishlist
+              {t('wishlist.loginRequired')}
             </h2>
             <p className="text-sm font-inter mb-6" style={{ color: '#9CA3AF' }}>
-              Vos favoris sont sauvegardés sur votre compte.
+              {t('wishlist.loginDesc')}
             </p>
             <Link
               to="/login"
               className="px-6 py-3 text-white font-poppins font-semibold rounded-full transition-opacity hover:opacity-90"
               style={{ backgroundColor: '#FF6A00' }}
             >
-              Se connecter
+              {t('wishlist.login')}
             </Link>
           </div>
         )}
@@ -69,10 +71,10 @@ export default function Wishlist() {
               <i className="ri-heart-line text-3xl" style={{ color: '#FF6A00' }}></i>
             </div>
             <h2 className="text-lg font-poppins font-semibold mb-2" style={{ color: '#111827' }}>
-              Votre liste est vide
+              {t('wishlist.empty')}
             </h2>
             <p className="text-sm font-inter mb-8 text-center" style={{ color: '#9CA3AF' }}>
-              Ajoutez des produits à vos favoris en cliquant sur le cœur
+              {t('wishlist.emptyDesc')}
             </p>
             <Link
               to="/"
@@ -80,7 +82,7 @@ export default function Wishlist() {
               style={{ backgroundColor: '#0E3A4F' }}
             >
               <i className="ri-store-2-line text-sm"></i>
-              Découvrir les produits
+              {t('wishlist.discover')}
             </Link>
           </div>
         )}

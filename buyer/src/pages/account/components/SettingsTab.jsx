@@ -3,9 +3,11 @@ import { useProfile } from '@/hooks/useProfile';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
+import { useI18n } from '@/lib/I18nContext';
 import SavedPayments from './SavedPayments';
 
 export default function SettingsTab() {
+  const { t } = useI18n();
   const { profile, loading, saving, saveSuccess, saveProfile, reload } = useProfile();
   const { rate } = useExchangeRate();
   const { user, refreshProfile } = useAuth();
@@ -14,7 +16,8 @@ export default function SettingsTab() {
   
   useEffect(() => {
     supabase.from('delivery_cities').select('name').eq('is_active', true).order('sort_order')
-      .then(({ data }) => setCities((data || []).map(c => c.name)));
+      .then(({ data }) => setCities((data || []).map(c => c.name)))
+      .catch(err => console.error("Error loading cities:", err));
   }, []);
 
   const [form, setForm] = useState({
@@ -37,7 +40,7 @@ export default function SettingsTab() {
       if (refreshProfile) await refreshProfile();
       if (reload) await reload();
     } catch {
-      alert("Erreur lors de l'upload de la photo");
+      alert(t('general.error'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -67,22 +70,26 @@ export default function SettingsTab() {
         });
         setNotifs(prefs);
       }
-    });
+    }).catch(err => console.error("Error loading notification preferences:", err));
   }, [user]);
 
   const saveNotifPrefs = async () => {
     if (!user?.id) return;
-    const typeMap = { orders: 'order_update', escrow: 'dispute_update', promo: 'product_approved', newsletter: 'new_message', sms: 'new_message' };
-    for (const [key, enabled] of Object.entries(notifs)) {
-      const type = typeMap[key];
-      if (!type) continue;
-      await supabase.from('notification_preferences').upsert(
-        { user_id: user.id, type, channel: key === 'sms' ? 'sms' : 'email', enabled },
-        { onConflict: 'user_id, type, channel' }
-      );
+    try {
+      const typeMap = { orders: 'order_update', escrow: 'dispute_update', promo: 'product_approved', newsletter: 'new_message', sms: 'new_message' };
+      for (const [key, enabled] of Object.entries(notifs)) {
+        const type = typeMap[key];
+        if (!type) continue;
+        await supabase.from('notification_preferences').upsert(
+          { user_id: user.id, type, channel: key === 'sms' ? 'sms' : 'email', enabled },
+          { onConflict: 'user_id, type, channel' }
+        );
+      }
+      setNotifSaved(true);
+      setTimeout(() => setNotifSaved(false), 3000);
+    } catch (err) {
+      console.error("Error saving notification preferences:", err);
     }
-    setNotifSaved(true);
-    setTimeout(() => setNotifSaved(false), 3000);
   };
 
   useEffect(() => {
@@ -107,11 +114,11 @@ export default function SettingsTab() {
     setPasswordSuccess(false);
     
     if (passwordForm.new !== passwordForm.confirm) {
-      setPasswordError('Les nouveaux mots de passe ne correspondent pas.');
+      setPasswordError(t('settings.passwordsDontMatch'));
       return;
     }
     if (passwordForm.new.length < 6) {
-      setPasswordError('Le nouveau mot de passe doit contenir au moins 6 caractères.');
+      setPasswordError(t('settings.passwordTooShort'));
       return;
     }
     
@@ -122,7 +129,7 @@ export default function SettingsTab() {
         password: passwordForm.current,
       });
       if (signInError) {
-        setPasswordError('Mot de passe actuel incorrect.');
+        setPasswordError(t('settings.wrongCurrentPassword'));
         setPasswordLoading(false);
         return;
       }
@@ -134,7 +141,7 @@ export default function SettingsTab() {
       setPasswordForm({ current: '', new: '', confirm: '' });
       setTimeout(() => setPasswordSuccess(false), 3000);
     } catch (err) {
-      setPasswordError(err.message || 'Erreur lors du changement de mot de passe.');
+      setPasswordError(err.message || t('settings.passwordChangeError'));
     } finally {
       setPasswordLoading(false);
     }
@@ -152,13 +159,13 @@ export default function SettingsTab() {
 
   return (
     <div>
-      <h1 className="text-xl font-poppins font-bold mb-5" style={{ color: '#111827' }}>Paramètres du compte</h1>
+      <h1 className="text-xl font-poppins font-bold mb-5" style={{ color: '#111827' }}>{t('settings.title')}</h1>
       <div className="space-y-5">
         {/* Photo de profil */}
         <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #E5E7EB' }}>
           <div className="flex items-center gap-2 mb-4">
             <i className="ri-camera-line" style={{ color: '#125C8D' }}></i>
-            <h3 className="text-sm font-poppins font-semibold" style={{ color: '#111827' }}>Photo de profil</h3>
+            <h3 className="text-sm font-poppins font-semibold" style={{ color: '#111827' }}>{t('settings.profilePhoto')}</h3>
           </div>
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -176,12 +183,12 @@ export default function SettingsTab() {
               </span>
             </div>
             <div>
-              <p className="text-sm font-poppins font-medium" style={{ color: '#111827' }}>{profile?.full_name || 'Mon profil'}</p>
-              <p className="text-xs font-inter" style={{ color: '#9CA3AF' }}>PNG ou JPG, max 5 Mo</p>
+              <p className="text-sm font-poppins font-medium" style={{ color: '#111827' }}>{profile?.full_name || t('settings.myProfile')}</p>
+              <p className="text-xs font-inter" style={{ color: '#9CA3AF' }}>{t('settings.avatarFormat')}</p>
               <input type="file" id="avatar-input-buyer" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
               <label htmlFor="avatar-input-buyer" className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
                 <i className="ri-upload-2-line text-xs"></i>
-                {uploadingAvatar ? 'Upload...' : 'Changer la photo'}
+                {uploadingAvatar ? t('settings.uploading') : t('settings.changePhoto')}
               </label>
             </div>
           </div>
@@ -191,20 +198,20 @@ export default function SettingsTab() {
         <form onSubmit={handleSave} className="bg-white rounded-xl p-5" style={{ border: '1px solid #E5E7EB' }}>
           <div className="flex items-center gap-2 mb-4">
             <i className="ri-user-3-line" style={{ color: '#125C8D' }}></i>
-            <h3 className="text-sm font-poppins font-semibold" style={{ color: '#111827' }}>Informations personnelles</h3>
+            <h3 className="text-sm font-poppins font-semibold" style={{ color: '#111827' }}>{t('settings.personalInfo')}</h3>
           </div>
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="text-xs font-poppins text-gray-500 mb-1 block">Nom complet</label>
+              <label className="text-xs font-poppins text-gray-500 mb-1 block">{t('settings.fullName')}</label>
               <input
                 value={form.fullName}
                 onChange={(e) => setForm({ ...form, fullName: e.target.value })}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-inter outline-none focus:border-[#125C8D]"
-                placeholder="Adjoua Mensah"
+                placeholder={t('settings.fullName')}
               />
             </div>
             <div>
-              <label className="text-xs font-poppins text-gray-500 mb-1 block">Téléphone</label>
+              <label className="text-xs font-poppins text-gray-500 mb-1 block">{t('settings.phone')}</label>
               <input
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -214,42 +221,42 @@ export default function SettingsTab() {
             </div>
           </div>
           <div className="mb-3">
-            <label className="text-xs font-poppins text-gray-500 mb-1 block">Email</label>
+            <label className="text-xs font-poppins text-gray-500 mb-1 block">{t('settings.email')}</label>
             <input
               value={profile?.email || ''}
               disabled
               className="w-full border border-gray-100 rounded-lg px-3 py-2.5 text-sm font-inter outline-none bg-gray-50 cursor-not-allowed"
               style={{ color: '#9CA3AF' }}
             />
-            <p className="text-xs font-inter mt-1" style={{ color: '#9CA3AF' }}>L'email ne peut pas être modifié ici.</p>
+            <p className="text-xs font-inter mt-1" style={{ color: '#9CA3AF' }}>{t('settings.emailNotEditable')}</p>
           </div>
           <div className="flex items-center gap-2 mb-3 mt-4">
             <i className="ri-map-pin-line" style={{ color: '#125C8D' }}></i>
-            <h3 className="text-sm font-poppins font-semibold" style={{ color: '#111827' }}>Adresse de livraison principale</h3>
+            <h3 className="text-sm font-poppins font-semibold" style={{ color: '#111827' }}>{t('settings.mainAddress')}</h3>
           </div>
           <div className="mb-3">
-            <label className="text-xs font-poppins text-gray-500 mb-1 block">Quartier / Rue</label>
+            <label className="text-xs font-poppins text-gray-500 mb-1 block">{t('settings.district')}</label>
             <input
               value={form.addressLine1}
               onChange={(e) => setForm({ ...form, addressLine1: e.target.value })}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-inter outline-none focus:border-[#125C8D]"
-              placeholder="Quartier Cadjehoun, Rue 12.315"
+              placeholder={t('settings.district')}
             />
           </div>
           <div className="mb-4">
-            <label className="text-xs font-poppins text-gray-500 mb-1 block">Ville</label>
+            <label className="text-xs font-poppins text-gray-500 mb-1 block">{t('settings.city')}</label>
             <select
               value={form.city}
               onChange={(e) => setForm({ ...form, city: e.target.value })}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-inter outline-none focus:border-[#125C8D]"
             >
-              <option value="">Sélectionner une ville</option>
+              <option value="">{t('settings.selectCity')}</option>
               {cities.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           {saveSuccess && (
             <div className="mb-3 p-3 rounded-lg text-sm font-inter flex items-center gap-2" style={{ backgroundColor: '#DCFCE7', color: '#15803D' }}>
-              <i className="ri-checkbox-circle-line"></i> Profil mis à jour avec succès !
+              <i className="ri-checkbox-circle-line"></i> {t('settings.profileUpdated')}
             </div>
           )}
           <button
@@ -259,7 +266,7 @@ export default function SettingsTab() {
             style={{ backgroundColor: '#125C8D' }}
           >
             <i className="ri-save-line"></i>
-            {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+            {saving ? t('settings.saving') : t('settings.saveChanges')}
           </button>
         </form>
 
@@ -267,7 +274,7 @@ export default function SettingsTab() {
         <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #E5E7EB' }}>
           <div className="flex items-center gap-2 mb-4">
             <i className="ri-exchange-funds-line" style={{ color: '#125C8D' }}></i>
-            <h3 className="text-sm font-poppins font-semibold" style={{ color: '#111827' }}>Taux de change en vigueur</h3>
+            <h3 className="text-sm font-poppins font-semibold" style={{ color: '#111827' }}>{t('settings.exchangeRate')}</h3>
           </div>
           {rate ? (
             <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: '#EBF4FB' }}>
@@ -280,19 +287,19 @@ export default function SettingsTab() {
                     1 NGN = {rate.rate} FCFA
                   </p>
                   <p className="text-xs font-inter" style={{ color: '#9CA3AF' }}>
-                    Mis à jour le {new Date(rate.updated_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {t('settings.rateUpdatedOn')} {new Date(rate.updated_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </p>
                 </div>
               </div>
               <span className="text-xs font-poppins font-bold px-2 py-1 rounded-full" style={{ backgroundColor: '#DCFCE7', color: '#15803D' }}>
-                En vigueur
+                {t('settings.inEffect')}
               </span>
             </div>
           ) : (
             <div className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: '#F1F5F9' }} />
           )}
           <p className="text-xs font-inter mt-3" style={{ color: '#9CA3AF' }}>
-            Le taux est géré par l&apos;équipe TrustLink et mis à jour régulièrement.
+            {t('settings.rateManagedBy')}
           </p>
         </div>
 
@@ -302,14 +309,14 @@ export default function SettingsTab() {
         <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #E5E7EB' }}>
           <div className="flex items-center gap-2 mb-4">
             <i className="ri-notification-3-line" style={{ color: '#125C8D' }}></i>
-            <h3 className="text-sm font-poppins font-semibold" style={{ color: '#111827' }}>Préférences de notifications</h3>
+            <h3 className="text-sm font-poppins font-semibold" style={{ color: '#111827' }}>{t('settings.notifications')}</h3>
           </div>
           {[
-            { key: 'orders', label: 'Mise à jour de commandes', desc: 'Statut, confirmation, livrée', icon: 'ri-shopping-bag-line' },
-            { key: 'escrow', label: 'Alertes Escrow', desc: 'Paiements, confirmations, litige', icon: 'ri-shield-check-line' },
-            { key: 'promo', label: 'Promotions & offres', desc: 'Réductions, ventes flash', icon: 'ri-percent-line' },
-            { key: 'newsletter', label: 'Newsletter TrustLink', desc: 'Actualités et nouveautés', icon: 'ri-newspaper-line' },
-            { key: 'sms', label: 'Notifications SMS', desc: 'Envoyées sur votre mobile', icon: 'ri-smartphone-line' },
+            { key: 'orders', label: t('settings.notifOrderUpdate'), desc: t('settings.notifOrderUpdateDesc'), icon: 'ri-shopping-bag-line' },
+            { key: 'escrow', label: t('settings.notifEscrow'), desc: t('settings.notifEscrowDesc'), icon: 'ri-shield-check-line' },
+            { key: 'promo', label: t('settings.notifPromo'), desc: t('settings.notifPromoDesc'), icon: 'ri-percent-line' },
+            { key: 'newsletter', label: t('settings.notifNewsletter'), desc: t('settings.notifNewsletterDesc'), icon: 'ri-newspaper-line' },
+            { key: 'sms', label: t('settings.notifSms'), desc: t('settings.notifSmsDesc'), icon: 'ri-smartphone-line' },
           ].map(({ key, label, desc, icon }) => (
             <div key={key} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
               <div className="flex items-start gap-2.5">
@@ -330,11 +337,11 @@ export default function SettingsTab() {
           ))}
           {notifSaved && (
             <div className="mb-3 p-3 rounded-lg text-sm font-inter flex items-center gap-2" style={{ backgroundColor: '#DCFCE7', color: '#15803D' }}>
-              <i className="ri-checkbox-circle-line"></i> Préférences sauvegardées !
+              <i className="ri-checkbox-circle-line"></i> {t('settings.notifPrefsSaved')}
             </div>
           )}
           <button onClick={saveNotifPrefs} className="mt-3 flex items-center gap-2 px-4 py-2 text-white text-xs font-poppins font-semibold rounded-lg" style={{ backgroundColor: '#125C8D' }}>
-            <i className="ri-save-line"></i>Sauvegarder les préférences
+            <i className="ri-save-line"></i>{t('settings.savePrefs')}
           </button>
         </div>
 
@@ -342,11 +349,11 @@ export default function SettingsTab() {
         <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #E5E7EB' }}>
           <div className="flex items-center gap-2 mb-4">
             <i className="ri-lock-line" style={{ color: '#125C8D' }}></i>
-            <h3 className="text-sm font-poppins font-semibold" style={{ color: '#111827' }}>Sécurité du compte</h3>
+            <h3 className="text-sm font-poppins font-semibold" style={{ color: '#111827' }}>{t('settings.security')}</h3>
           </div>
           {passwordSuccess && (
             <div className="mb-3 p-3 rounded-lg text-sm font-inter flex items-center gap-2" style={{ backgroundColor: '#DCFCE7', color: '#15803D' }}>
-              <i className="ri-checkbox-circle-line"></i> Mot de passe mis à jour avec succès !
+              <i className="ri-checkbox-circle-line"></i> {t('settings.passwordUpdated')}
             </div>
           )}
           {passwordError && (
@@ -356,7 +363,7 @@ export default function SettingsTab() {
           )}
           <form onSubmit={handlePasswordChange}>
             <div className="mb-3">
-              <label className="text-xs font-poppins text-gray-500 mb-1 block">Mot de passe actuel</label>
+              <label className="text-xs font-poppins text-gray-500 mb-1 block">{t('settings.currentPassword')}</label>
               <input
                 type="password"
                 value={passwordForm.current}
@@ -367,19 +374,19 @@ export default function SettingsTab() {
               />
             </div>
             <div className="mb-3">
-              <label className="text-xs font-poppins text-gray-500 mb-1 block">Nouveau mot de passe</label>
+              <label className="text-xs font-poppins text-gray-500 mb-1 block">{t('settings.newPassword')}</label>
               <input
                 type="password"
                 value={passwordForm.new}
                 onChange={(e) => setPasswordForm({ ...passwordForm, new: e.target.value })}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-inter outline-none focus:border-[#125C8D]"
-                placeholder="Minimum 6 caractères"
+                placeholder={t('settings.minChars')}
                 required
                 minLength={6}
               />
             </div>
             <div className="mb-4">
-              <label className="text-xs font-poppins text-gray-500 mb-1 block">Confirmer le nouveau mot de passe</label>
+              <label className="text-xs font-poppins text-gray-500 mb-1 block">{t('settings.confirmPassword')}</label>
               <input
                 type="password"
                 value={passwordForm.confirm}
@@ -400,7 +407,7 @@ export default function SettingsTab() {
               ) : (
                 <i className="ri-lock-password-line"></i>
               )}
-              {passwordLoading ? 'Mise à jour...' : 'Mettre à jour'}
+              {passwordLoading ? t('settings.updating') : t('settings.update')}
             </button>
           </form>
         </div>
@@ -409,13 +416,13 @@ export default function SettingsTab() {
         <div className="rounded-xl p-5" style={{ border: '1px solid #FECDD3', backgroundColor: '#FFF1F2' }}>
           <div className="flex items-center gap-2 mb-2">
             <i className="ri-error-warning-line text-red-500"></i>
-            <h3 className="text-sm font-poppins font-semibold text-red-700">Zone de danger</h3>
+            <h3 className="text-sm font-poppins font-semibold text-red-700">{t('settings.dangerZone')}</h3>
           </div>
           <p className="text-xs font-inter text-red-500 mb-3">
-            La suppression de votre compte est irréversible. Toutes vos données, commandes et historique seront définitivement effacés.
+            {t('settings.dangerZoneDesc')}
           </p>
           <button className="flex items-center gap-2 text-sm font-poppins font-medium px-4 py-2 border border-red-200 rounded-lg text-red-600 hover:bg-red-50 cursor-pointer">
-            <i className="ri-delete-bin-line"></i> Supprimer mon compte
+            <i className="ri-delete-bin-line"></i> {t('settings.deleteAccount')}
           </button>
         </div>
       </div>

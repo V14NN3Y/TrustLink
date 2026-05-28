@@ -3,8 +3,10 @@ import { useWishlist } from '@/hooks/useWishlist';
 import { renderStars } from '@/utils/format';
 import { useCurrencyContext } from '@/lib/CurrencyContext';
 import LazyImage from '@/components/base/LazyImage';
+import { useI18n } from '@/lib/I18nContext';
 
 export default function ProductCard({ product }) {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const { toggle, isWishlisted } = useWishlist();
   const { formatPrice } = useCurrencyContext();
@@ -22,7 +24,7 @@ export default function ProductCard({ product }) {
       {/* Image */}
       <div className="relative overflow-hidden" style={{ backgroundColor: '#F8FAFC', height: '200px' }}>
         <LazyImage
-          src={product.images[0]}
+          src={product.images?.[0] || ''}
           alt={product.name}
           className="w-full h-full"
           style={{ objectFit: 'cover', objectPosition: 'top' }}
@@ -34,7 +36,7 @@ export default function ProductCard({ product }) {
         )}
         {!product.discount && product.isNew && (
           <span className="absolute top-2.5 left-2.5 text-white text-xs font-poppins font-bold rounded-md px-2 py-1" style={{ backgroundColor: '#125C8D' }}>
-            Nouveau
+            {t('product.newBadge')}
           </span>
         )}
         <button
@@ -66,7 +68,7 @@ export default function ProductCard({ product }) {
           {stars.map((cls, i) => (
             <i key={i} className={`${cls}`} style={{ fontSize: '11px', color: '#F59E0B' }}></i>
           ))}
-          <span className="text-xs font-inter ml-0.5" style={{ color: '#9CA3AF' }}>{product.rating} ({product.sales} ventes)</span>
+          <span className="text-xs font-inter ml-0.5" style={{ color: '#9CA3AF' }}>{product.rating} ({product.sales} {t('product.sales')})</span>
         </div>
 
         <div className="flex items-baseline gap-2 mb-1">
@@ -80,7 +82,7 @@ export default function ProductCard({ product }) {
         {product.delivery_min_days && product.delivery_max_days && (
           <p className="text-[10px] font-inter mb-3" style={{ color: '#6B7280' }}>
             <i className="ri-truck-line mr-0.5"></i>
-            Livré en {product.delivery_min_days}-{product.delivery_max_days} jours
+            {t('product.deliveredIn').replace('{min}', product.delivery_min_days).replace('{max}', product.delivery_max_days)}
           </p>
         )}
 
@@ -91,7 +93,7 @@ export default function ProductCard({ product }) {
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#125C8D'; e.currentTarget.style.color = '#fff'; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#EBF4FB'; e.currentTarget.style.color = '#125C8D'; }}
         >
-          <i className="ri-eye-line text-sm"></i> Voir le produit
+          <i className="ri-eye-line text-sm"></i> {t('product.viewProduct')}
         </button>
       </div>
     </div>

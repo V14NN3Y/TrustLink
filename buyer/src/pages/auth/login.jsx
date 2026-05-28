@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
+import { useI18n } from '@/lib/I18nContext';
 export default function Login() {
+  const { t } = useI18n();
   const { loginWithEmail, loginWithGoogle, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -24,21 +26,31 @@ export default function Login() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const result = await loginWithEmail(email, password);
-    if (!result.success) {
-      setError(result.error?.message || 'Email ou mot de passe incorrect.');
+    try {
+      const result = await loginWithEmail(email, password);
+      if (!result.success) {
+        setError(result.error?.message || t('auth.loginError'));
+        return;
+      }
+      navigate(redirectTo, { replace: true });
+    } catch (err) {
+      setError(err.message || t('auth.loginErrorDefault'));
+    } finally {
       setLoading(false);
-      return;
     }
-    navigate(redirectTo, { replace: true });
   };
 
   const handleGoogleLogin = async () => {
     setError(null);
     setGoogleLoading(true);
-    const result = await loginWithGoogle();
-    if (!result.success) {
-      setError(result.error?.message || 'Erreur lors de la connexion Google.');
+    try {
+      const result = await loginWithGoogle();
+      if (!result.success) {
+        setError(result.error?.message || t('auth.googleError'));
+      }
+    } catch (err) {
+      setError(err.message || t('auth.googleError'));
+    } finally {
       setGoogleLoading(false);
     }
   };
@@ -49,18 +61,18 @@ export default function Login() {
         <div className="flex justify-center mb-6">
           <img src="/TrustLink_Logo_Bleu-125C8D.png" alt="TrustLink" className="h-12 w-auto" />
         </div>
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2 text-center">Connexion</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 mb-2 text-center">{t('auth.login')}</h1>
         <p className="text-sm text-gray-500 mb-6 text-center">
-          Pas encore de compte ?{' '}
+          {t('auth.noAccount')}{' '}
           <Link to="/register" className="text-slate-800 font-medium underline">
-            S&apos;inscrire
+            {t('auth.register')}
           </Link>
         </p>
 
         {resetSuccess && (
           <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 flex items-center gap-2">
             <i className="ri-checkbox-circle-line text-base"></i>
-            Mot de passe réinitialisé avec succès. Connecte-toi.
+            {t('auth.resetSuccess')}
           </div>
         )}
 
@@ -73,7 +85,7 @@ export default function Login() {
         <form onSubmit={handleEmailLogin} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              {t('auth.email')}
             </label>
             <input
               type="email"
@@ -82,12 +94,12 @@ export default function Login() {
               required
               autoComplete="email"
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#125C8D]"
-              placeholder="vous@exemple.com"
+              placeholder={t('auth.emailPlaceholder')}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mot de passe
+              {t('auth.password')}
             </label>
             <div className="relative">
               <input
@@ -97,7 +109,7 @@ export default function Login() {
                 required
                 autoComplete="current-password"
                 className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#125C8D]"
-                placeholder="Entrez votre mot de passe"
+                placeholder={t('auth.passwordPlaceholder')}
               />
               <button
                 type="button"
@@ -115,7 +127,7 @@ export default function Login() {
               to="/forgot-password"
               className="text-sm text-slate-700 hover:underline"
             >
-              Mot de passe oublié ?
+              {t('auth.forgotPassword')}
             </Link>
           </div>
           <button
@@ -124,13 +136,13 @@ export default function Login() {
             className="w-full py-2.5 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 whitespace-nowrap cursor-pointer"
             style={{ backgroundColor: '#125C8D' }}
           >
-            {loading ? 'Connexion...' : 'Se connecter'}
+            {loading ? t('auth.signInLoading') : t('auth.signIn')}
           </button>
         </form>
 
         <div className="my-5 flex items-center gap-3">
           <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-xs text-gray-400">ou</span>
+          <span className="text-xs text-gray-400">{t('general.or')}</span>
           <div className="flex-1 h-px bg-gray-200" />
         </div>
         <button
@@ -139,7 +151,7 @@ export default function Login() {
           className="w-full flex items-center justify-center gap-3 py-2.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 whitespace-nowrap cursor-pointer"
         >
           <i className="ri-google-fill text-base"></i>
-          {googleLoading ? 'Redirection...' : 'Continuer avec Google'}
+          {googleLoading ? t('auth.redirecting') : t('auth.continueWithGoogle')}
         </button>
       </div>
     </div>

@@ -3,22 +3,18 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { useMessages } from '@/hooks/useMessages';
 import { formatRelative } from '@/utils/format';
-const SUBJECTS = [
-  { icon: 'ri-shopping-bag-line', label: 'Problème de commande' },
-  { icon: 'ri-shield-check-line', label: 'Paiement / Escrow' },
-  { icon: 'ri-git-pull-request-line', label: 'Litige en cours' },
-  { icon: 'ri-truck-line', label: 'Livraison / Suivi' },
-  { icon: 'ri-user-3-line', label: 'Mon compte' },
-  { icon: 'ri-more-line', label: 'Autre' },
-];
-const QUICK_LINKS = [
-  { icon: 'ri-shield-star-line', label: 'Ouvrir un litige Escrow', to: '/legal?tab=escrow' },
-  { icon: 'ri-arrow-go-back-line', label: 'Politique de retour', to: '/policy/returns' },
-  { icon: 'ri-question-line', label: 'Centre d\'aide / FAQ', to: '/faq' },
-  { icon: 'ri-shopping-bag-line', label: 'Mes commandes', to: '/account' },
-];
-// ─── Nouveau message ──────────────────────────────────────────────────────────
+import { useI18n } from '@/lib/I18nContext';
+
 function NewMessageForm({ onSent, onCancel }) {
+  const { t } = useI18n();
+  const SUBJECTS = [
+    { icon: 'ri-shopping-bag-line', label: t('support.subjectOrder') },
+    { icon: 'ri-shield-check-line', label: t('support.subjectPayment') },
+    { icon: 'ri-git-pull-request-line', label: t('support.subjectDispute') },
+    { icon: 'ri-truck-line', label: t('support.subjectDelivery') },
+    { icon: 'ri-user-3-line', label: t('support.subjectAccount') },
+    { icon: 'ri-more-line', label: t('support.subjectOther') },
+  ];
   const [selectedSubject, setSelectedSubject] = useState('');
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
@@ -27,8 +23,8 @@ function NewMessageForm({ onSent, onCancel }) {
   const { sendMessage } = useMessages();
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedSubject) { setError('Veuillez sélectionner un sujet.'); return; }
-    if (body.trim().length < 10) { setError('Le message doit contenir au moins 10 caractères.'); return; }
+    if (!selectedSubject) { setError(t('support.subjectRequired')); return; }
+    if (body.trim().length < 10) { setError(t('support.bodyTooShort')); return; }
     setError(null);
     setSending(true);
     try {
@@ -36,7 +32,7 @@ function NewMessageForm({ onSent, onCancel }) {
       setSuccess(true);
       setTimeout(() => onSent(), 1500);
     } catch {
-      setError('Erreur lors de l\'envoi. Veuillez réessayer.');
+      setError(t('support.sendError'));
     } finally {
       setSending(false);
     }
@@ -47,8 +43,8 @@ function NewMessageForm({ onSent, onCancel }) {
         <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: '#DCFCE7' }}>
           <i className="ri-check-line text-2xl" style={{ color: '#15803D' }}></i>
         </div>
-        <h3 className="text-base font-poppins font-bold mb-1" style={{ color: '#111827' }}>Message envoyé !</h3>
-        <p className="text-sm font-inter" style={{ color: '#6B7280' }}>Notre équipe vous répondra sous 5 minutes.</p>
+        <h3 className="text-base font-poppins font-bold mb-1" style={{ color: '#111827' }}>{t('support.messageSent')}</h3>
+        <p className="text-sm font-inter" style={{ color: '#6B7280' }}>{t('support.messageSentDesc')}</p>
       </div>
     );
   }
@@ -58,10 +54,10 @@ function NewMessageForm({ onSent, onCancel }) {
         <button type="button" onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer">
           <i className="ri-arrow-left-line text-base" style={{ color: '#374151' }}></i>
         </button>
-        <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>Nouveau message</h2>
+        <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>{t('support.newMessage')}</h2>
       </div>
       <div className="mb-5">
-        <p className="text-xs font-poppins font-medium mb-3" style={{ color: '#374151' }}>Sujet <span className="text-red-500">*</span></p>
+        <p className="text-xs font-poppins font-medium mb-3" style={{ color: '#374151' }}>{t('support.subject')} <span className="text-red-500">*</span></p>
         <div className="grid grid-cols-2 gap-2">
           {SUBJECTS.map((s) => (
             <button
@@ -81,13 +77,13 @@ function NewMessageForm({ onSent, onCancel }) {
       </div>
       <div className="mb-4">
         <label className="text-xs font-poppins font-medium block mb-2" style={{ color: '#374151' }}>
-          Votre message <span className="text-red-500">*</span>
+          {t('support.yourMessage')} <span className="text-red-500">*</span>
         </label>
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value.slice(0, 500))}
           rows={5}
-          placeholder="Décrivez votre problème en détail..."
+          placeholder={t('support.messagePlaceholder')}
           className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-inter outline-none resize-none focus:border-[#125C8D] transition-colors"
           style={{ color: '#111827' }}
         />
@@ -106,7 +102,7 @@ function NewMessageForm({ onSent, onCancel }) {
           style={{ backgroundColor: '#125C8D' }}
         >
           <i className="ri-send-plane-line"></i>
-          {sending ? 'Envoi...' : 'Envoyer le message'}
+          {sending ? t('support.sending') : t('support.sendMessage')}
         </button>
         <button
           type="button"
@@ -114,14 +110,15 @@ function NewMessageForm({ onSent, onCancel }) {
           className="px-4 py-3 text-sm font-poppins font-medium rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer whitespace-nowrap"
           style={{ color: '#374151' }}
         >
-          Annuler
+          {t('support.cancel')}
         </button>
       </div>
     </form>
   );
 }
-// ─── Vue: Thread (conversation) ───────────────────────────────────────────────
+
 function ThreadView({ thread, onBack }) {
+  const { t, locale } = useI18n();
   const { user } = useAuth();
   const { threadMessages, reply, sending, openThread } = useMessages();
   const [replyBody, setReplyBody] = useState('');
@@ -135,36 +132,33 @@ function ThreadView({ thread, onBack }) {
   }, [threadMessages]);
   const handleReply = async (e) => {
     e.preventDefault();
-    if (replyBody.trim().length < 2) { setReplyError('Message trop court.'); return; }
+    if (replyBody.trim().length < 2) { setReplyError(t('support.replyTooShort')); return; }
     setReplyError(null);
-    // Trouver le receiver : l'autre participant du thread
     const otherMsg = threadMessages.find((m) => m.sender_id !== user?.id);
     const receiverId = otherMsg?.sender_id || null;
     try {
       await reply({ body: replyBody.trim(), receiverId });
       setReplyBody('');
     } catch {
-      setReplyError('Erreur lors de l\'envoi.');
+      setReplyError(t('support.replyError'));
     }
   };
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
         <button onClick={onBack} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer flex-shrink-0">
           <i className="ri-arrow-left-line text-base" style={{ color: '#374151' }}></i>
         </button>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-poppins font-semibold truncate" style={{ color: '#111827' }}>
-            {thread.subject || 'Conversation'}
+            {thread.subject || t('support.conversationDefault')}
           </p>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
-            <span className="text-xs font-inter" style={{ color: '#9CA3AF' }}>Support TrustLink · En ligne</span>
+            <span className="text-xs font-inter" style={{ color: '#9CA3AF' }}>{t('support.supportOnline')}</span>
           </div>
         </div>
       </div>
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ backgroundColor: '#F8FAFC' }}>
         {threadMessages.length === 0 && (
           <div className="flex items-center justify-center h-full">
@@ -173,8 +167,8 @@ function ThreadView({ thread, onBack }) {
         )}
         {threadMessages.map((msg) => {
           const isMe = msg.sender_id === user?.id;
-          const senderName = msg.sender?.full_name || (isMe ? 'Vous' : 'Support TrustLink');
-          const time = new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+          const senderName = msg.sender?.full_name || (isMe ? t('support.you') : 'Support TrustLink');
+          const time = new Date(msg.created_at).toLocaleTimeString(locale === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
           return (
             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2`}>
               {!isMe && (
@@ -205,7 +199,6 @@ function ThreadView({ thread, onBack }) {
         })}
         <div ref={bottomRef} />
       </div>
-      {/* Reply input */}
       <div className="border-t border-gray-100 p-3 bg-white">
         {replyError && (
           <p className="text-xs font-inter text-red-500 mb-2">{replyError}</p>
@@ -216,7 +209,7 @@ function ThreadView({ thread, onBack }) {
             onChange={(e) => setReplyBody(e.target.value.slice(0, 500))}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReply(e); } }}
             rows={2}
-            placeholder="Votre réponse..."
+            placeholder={t('support.yourReply')}
             className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-inter outline-none resize-none focus:border-[#125C8D] transition-colors"
             style={{ color: '#111827' }}
           />
@@ -236,8 +229,9 @@ function ThreadView({ thread, onBack }) {
     </div>
   );
 }
-// ─── Vue: Liste des threads ───────────────────────────────────────────────────
+
 function ThreadList({ threads, loading, onOpen, onNew }) {
+  const { t } = useI18n();
   if (loading) {
     return (
       <div className="p-4 space-y-3">
@@ -253,15 +247,15 @@ function ThreadList({ threads, loading, onOpen, onNew }) {
         <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: '#EBF4FB' }}>
           <i className="ri-chat-3-line text-2xl" style={{ color: '#125C8D' }}></i>
         </div>
-        <p className="text-sm font-poppins font-semibold mb-1" style={{ color: '#111827' }}>Aucun message</p>
-        <p className="text-xs font-inter mb-5" style={{ color: '#9CA3AF' }}>Démarrez une conversation avec notre équipe support.</p>
+        <p className="text-sm font-poppins font-semibold mb-1" style={{ color: '#111827' }}>{t('support.noMessages')}</p>
+        <p className="text-xs font-inter mb-5" style={{ color: '#9CA3AF' }}>{t('support.noMessagesDesc')}</p>
         <button
           onClick={onNew}
           className="flex items-center gap-2 px-5 py-2.5 text-white text-sm font-poppins font-semibold rounded-lg cursor-pointer whitespace-nowrap transition-opacity hover:opacity-90"
           style={{ backgroundColor: '#FF6A00' }}
         >
           <i className="ri-add-line"></i>
-          Nouveau message
+          {t('support.newMessageBtn')}
         </button>
       </div>
     );
@@ -300,12 +294,21 @@ function ThreadList({ threads, loading, onOpen, onNew }) {
     </div>
   );
 }
-// ─── Composant principal ──────────────────────────────────────────────────────
+
 export default function Support() {
+  const { t, locale } = useI18n();
   const { isAuthenticated } = useAuth();
   const { threads, loading, totalUnread, reload } = useMessages();
-  const [view, setView] = useState('list'); // 'list' | 'new' | 'thread'
+  const [view, setView] = useState('list');
   const [activeThread, setActiveThread] = useState(null);
+
+  const QUICK_LINKS = [
+    { icon: 'ri-shield-star-line', label: t('support.quickDispute'), to: '/legal?tab=escrow' },
+    { icon: 'ri-arrow-go-back-line', label: t('support.quickReturn'), to: '/policy/returns' },
+    { icon: 'ri-question-line', label: t('support.quickFaq'), to: '/faq' },
+    { icon: 'ri-shopping-bag-line', label: t('support.quickOrders'), to: '/account' },
+  ];
+
   const handleOpenThread = (thread) => {
     setActiveThread(thread);
     setView('thread');
@@ -316,7 +319,6 @@ export default function Support() {
   };
   return (
     <div className="pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
-      {/* Hero */}
       <div style={{ backgroundColor: '#0E3A4F' }} className="text-white py-10">
         <div className="max-w-[1100px] mx-auto px-4 md:px-6">
           <div className="flex items-center gap-3 mb-3">
@@ -324,35 +326,32 @@ export default function Support() {
               <i className="ri-customer-service-2-line text-lg"></i>
             </div>
             <div>
-              <h1 className="text-2xl font-poppins font-bold">Support TrustLink</h1>
+              <h1 className="text-2xl font-poppins font-bold">{t('support.heroTitle')}</h1>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
-                <span className="text-xs font-inter text-white/70">En ligne · Répond en moins de 5 min</span>
+                <span className="text-xs font-inter text-white/70">{t('support.heroOnline')}</span>
               </div>
             </div>
           </div>
           <p className="text-sm font-inter text-white/70">
-            Notre équipe est disponible 7j/7 pour vous aider avec vos commandes, paiements Escrow et litiges.
+            {t('support.heroDesc')}
           </p>
         </div>
       </div>
       <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-8">
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar gauche */}
           <aside className="lg:w-64 flex-shrink-0 space-y-4">
-            {/* Sécurité */}
             <div className="rounded-xl p-4" style={{ backgroundColor: '#FFFBEB', border: '1px solid #FEF3C7' }}>
               <div className="flex items-start gap-2">
                 <i className="ri-shield-check-line text-sm mt-0.5 flex-shrink-0" style={{ color: '#D97706' }}></i>
                 <p className="text-xs font-inter leading-relaxed" style={{ color: '#92400E' }}>
-                  <strong>Sécurité :</strong> Ne partagez jamais vos codes MoMo ou mots de passe. TrustLink ne vous les demandera jamais.
+                  {t('support.securityNote')}
                 </p>
               </div>
             </div>
-            {/* Liens rapides */}
             <div className="bg-white rounded-xl overflow-hidden" style={{ border: '1px solid #E5E7EB' }}>
               <p className="text-xs font-poppins font-semibold uppercase tracking-wider px-4 pt-4 pb-2" style={{ color: '#9CA3AF' }}>
-                Liens rapides
+                {t('support.quickLinks')}
               </p>
               {QUICK_LINKS.map((link) => (
                 <Link
@@ -366,13 +365,12 @@ export default function Support() {
                 </Link>
               ))}
             </div>
-            {/* Horaires */}
             <div className="bg-white rounded-xl p-4" style={{ border: '1px solid #E5E7EB' }}>
-              <p className="text-xs font-poppins font-semibold mb-3" style={{ color: '#111827' }}>Disponibilité</p>
+              <p className="text-xs font-poppins font-semibold mb-3" style={{ color: '#111827' }}>{t('support.availability')}</p>
               {[
-                { day: 'Lun – Ven', hours: '08h – 22h' },
-                { day: 'Sam – Dim', hours: '09h – 18h' },
-                { day: 'Jours fériés', hours: '10h – 16h' },
+                { day: t('support.weekdays'), hours: '08h – 22h' },
+                { day: t('support.weekend'), hours: '09h – 18h' },
+                { day: t('support.holidays'), hours: '10h – 16h' },
               ].map((h) => (
                 <div key={h.day} className="flex justify-between text-xs font-inter py-1.5 border-b border-gray-50 last:border-0">
                   <span style={{ color: '#6B7280' }}>{h.day}</span>
@@ -381,36 +379,33 @@ export default function Support() {
               ))}
             </div>
           </aside>
-          {/* Zone principale */}
           <div className="flex-1 bg-white rounded-xl overflow-hidden" style={{ border: '1px solid #E5E7EB', minHeight: '520px' }}>
-            {/* Non connecté */}
             {!isAuthenticated && (
               <div className="flex flex-col items-center justify-center h-full py-20 px-6 text-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5" style={{ backgroundColor: '#EBF4FB' }}>
                   <i className="ri-lock-line text-2xl" style={{ color: '#125C8D' }}></i>
                 </div>
                 <h2 className="text-lg font-poppins font-semibold mb-2" style={{ color: '#111827' }}>
-                  Connectez-vous pour accéder au support
+                  {t('support.loginRequired')}
                 </h2>
                 <p className="text-sm font-inter mb-6" style={{ color: '#9CA3AF' }}>
-                  Votre historique de messages est lié à votre compte.
+                  {t('support.loginDesc')}
                 </p>
                 <Link
                   to="/login"
                   className="px-6 py-3 text-white font-poppins font-semibold rounded-full transition-opacity hover:opacity-90 whitespace-nowrap"
                   style={{ backgroundColor: '#FF6A00' }}
                 >
-                  Se connecter
+                  {t('support.login')}
                 </Link>
               </div>
             )}
-            {/* Connecté — vue liste */}
             {isAuthenticated && view === 'list' && (
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                   <div>
                     <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>
-                      Mes messages
+                      {t('support.myMessages')}
                       {totalUnread > 0 && (
                         <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: '#FF6A00' }}>
                           {totalUnread}
@@ -418,7 +413,7 @@ export default function Support() {
                       )}
                     </h2>
                     <p className="text-xs font-inter mt-0.5" style={{ color: '#9CA3AF' }}>
-                      {threads.length} conversation{threads.length !== 1 ? 's' : ''}
+                      {threads.length} {threads.length > 1 ? t('support.conversations') : t('support.conversation')}
                     </p>
                   </div>
                   <button
@@ -427,7 +422,7 @@ export default function Support() {
                     style={{ backgroundColor: '#125C8D' }}
                   >
                     <i className="ri-add-line"></i>
-                    Nouveau message
+                    {t('support.newMessageBtn')}
                   </button>
                 </div>
                 <div className="flex-1 overflow-y-auto">
@@ -440,14 +435,12 @@ export default function Support() {
                 </div>
               </div>
             )}
-            {/* Connecté — nouveau message */}
             {isAuthenticated && view === 'new' && (
               <NewMessageForm
                 onSent={handleNewSent}
                 onCancel={() => setView('list')}
               />
             )}
-            {/* Connecté — thread ouvert */}
             {isAuthenticated && view === 'thread' && activeThread && (
               <div className="flex flex-col" style={{ height: '520px' }}>
                 <ThreadView

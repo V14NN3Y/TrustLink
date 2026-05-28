@@ -1,60 +1,65 @@
 import { useState } from 'react';
+import { useI18n } from '@/lib/I18nContext';
 
-const FAQ_DATA = [
-  {
-    category: 'Livraison',
-    icon: 'ri-truck-line',
-    items: [
-      { q: 'Combien de temps prend la livraison ?', a: 'La livraison prend généralement entre 2 et 7 jours ouvrables depuis Lagos jusqu\'à Cotonou. Les délais peuvent varier selon la disponibilité du produit et la destination finale au Bénin.' },
-      { q: 'Livrez-vous dans toutes les villes du Bénin ?', a: 'Nous livrons actuellement à Cotonou, Porto-Novo, Parakou, Abomey-Calavi et Bohicon. D\'autres villes seront ajoutées progressivement.' },
-      { q: 'Comment puis-je suivre ma commande ?', a: 'Après confirmation de votre commande, vous recevez un numéro de suivi au format TL-XXXXXXXX. Rendez-vous dans "Mon Compte > Mes Commandes" pour suivre l\'état en temps réel.' },
-      { q: 'Quels sont les frais de livraison ?', a: 'Les frais de livraison sont fixés à 2 500 FCFA par commande, quelle que soit la quantité d\'articles commandés. La livraison est incluse dans le prix affiché à la caisse.' },
-      { q: 'Que se passe-t-il si je ne suis pas disponible à la livraison ?', a: 'Notre livreur vous contactera 30 minutes avant la livraison. En cas d\'absence, il repassera le lendemain. Après 3 tentatives infructueuses, la commande est retournée au hub.' },
-    ],
-  },
-  {
-    category: 'Paiement Escrow',
-    icon: 'ri-shield-check-line',
-    items: [
-      { q: 'Comment fonctionne le système Escrow ?', a: 'L\'Escrow est un mécanisme de paiement sécurisé : vous payez d\'abord TrustLink qui sécurise vos fonds. Le vendeur est ensuite notifié et prépare votre commande. Une fois que vous confirmez la réception, TrustLink verse le paiement au vendeur.' },
-      { q: 'Quelles méthodes de paiement acceptez-vous ?', a: 'Nous acceptons MTN Mobile Money, Moov Money et Wave. Ces options sont sécurisées et disponibles 24h/24. D\'autres méthodes de paiement seront ajoutées prochainement.' },
-      { q: 'Mes données de paiement sont-elles sécurisées ?', a: 'Absolument. Toutes les transactions sont chiffrées selon les normes PCI-DSS. TrustLink ne stocke jamais vos numéros de compte ou données bancaires sensibles.' },
-      { q: 'Quand le vendeur reçoit-il son paiement ?', a: 'Le vendeur reçoit son paiement uniquement après que vous confirmez la bonne réception de votre commande, ou automatiquement après 7 jours si vous n\'émettez aucune réclamation.' },
-      { q: 'Que se passe-t-il si je refuse la commande à la livraison ?', a: 'Si vous refusez la commande pour une raison valable (article non conforme, endommagé...), TrustLink ouvre une procédure de résolution et vous rembourse intégralement.' },
-    ],
-  },
-  {
-    category: 'Retours & Remboursements',
-    icon: 'ri-arrow-go-back-line',
-    items: [
-      { q: 'Quelle est la politique de retour de TrustLink ?', a: 'Vous avez 30 jours à compter de la réception pour retourner un article non conforme, endommagé ou défectueux. Les articles personnalisés ou ayant été utilisés ne sont pas éligibles au retour.' },
-      { q: 'Comment initier un retour ?', a: 'Connectez-vous à votre compte, accédez à "Mes Commandes", sélectionnez la commande concernée et cliquez sur "Retourner un article". Notre service client vous guidera dans la procédure.' },
-      { q: 'Combien de temps prend le remboursement ?', a: 'Une fois le retour validé par notre équipe, le remboursement est effectué dans les 3 à 5 jours ouvrables sur votre moyen de paiement initial.' },
-      { q: 'Qui prend en charge les frais de retour ?', a: 'TrustLink prend en charge les frais de retour si l\'article est défectueux ou non conforme à la description. Dans les autres cas, les frais de retour sont à la charge du client.' },
-    ],
-  },
-  {
-    category: 'Mon Compte',
-    icon: 'ri-user-3-line',
-    items: [
-      { q: 'Comment créer un compte TrustLink ?', a: 'Cliquez sur l\'icône "Compte" en haut à droite de la page, puis sur "S\'inscrire". Renseignez votre nom, email et numéro de téléphone. Une vérification par SMS sera envoyée.' },
-      { q: 'J\'ai oublié mon mot de passe, que faire ?', a: 'Sur la page de connexion, cliquez sur "Mot de passe oublié". Entrez votre adresse email, vous recevrez un lien de réinitialisation valable 24 heures.' },
-      { q: 'Puis-je avoir plusieurs adresses de livraison ?', a: 'Oui, vous pouvez enregistrer jusqu\'à 5 adresses de livraison dans votre compte. Lors du checkout, sélectionnez l\'adresse souhaitée ou ajoutez-en une nouvelle.' },
-      { q: 'Comment supprimer mon compte ?', a: 'Allez dans Compte > Paramètres > Zone de danger > Supprimer mon compte. Attention, cette action est irréversible et toutes vos données seront effacées définitivement.' },
-    ],
-  },
-];
+function getFaqData(t) {
+  return [
+    {
+      category: t('faq.catDelivery'),
+      icon: 'ri-truck-line',
+      items: [
+        { q: t('faq.delivery_q0'), a: t('faq.delivery_a0') },
+        { q: t('faq.delivery_q1'), a: t('faq.delivery_a1') },
+        { q: t('faq.delivery_q2'), a: t('faq.delivery_a2') },
+        { q: t('faq.delivery_q3'), a: t('faq.delivery_a3') },
+        { q: t('faq.delivery_q4'), a: t('faq.delivery_a4') },
+      ],
+    },
+    {
+      category: t('faq.catEscrow'),
+      icon: 'ri-shield-check-line',
+      items: [
+        { q: t('faq.escrow_q0'), a: t('faq.escrow_a0') },
+        { q: t('faq.escrow_q1'), a: t('faq.escrow_a1') },
+        { q: t('faq.escrow_q2'), a: t('faq.escrow_a2') },
+        { q: t('faq.escrow_q3'), a: t('faq.escrow_a3') },
+        { q: t('faq.escrow_q4'), a: t('faq.escrow_a4') },
+      ],
+    },
+    {
+      category: t('faq.catReturns'),
+      icon: 'ri-arrow-go-back-line',
+      items: [
+        { q: t('faq.returns_q0'), a: t('faq.returns_a0') },
+        { q: t('faq.returns_q1'), a: t('faq.returns_a1') },
+        { q: t('faq.returns_q2'), a: t('faq.returns_a2') },
+        { q: t('faq.returns_q3'), a: t('faq.returns_a3') },
+      ],
+    },
+    {
+      category: t('faq.catAccount'),
+      icon: 'ri-user-3-line',
+      items: [
+        { q: t('faq.account_q0'), a: t('faq.account_a0') },
+        { q: t('faq.account_q1'), a: t('faq.account_a1') },
+        { q: t('faq.account_q2'), a: t('faq.account_a2') },
+        { q: t('faq.account_q3'), a: t('faq.account_a3') },
+      ],
+    },
+  ];
+}
 
 export default function FAQ() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(null);
+
+  const FAQ_DATA = getFaqData(t);
 
   return (
     <div className="pt-20">
-      {/* Hero */}
       <div style={{ backgroundColor: '#0E3A4F' }} className="text-white py-14">
         <div className="max-w-[860px] mx-auto px-4 text-center">
-          <h1 className="text-3xl md:text-4xl font-poppins font-bold mb-3">Questions Fréquentes</h1>
-          <p className="text-base font-inter text-white/70">Tout ce que vous devez savoir sur TrustLink, l'Escrow et la livraison transfrontalière.</p>
+          <h1 className="text-3xl md:text-4xl font-poppins font-bold mb-3">{t('faq.heroTitle')}</h1>
+          <p className="text-base font-inter text-white/70">{t('faq.heroDesc')}</p>
         </div>
       </div>
 

@@ -1,43 +1,47 @@
 import { Link } from 'react-router-dom';
+import { useI18n } from '@/lib/I18nContext';
+
+export default function EscrowPage() {
+  const { t } = useI18n();
 
 const STEPS = [
   {
     num: '01',
     icon: 'ri-shopping-cart-line',
-    title: 'Tu passes commande',
-    desc: 'Tu règles le montant total (produit + livraison). L\'argent ne va PAS chez le vendeur — il est bloqué en sécurité chez TrustLink.',
+    title: t('escrow.step1Title'),
+    desc: t('escrow.step1Desc'),
     color: '#125C8D',
     bg: '#E1F0F9',
   },
   {
     num: '02',
     icon: 'ri-store-2-line',
-    title: 'Le vendeur est notifié',
-    desc: 'Le vendeur reçoit une confirmation de paiement sécurisé. Il prépare et expédie ta commande, motivé par la garantie de paiement.',
+    title: t('escrow.step2Title'),
+    desc: t('escrow.step2Desc'),
     color: '#7C3AED',
     bg: '#F5F3FF',
   },
   {
     num: '03',
     icon: 'ri-truck-line',
-    title: 'Hub TrustLink reçoit',
-    desc: 'Ta commande transite par notre hub de vérification au Bénin. Chaque colis est contrôlé avant la dernière étape de livraison.',
+    title: t('escrow.step3Title'),
+    desc: t('escrow.step3Desc'),
     color: '#D97706',
     bg: '#FEF3C7',
   },
   {
     num: '04',
     icon: 'ri-video-line',
-    title: 'Tu enregistres le déballage',
-    desc: 'À réception, tu filmes l\'ouverture du colis. Cette vidéo te protège en cas de problème et sert de preuve officielle.',
+    title: t('escrow.step4Title'),
+    desc: t('escrow.step4Desc'),
     color: '#FF6A00',
     bg: '#FFF3EC',
   },
   {
     num: '05',
     icon: 'ri-check-double-line',
-    title: 'Tu confirmes ou tu contestes',
-    desc: 'Tout va bien ? Tu confirmes la réception et le vendeur est payé. Problème ? Tu ouvres un litige avec ta vidéo comme preuve.',
+    title: t('escrow.step5Title'),
+    desc: t('escrow.step5Desc'),
     color: '#15803D',
     bg: '#DCFCE7',
   },
@@ -46,60 +50,58 @@ const STEPS = [
 const PROTECTIONS = [
   {
     icon: 'ri-shield-check-line',
-    title: 'Paiement 100% sécurisé',
-    desc: 'Ton argent est protégé jusqu\'à ce que tu confirmes la bonne réception de ta commande. Le vendeur ne touche rien avant.',
+    title: t('escrow.protectSecurePayment'),
+    desc: t('escrow.protectSecurePaymentDesc'),
   },
   {
     icon: 'ri-video-line',
-    title: 'Vidéo de déballage',
-    desc: 'L\'enregistrement de l\'ouverture du colis est ta meilleure protection. Elle prouve l\'état du produit à la réception.',
+    title: t('escrow.protectUnboxing'),
+    desc: t('escrow.protectUnboxingDesc'),
   },
   {
     icon: 'ri-time-line',
-    title: 'Délai de confirmation de 60h',
-    desc: 'Tu as 60 heures après la livraison pour confirmer ou contester. Passé ce délai, le paiement est libéré automatiquement.',
+    title: t('escrow.protectTime'),
+    desc: t('escrow.protectTimeDesc'),
   },
   {
     icon: 'ri-customer-service-2-line',
-    title: 'Médiation TrustLink',
-    desc: 'En cas de litige, notre équipe examine les preuves (vidéo, photos, messages) et rend une décision équitable sous 72h.',
+    title: t('escrow.protectMediation'),
+    desc: t('escrow.protectMediationDesc'),
   },
   {
     icon: 'ri-refund-2-line',
-    title: 'Remboursement garanti',
-    desc: 'Si le litige est validé en ta faveur, tu es remboursé intégralement. L\'argent n\'ayant jamais quitté l\'escrow, le retour est immédiat.',
+    title: t('escrow.protectRefund'),
+    desc: t('escrow.protectRefundDesc'),
   },
   {
     icon: 'ri-bank-line',
-    title: 'Fonds séparés',
-    desc: 'Les fonds escrow sont conservés sur un compte dédié, séparé des comptes opérationnels de TrustLink. Ils ne peuvent pas être utilisés autrement.',
+    title: t('escrow.protectFunds'),
+    desc: t('escrow.protectFundsDesc'),
   },
 ];
 
 const FAQS = [
   {
-    q: 'Que se passe-t-il si le vendeur n\'expédie pas ?',
-    a: 'Si le vendeur ne fournit pas de numéro de suivi dans les délais prévus, tu peux ouvrir un litige. TrustLink annule la commande et te rembourse intégralement.',
+    q: t('escrow.faqShip'),
+    a: t('escrow.faqShipA'),
   },
   {
-    q: 'Et si mon colis est endommagé à l\'arrivée ?',
-    a: 'Filme l\'ouverture du colis AVANT de toucher au contenu. Cette vidéo est obligatoire pour ouvrir un litige pour dommage. Sans vidéo, le litige ne peut pas être traité.',
+    q: t('escrow.faqDamage'),
+    a: t('escrow.faqDamageA'),
   },
   {
-    q: 'Dans quel délai suis-je remboursé ?',
-    a: 'Dès que TrustLink valide ton litige, le remboursement est traité sous 24-48h vers ton moyen de paiement initial.',
+    q: t('escrow.faqRefundTime'),
+    a: t('escrow.faqRefundTimeA'),
   },
   {
-    q: 'Le vendeur peut-il refuser l\'escrow ?',
-    a: 'Non. Tous les vendeurs TrustLink acceptent obligatoirement le système Escrow comme condition de vente sur la plateforme. C\'est non négociable.',
+    q: t('escrow.faqOptOut'),
+    a: t('escrow.faqOptOutA'),
   },
   {
-    q: 'Que couvre la commission TrustLink ?',
-    a: 'La commission (affichée au checkout) couvre la gestion Escrow, la vérification au hub, la médiation des litiges et le support client.',
+    q: t('escrow.faqCommission'),
+    a: t('escrow.faqCommissionA'),
   },
 ];
-
-export default function EscrowPage() {
   return (
     <div className="pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
 
@@ -109,24 +111,23 @@ export default function EscrowPage() {
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-poppins font-semibold mb-4"
             style={{ backgroundColor: 'rgba(255,106,0,0.2)', color: '#FF6A00' }}>
             <i className="ri-shield-star-line"></i>
-            Protection acheteur
+            {t('escrow.heroBadge')}
           </div>
-          <h1 className="text-3xl md:text-4xl font-poppins font-bold mb-4">
-            Ton argent, en sécurité.<br />
-            <span style={{ color: '#FF6A00' }}>Toujours.</span>
+          <h1 className="text-3xl md:text-4xl font-poppins font-bold mb-4"
+            dangerouslySetInnerHTML={{ __html: t('escrow.heroTitle') }}>
           </h1>
           <p className="text-base font-inter text-white/75 max-w-xl mx-auto mb-8">
-            Le système Escrow TrustLink garantit que tu ne paies que pour ce que tu reçois vraiment — conforme, intact, et dans les délais.
+            {t('escrow.heroDesc')}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link to="/"
               className="px-6 py-3 rounded-full font-poppins font-semibold text-sm text-white transition-opacity hover:opacity-90"
               style={{ backgroundColor: '#FF6A00' }}>
-              Découvrir les produits
+              {t('escrow.ctaDiscover')}
             </Link>
             <Link to="/support"
               className="px-6 py-3 rounded-full font-poppins font-semibold text-sm border border-white/30 text-white hover:bg-white/10 transition-colors">
-              Contacter le support
+              {t('escrow.ctaSupport')}
             </Link>
           </div>
         </div>
@@ -137,10 +138,10 @@ export default function EscrowPage() {
         <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             {[
-              { val: '100%', label: 'Paiements sécurisés', icon: 'ri-shield-check-line' },
-              { val: '60h', label: 'Pour confirmer ou contester', icon: 'ri-time-line' },
-              { val: '72h', label: 'Résolution des litiges', icon: 'ri-customer-service-2-line' },
-              { val: '0€', label: 'Frais de remboursement', icon: 'ri-refund-2-line' },
+              { val: '100%', label: t('escrow.statPayments'), icon: 'ri-shield-check-line' },
+              { val: '60h', label: t('escrow.statConfirm'), icon: 'ri-time-line' },
+              { val: '72h', label: t('escrow.statResolution'), icon: 'ri-customer-service-2-line' },
+              { val: '0€', label: t('escrow.statRefund'), icon: 'ri-refund-2-line' },
             ].map(({ val, label, icon }) => (
               <div key={val} className="py-4">
                 <i className={`${icon} text-2xl mb-2 block`} style={{ color: '#125C8D' }}></i>
@@ -158,10 +159,10 @@ export default function EscrowPage() {
         <div className="mb-16">
           <div className="text-center mb-10">
             <h2 className="text-2xl font-poppins font-bold mb-2" style={{ color: '#111827' }}>
-              Comment fonctionne l'Escrow ?
+              {t('escrow.howItWorks')}
             </h2>
             <p className="text-sm font-inter" style={{ color: '#6B7280' }}>
-              5 étapes claires pour une transaction 100% sécurisée
+              {t('escrow.howItWorksDesc')}
             </p>
           </div>
 
@@ -177,7 +178,7 @@ export default function EscrowPage() {
                     <i className={`${step.icon} text-2xl`} style={{ color: step.color }}></i>
                   </div>
                   <span className="text-xs font-poppins font-bold mb-1" style={{ color: '#9CA3AF' }}>
-                    Étape {step.num}
+                    {t('escrow.stepLabel').replace('{num}', step.num)}
                   </span>
                   <h3 className="text-sm font-poppins font-bold mb-2" style={{ color: '#111827' }}>
                     {step.title}
@@ -195,10 +196,10 @@ export default function EscrowPage() {
         <div className="mb-16">
           <div className="text-center mb-10">
             <h2 className="text-2xl font-poppins font-bold mb-2" style={{ color: '#111827' }}>
-              Ce que l'Escrow te garantit
+              {t('escrow.protections')}
             </h2>
             <p className="text-sm font-inter" style={{ color: '#6B7280' }}>
-              Chaque protection est active sur toutes tes commandes, sans exception
+              {t('escrow.protectionsDesc')}
             </p>
           </div>
 
@@ -223,19 +224,19 @@ export default function EscrowPage() {
         {/* Schéma flux argent */}
         <div className="bg-white rounded-2xl p-6 md:p-8 mb-16" style={{ border: '1px solid #F0F0F0' }}>
           <h2 className="text-xl font-poppins font-bold mb-2 text-center" style={{ color: '#111827' }}>
-            Où va ton argent ?
+            {t('escrow.moneyFlow')}
           </h2>
           <p className="text-sm font-inter text-center mb-8" style={{ color: '#6B7280' }}>
-            Voici le chemin exact de chaque centime que tu dépenses
+            {t('escrow.moneyFlowDesc')}
           </p>
 
           <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-0">
             {[
-              { label: 'Toi', sub: 'Tu paies', icon: 'ri-user-line', color: '#125C8D', bg: '#E1F0F9' },
+              { label: t('escrow.flowYou'), sub: t('escrow.flowYouPay'), icon: 'ri-user-line', color: '#125C8D', bg: '#E1F0F9' },
               null,
-              { label: 'Escrow TrustLink', sub: 'Fonds bloqués', icon: 'ri-bank-line', color: '#7C3AED', bg: '#F5F3FF', big: true },
+              { label: t('escrow.flowEscrow'), sub: t('escrow.flowEscrowHold'), icon: 'ri-bank-line', color: '#7C3AED', bg: '#F5F3FF', big: true },
               null,
-              { label: 'Vendeur', sub: 'Reçoit après confirmation', icon: 'ri-store-2-line', color: '#15803D', bg: '#DCFCE7' },
+              { label: t('escrow.flowSeller'), sub: t('escrow.flowSellerReceive'), icon: 'ri-store-2-line', color: '#15803D', bg: '#DCFCE7' },
             ].map((item, i) => {
               if (item === null) {
                 return (
@@ -260,7 +261,7 @@ export default function EscrowPage() {
           <p className="text-center text-xs font-inter mt-6 px-4 py-3 rounded-lg"
             style={{ backgroundColor: '#F0FFF4', color: '#15803D' }}>
             <i className="ri-information-line mr-1"></i>
-            Si un litige est validé en ta faveur, l'argent te revient directement depuis l'Escrow — le vendeur ne l'ayant jamais touché.
+            {t('escrow.flowNote')}
           </p>
         </div>
 
@@ -268,7 +269,7 @@ export default function EscrowPage() {
         <div className="mb-16">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-poppins font-bold mb-2" style={{ color: '#111827' }}>
-              Questions fréquentes
+              {t('escrow.faq')}
             </h2>
           </div>
 
@@ -295,19 +296,19 @@ export default function EscrowPage() {
         {/* CTA final */}
         <div className="rounded-2xl p-8 text-center text-white" style={{ backgroundColor: '#0E3A4F' }}>
           <i className="ri-shield-star-fill text-4xl mb-4 block" style={{ color: '#FF6A00' }}></i>
-          <h2 className="text-xl font-poppins font-bold mb-2">Tu as encore des doutes ?</h2>
+          <h2 className="text-xl font-poppins font-bold mb-2">{t('escrow.ctaFinal')}</h2>
           <p className="text-sm font-inter text-white/70 mb-6 max-w-md mx-auto">
-            Notre équipe est disponible 7j/7 pour répondre à toutes tes questions sur la sécurité de tes achats.
+            {t('escrow.ctaFinalDesc')}
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link to="/support"
               className="px-6 py-2.5 rounded-full font-poppins font-semibold text-sm text-white transition-opacity hover:opacity-90"
               style={{ backgroundColor: '#FF6A00' }}>
-              Contacter le support
+              {t('escrow.ctaSupport')}
             </Link>
             <Link to="/legal?tab=cgu"
               className="px-6 py-2.5 rounded-full font-poppins font-semibold text-sm border border-white/30 text-white hover:bg-white/10 transition-colors">
-              Lire les CGU complètes
+              {t('escrow.ctaCgu')}
             </Link>
           </div>
         </div>

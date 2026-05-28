@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
+import { useI18n } from '@/lib/I18nContext';
 export default function ForgotPassword() {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -10,16 +12,21 @@ export default function ForgotPassword() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
-    });
-    if (resetError) {
-      setError(resetError.message || "Erreur lors de l'envoi de l'email.");
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      if (resetError) {
+        setError(resetError.message || t('support.sendError'));
+        setLoading(false);
+        return;
+      }
+      setSuccess(true);
+    } catch (err) {
+      setError(t('general.error'));
+    } finally {
       setLoading(false);
-      return;
     }
-    setSuccess(true);
-    setLoading(false);
   };
   if (success) {
     return (
@@ -29,17 +36,17 @@ export default function ForgotPassword() {
             <i className="ri-mail-send-line text-green-600 text-xl"></i>
           </div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Email envoyé !
+            {t('auth.emailSent')}
           </h2>
           <p className="text-sm text-gray-500 mb-6">
-            Un lien de réinitialisation a été envoyé à{' '}
-            <strong>{email}</strong>. Vérifie ta boîte mail (et les spams).
+            {t('auth.emailSentDesc')}{' '}
+            <strong>{email}</strong>. {t('auth.checkSpam')}
           </p>
           <Link
             to="/login"
             className="text-sm text-slate-800 font-medium underline"
           >
-            Retour à la connexion
+            {t('auth.backToLogin')}
           </Link>
         </div>
       </div>
@@ -57,14 +64,14 @@ export default function ForgotPassword() {
             className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
           >
             <i className="ri-arrow-left-line text-base"></i>
-            Retour à la connexion
+            {t('auth.backToLogin')}
           </Link>
         </div>
         <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-          Mot de passe oublié
+          {t('auth.forgotPasswordTitle')}
         </h1>
         <p className="text-sm text-gray-500 mb-6">
-          Saisis ton adresse email et on t&apos;envoie un lien pour réinitialiser ton mot de passe.
+          {t('auth.forgotPasswordDesc')}
         </p>
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -74,7 +81,7 @@ export default function ForgotPassword() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              {t('auth.email')}
             </label>
             <input
               type="email"
@@ -83,7 +90,7 @@ export default function ForgotPassword() {
               required
               autoComplete="email"
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#125C8D]"
-              placeholder="vous@exemple.com"
+              placeholder={t('auth.emailPlaceholder')}
             />
           </div>
           <button
@@ -92,7 +99,7 @@ export default function ForgotPassword() {
             className="w-full py-2.5 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 whitespace-nowrap cursor-pointer"
             style={{ backgroundColor: '#125C8D' }}
           >
-            {loading ? 'Envoi en cours...' : 'Envoyer le lien'}
+            {loading ? t('auth.sending') : t('auth.sendLink')}
           </button>
         </form>
       </div>

@@ -3,7 +3,10 @@ import { supabase } from '@/lib/supabaseClient';
 import { getRecentlyViewed } from '@/lib/storage';
 import ProductCard from './ProductCard';
 
+import { useI18n } from '@/lib/I18nContext';
+
 export default function RecentlyViewed() {
+  const { t } = useI18n();
   const [products, setProducts] = useState([]);
   const [ids, setIds] = useState([]);
 
@@ -48,14 +51,15 @@ export default function RecentlyViewed() {
           };
         });
         setProducts(normalized);
-      });
+      })
+      .catch(err => console.error("Error loading recently viewed:", err));
   }, []);
 
   if (ids.length === 0 || products.length === 0) return null;
 
   return (
     <section className="max-w-[1200px] mx-auto px-4 md:px-6 py-6">
-      <h2 className="text-xl font-poppins font-bold mb-4" style={{ color: '#111827' }}>Consultés récemment</h2>
+      <h2 className="text-xl font-poppins font-bold mb-4" style={{ color: '#111827' }}>{t('product.recentlyViewed')}</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {products.map(p => <ProductCard key={p.id} product={p} />)}
       </div>

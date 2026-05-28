@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
+import { useI18n } from '@/lib/I18nContext';
 
 export default function ProductQA({ productId }) {
+  const { t } = useI18n();
   const { user } = useAuth();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,7 +17,8 @@ export default function ProductQA({ productId }) {
       .select('*, buyer:buyer_id(full_name)')
       .eq('product_id', productId)
       .order('created_at', { ascending: false })
-      .then(({ data }) => { setQuestions(data || []); setLoading(false); });
+      .then(({ data }) => { setQuestions(data || []); setLoading(false); })
+      .catch(err => { console.error("Error loading questions:", err); setLoading(false); });
   }, [productId]);
 
   const ask = async () => {
@@ -37,18 +40,18 @@ export default function ProductQA({ productId }) {
 
   return (
     <div className="mt-8">
-      <h3 className="text-lg font-poppins font-bold mb-4" style={{ color: '#111827' }}>Questions & Réponses</h3>
+      <h3 className="text-lg font-poppins font-bold mb-4" style={{ color: '#111827' }}>{t('product.qaTitle')}</h3>
       
       {user && (
         <div className="flex gap-2 mb-4">
           <input value={newQuestion} onChange={e => setNewQuestion(e.target.value)}
-            placeholder="Poser une question sur ce produit..."
+            placeholder={t('product.qaPlaceholder')}
             className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#125C8D]"
             onKeyDown={e => { if (e.key === 'Enter') ask(); }} />
           <button onClick={ask} disabled={!newQuestion.trim() || submitting}
             className="px-4 py-2 text-xs font-poppins font-semibold text-white rounded-lg disabled:opacity-50 cursor-pointer"
             style={{ backgroundColor: '#125C8D' }}>
-            {submitting ? '...' : 'Demander'}
+            {submitting ? '...' : t('product.qaAsk')}
           </button>
         </div>
       )}
@@ -58,7 +61,7 @@ export default function ProductQA({ productId }) {
           {[1, 2].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />)}
         </div>
       ) : questions.length === 0 ? (
-        <p className="text-sm font-inter text-gray-400 text-center py-6">Aucune question pour le moment. Soyez le premier à poser une question !</p>
+        <p className="text-sm font-inter text-gray-400 text-center py-6">{t('product.qaEmpty')}</p>
       ) : (
         <div className="space-y-3">
           {questions.map(q => (
@@ -74,7 +77,7 @@ export default function ProductQA({ productId }) {
               </div>
               {q.answer && (
                 <div className="ml-9 p-3 rounded-lg bg-[#F0FDF4]">
-                  <p className="text-xs font-semibold text-green-700 mb-1">Réponse du vendeur :</p>
+                  <p className="text-xs font-semibold text-green-700 mb-1">{t('product.qaSellerReply')}</p>
                   <p className="text-sm font-inter text-gray-700">{q.answer}</p>
                 </div>
               )}

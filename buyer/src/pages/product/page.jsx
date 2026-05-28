@@ -6,6 +6,7 @@ import { useWishlist } from '@/hooks/useWishlist';
 import { useReviews } from '@/hooks/useReviews';
 import { renderStars } from '@/utils/format';
 import { useCurrencyContext } from '@/lib/CurrencyContext';
+import { useI18n } from '@/lib/I18nContext';
 import { addRecentlyViewed } from '@/lib/storage';
 import LazyImage from '@/components/base/LazyImage';
 import ProductCard from '@/pages/home/components/ProductCard';
@@ -14,6 +15,7 @@ import ProductQA from './components/ProductQA';
 import StockNotification from './components/StockNotification';
 import { useProducts } from '@/hooks/useProducts';
 export default function ProductPage() {
+  const { t, locale } = useI18n();
   const { id } = useParams();
   const navigate = useNavigate();
   const { addItem } = useCart();
@@ -55,16 +57,16 @@ export default function ProductPage() {
     return (
       <div className="pt-24 pb-12 flex flex-col items-center justify-center min-h-[60vh]">
         <div className="text-6xl mb-4">🔍</div>
-        <h1 className="text-xl font-poppins font-bold mb-3" style={{ color: '#111827' }}>Produit introuvable</h1>
+        <h1 className="text-xl font-poppins font-bold mb-3" style={{ color: '#111827' }}>{t('product.notFound')}</h1>
         <p className="text-sm font-inter mb-6" style={{ color: '#6B7280' }}>
-          Ce produit n&apos;existe pas ou n&apos;est plus disponible.
+          {t('product.notFoundDesc')}
         </p>
         <Link
           to="/"
           className="px-6 py-2.5 text-white font-poppins font-semibold rounded-full whitespace-nowrap"
           style={{ backgroundColor: '#FF6A00' }}
         >
-          Retour à la boutique
+          {t('product.backToShop')}
         </Link>
       </div>
     );
@@ -73,11 +75,12 @@ export default function ProductPage() {
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
   const stars = renderStars(stats.average || 0);
+  const firstImage = product.images?.[0] || '';
   const handleAdd = () => {
     addItem({
       productId: product.id,
       name: product.name,
-      image: product.images[0],
+      image: firstImage,
       price: product.price,
       quantity: qty,
       selectedSize,
@@ -90,7 +93,7 @@ export default function ProductPage() {
     addItem({
       productId: product.id,
       name: product.name,
-      image: product.images[0],
+      image: firstImage,
       price: product.price,
       quantity: qty,
       selectedSize,
@@ -103,7 +106,7 @@ export default function ProductPage() {
       <div className="max-w-[1200px] mx-auto px-4 md:px-6">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-xs font-inter mb-6" style={{ color: '#6B7280' }}>
-          <Link to="/" className="hover:underline cursor-pointer">Accueil</Link>
+          <Link to="/" className="hover:underline cursor-pointer">{t('product.home')}</Link>
           <span>/</span>
           <Link to={`/?category=${product.category}`} className="hover:underline cursor-pointer">
             {product.categoryName || product.category}
@@ -119,7 +122,7 @@ export default function ProductPage() {
               style={{ backgroundColor: '#F8FAFC', height: '420px' }}
             >
               <LazyImage
-                src={product.images[selectedImage] || product.images[0]}
+                src={product.images?.[selectedImage] || firstImage}
                 alt={product.name}
                 className="w-full h-full"
                 style={{ objectFit: 'cover', objectPosition: 'top' }}
@@ -159,7 +162,7 @@ export default function ProductPage() {
                 className="text-xs font-poppins font-bold px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: '#DCFCE7', color: '#15803D' }}
               >
-                ✓ Vérifié
+                ✓ {t('product.verified')}
               </span>
             </div>
             {/* Title */}
@@ -175,8 +178,8 @@ export default function ProductPage() {
               </div>
               <span className="text-xs font-inter" style={{ color: '#6B7280' }}>
                 {stats.count > 0
-                  ? `${stats.average}/5 · ${stats.count} avis`
-                  : 'Nouveau produit'}
+                  ? `${stats.average}/5 · ${stats.count} ${t('product.reviews')}`
+                  : t('product.newProduct')}
               </span>
             </div>
             {/* Price */}
@@ -202,19 +205,19 @@ export default function ProductPage() {
             {product.delivery_min_days && product.delivery_max_days && (
               <p className="text-xs font-inter mb-2" style={{ color: '#6B7280' }}>
                 <i className="ri-truck-line mr-1"></i>
-                Livré en {product.delivery_min_days}-{product.delivery_max_days} jours
+                {t('product.deliveredIn').replace('{min}', product.delivery_min_days).replace('{max}', product.delivery_max_days)}
               </p>
             )}
             {/* Stock warning */}
             {product.stock <= 5 && product.stock > 0 && (
               <p className="text-xs font-inter mb-2" style={{ color: '#D97706' }}>
                 <i className="ri-alarm-warning-line mr-1"></i>
-                Plus que {product.stock} en stock !
+                {t('product.onlyXLeft').replace('{stock}', product.stock)}
               </p>
             )}
             {product.stock === 0 && (
               <p className="text-xs font-inter mb-2 font-semibold" style={{ color: '#DC2626' }}>
-                Rupture de stock
+                {t('product.outOfStock')}
               </p>
             )}
             {product.stock === 0 && (
@@ -226,7 +229,7 @@ export default function ProductPage() {
             {/* Sizes */}
             {product.variants?.sizes?.length > 0 && (
               <div className="mb-4">
-                <p className="text-sm font-poppins font-medium mb-2" style={{ color: '#111827' }}>Taille :</p>
+                <p className="text-sm font-poppins font-medium mb-2" style={{ color: '#111827' }}>{t('product.size')}</p>
                 <div className="flex flex-wrap gap-2">
                   {product.variants.sizes.map((s) => (
                     <button
@@ -247,7 +250,7 @@ export default function ProductPage() {
             {product.variants?.colors?.length > 0 && (
               <div className="mb-4">
                 <p className="text-sm font-poppins font-medium mb-2" style={{ color: '#111827' }}>
-                  Couleur :{selectedColor && <span className="font-normal ml-1">{selectedColor}</span>}
+                  {t('product.color')}{selectedColor && <span className="font-normal ml-1">{selectedColor}</span>}
                 </p>
                 <div className="flex gap-2">
                   {product.variants.colors.map((c) => (
@@ -269,7 +272,7 @@ export default function ProductPage() {
             )}
             {/* Quantity */}
             <div className="flex items-center gap-3 mb-5">
-              <p className="text-sm font-poppins font-medium" style={{ color: '#111827' }}>Quantité :</p>
+              <p className="text-sm font-poppins font-medium" style={{ color: '#111827' }}>{t('product.quantityLabel')}</p>
               <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
                 <button
                   onClick={() => setQty(Math.max(1, qty - 1))}
@@ -310,7 +313,7 @@ export default function ProductPage() {
                 }}
               >
                 <i className="ri-shopping-cart-add-line"></i>
-                {added ? '✓ Ajouté !' : 'Ajouter au panier'}
+                {added ? t('product.added') : t('product.addToCartLabel')}
               </button>
               <button
                 onClick={handleBuyNow}
@@ -318,7 +321,7 @@ export default function ProductPage() {
                 className="flex-1 py-3 text-sm font-poppins font-semibold rounded-full text-white transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer whitespace-nowrap"
                 style={{ backgroundColor: '#FF6A00' }}
               >
-                Acheter maintenant
+                {t('product.buyNow')}
               </button>
             </div>
             {/* Wishlist */}
@@ -328,18 +331,18 @@ export default function ProductPage() {
               style={{ color: isWishlisted(product.id) ? '#DC2626' : '#6B7280' }}
             >
               <i className={isWishlisted(product.id) ? 'ri-heart-fill' : 'ri-heart-line'}></i>
-              {isWishlisted(product.id) ? 'Retiré des favoris' : 'Ajouter aux favoris'}
+              {isWishlisted(product.id) ? t('product.addedToWishlist') : t('product.addToWishlist')}
             </button>
             {/* Escrow block */}
             <div className="rounded-xl p-4" style={{ backgroundColor: '#E1F0F9' }}>
               <div className="flex items-center gap-2 mb-3">
                 <i className="ri-shield-check-line" style={{ color: '#125C8D' }}></i>
                 <span className="text-sm font-poppins font-semibold" style={{ color: '#125C8D' }}>
-                  Paiement Escrow TrustLink
+                  {t('product.escrowPayment')}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-xs font-inter flex-wrap" style={{ color: '#6B7280' }}>
-                {['Vous payez', 'Vendeur notifié', 'Hub TrustLink', 'Vous recevez'].map((step, i, arr) => (
+                {[t('product.escrowStep1'), t('product.escrowStep2'), t('product.escrowStep3'), t('product.escrowStep4')].map((step, i, arr) => (
                   <span key={step} className="flex items-center gap-1">
                     <span className="font-medium" style={{ color: '#125C8D' }}>{i + 1}. {step}</span>
                     {i < arr.length - 1 && <i className="ri-arrow-right-s-line"></i>}
@@ -361,7 +364,7 @@ export default function ProductPage() {
         {similar.length > 0 && (
           <section className="mt-12">
             <h2 className="text-xl font-poppins font-semibold mb-6" style={{ color: '#111827' }}>
-              Vous aimerez aussi
+              {t('product.similar')}
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {similar.map((p) => (

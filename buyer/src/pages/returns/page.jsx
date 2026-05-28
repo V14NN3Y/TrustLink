@@ -1,20 +1,121 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useI18n } from '@/lib/I18nContext';
 
-const TOC_SECTIONS = [
-  { id: 'intro', label: 'Introduction' },
-  { id: 'escrow', label: 'Le Pilier Escrow' },
-  { id: 'fcfa', label: 'Conversion FCFA / Naira' },
-  { id: 'vendeur', label: 'Responsabilité du Vendeur' },
-  { id: 'preuves', label: 'Collecte de Preuves (48h)' },
-  { id: 'matrice', label: 'Matrice de Résolution' },
-  { id: 'traitement', label: 'Traitement et cas Remboursements' },
-  { id: 'exclusions', label: 'Exclusions' },
-];
+function getSections(t) {
+  return {
+    toc: [
+      { id: 'intro', label: t('returns.tocIntro') },
+      { id: 'escrow', label: t('returns.tocEscrow') },
+      { id: 'fcfa', label: t('returns.tocFcfa') },
+      { id: 'vendeur', label: t('returns.tocVendeur') },
+      { id: 'preuves', label: t('returns.tocPreuves') },
+      { id: 'matrice', label: t('returns.tocMatrice') },
+      { id: 'traitement', label: t('returns.tocTraitement') },
+      { id: 'exclusions', label: t('returns.tocExclusions') },
+    ],
+    heroBadge: t('returns.heroBadge'),
+    heroTitle: t('returns.heroTitle'),
+    heroDesc: t('returns.heroDesc'),
+    stats: [
+      [t('returns.stat1Val'), t('returns.stat1Label')],
+      [t('returns.stat2Val'), t('returns.stat2Label')],
+      [t('returns.stat3Val'), t('returns.stat3Label')],
+    ],
+    breadcrumbShop: t('returns.breadcrumbShop'),
+    breadcrumbPolicy: t('returns.breadcrumbPolicy'),
+    tocTitle: t('returns.tocTitle'),
+    intro: {
+      title: t('returns.introTitle'),
+      content: t('returns.introContent'),
+      cards: [
+        { icon: 'ri-shield-check-line', label: t('returns.introCard1Label'), desc: t('returns.introCard1Desc') },
+        { icon: 'ri-map-pin-line', label: t('returns.introCard2Label'), desc: t('returns.introCard2Desc') },
+        { icon: 'ri-customer-service-2-line', label: t('returns.introCard3Label'), desc: t('returns.introCard3Desc') },
+      ],
+    },
+    escrow: {
+      title: t('returns.escrowTitle'),
+      content: t('returns.escrowContent'),
+      items: [
+        { icon: 'ri-lock-line', label: t('returns.escrowItem1Label'), desc: t('returns.escrowItem1Desc') },
+        { icon: 'ri-check-double-line', label: t('returns.escrowItem2Label'), desc: t('returns.escrowItem2Desc') },
+        { icon: 'ri-time-line', label: t('returns.escrowItem3Label'), desc: t('returns.escrowItem3Desc') },
+        { icon: 'ri-refund-2-line', label: t('returns.escrowItem4Label'), desc: t('returns.escrowItem4Desc') },
+      ],
+    },
+    fcfa: {
+      title: t('returns.fcfaTitle'),
+      content: t('returns.fcfaContent'),
+      steps: [
+        t('returns.fcfaStep1'),
+        t('returns.fcfaStep2'),
+        t('returns.fcfaStep3'),
+      ],
+      alertTitle: t('returns.fcfaAlertTitle'),
+      alertDesc: t('returns.fcfaAlertDesc'),
+    },
+    vendeur: {
+      title: t('returns.vendeurTitle'),
+      content: t('returns.vendeurContent'),
+      items: [
+        { icon: 'ri-vidicon-line', label: t('returns.vendeurItem1Label'), desc: t('returns.vendeurItem1Desc') },
+        { icon: 'ri-checkbox-circle-line', label: t('returns.vendeurItem2Label'), desc: t('returns.vendeurItem2Desc') },
+        { icon: 'ri-money-dollar-circle-line', label: t('returns.vendeurItem3Label'), desc: t('returns.vendeurItem3Desc') },
+        { icon: 'ri-shield-check-line', label: t('returns.vendeurItem4Label'), desc: t('returns.vendeurItem4Desc') },
+      ],
+    },
+    preuves: {
+      title: t('returns.preuvesTitle'),
+      content: t('returns.preuvesContent'),
+      steps: [
+        { n: 1, label: t('returns.preuvesStep1Label'), desc: t('returns.preuvesStep1Desc') },
+        { n: 2, label: t('returns.preuvesStep2Label'), desc: t('returns.preuvesStep2Desc') },
+        { n: 3, label: t('returns.preuvesStep3Label'), desc: t('returns.preuvesStep3Desc') },
+        { n: 4, label: t('returns.preuvesStep4Label'), desc: t('returns.preuvesStep4Desc') },
+      ],
+    },
+    matrice: {
+      title: t('returns.matriceTitle'),
+      cases: [
+        { icon: 'ri-shield-flash-line', case: t('returns.matriceCase1'), badge: t('returns.matriceBadge1'), badgeColor: '#16A34A', badgeBg: '#DCFCE7', result: t('returns.matriceResult1'), desc: t('returns.matriceDesc1') },
+        { icon: 'ri-close-circle-line', case: t('returns.matriceCase2'), badge: t('returns.matriceBadge2'), badgeColor: '#DC2626', badgeBg: '#FEE2E2', result: t('returns.matriceResult2'), desc: t('returns.matriceDesc2') },
+        { icon: 'ri-hammer-line', case: t('returns.matriceCase3'), badge: t('returns.matriceBadge3'), badgeColor: '#D97706', badgeBg: '#FEF3C7', result: t('returns.matriceResult3'), desc: t('returns.matriceDesc3') },
+        { icon: 'ri-user-star-line', case: t('returns.matriceCase4'), badge: t('returns.matriceBadge4'), badgeColor: '#6B7280', badgeBg: '#F1F5F9', result: t('returns.matriceResult4'), desc: t('returns.matriceDesc4') },
+      ],
+    },
+    traitement: {
+      title: t('returns.traitementTitle'),
+      content: t('returns.traitementContent'),
+      items: [
+        { icon: 'ri-time-line', label: t('returns.traitementItem1Label'), desc: t('returns.traitementItem1Desc') },
+        { icon: 'ri-smartphone-line', label: t('returns.traitementItem2Label'), desc: t('returns.traitementItem2Desc') },
+        { icon: 'ri-user-line', label: t('returns.traitementItem3Label'), desc: t('returns.traitementItem3Desc') },
+      ],
+    },
+    exclusions: {
+      title: t('returns.exclusionsTitle'),
+      content: t('returns.exclusionsContent'),
+      items: [
+        { n: 1, label: t('returns.exclusion1'), color: '#FEF3C7', border: '#FCD34D', text: '#92400E' },
+        { n: 2, label: t('returns.exclusion2'), color: '#FFF1F2', border: '#FECDD3', text: '#991B1B' },
+        { n: 3, label: t('returns.exclusion3'), color: '#FFF1F2', border: '#FECDD3', text: '#991B1B' },
+        { n: 4, label: t('returns.exclusion4'), color: '#FFF1F2', border: '#FECDD3', text: '#991B1B' },
+      ],
+      hubNote: t('returns.exclusionsHubNote'),
+    },
+    ctaTitle: t('returns.ctaTitle'),
+    ctaDesc: t('returns.ctaDesc'),
+    ctaButton: t('returns.ctaButton'),
+  };
+}
 
 export default function Returns() {
+  const { t } = useI18n();
   const [activeSection, setActiveSection] = useState('intro');
   const sectionRefs = useRef({});
+  const content = getSections(t);
+  const TOC_SECTIONS = content.toc;
 
   const scrollToSection = (id) => {
     setActiveSection(id);
@@ -46,19 +147,18 @@ export default function Returns() {
 
   return (
     <div className="pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
-      {/* Hero */}
       <div style={{ backgroundColor: '#0E3A4F' }} className="text-white py-12">
         <div className="max-w-[1100px] mx-auto px-4 text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 mb-5">
             <i className="ri-time-line text-sm"></i>
-            <span className="text-sm font-poppins font-medium">Mise à jour Avril 2026</span>
+            <span className="text-sm font-poppins font-medium">{content.heroBadge}</span>
           </div>
-          <h1 className="text-3xl font-poppins font-bold mb-3">Politique Unifiée de Remboursement & Retours</h1>
+          <h1 className="text-3xl font-poppins font-bold mb-3">{content.heroTitle}</h1>
           <p className="text-sm font-inter text-white/70 max-w-xl mx-auto mb-8">
-            Gouvernance opérationnelle Nigéro-Béninoise. TrustLink exploite la proximité commerciale entre le Nigéria et le Bénin pour offrir une sécurité d'achat sur ces plateformes analogiques.
+            {content.heroDesc}
           </p>
           <div className="flex justify-center gap-8 flex-wrap">
-            {[['48h', 'Fenêtre de réclamation'], ['100%', 'Remboursement garanti'], ['72h', 'Traitement']].map(([val, label]) => (
+            {content.stats.map(([val, label]) => (
               <div key={label} className="text-center">
                 <div className="text-2xl font-poppins font-bold">{val}</div>
                 <div className="text-xs font-inter text-white/70">{label}</div>
@@ -69,17 +169,15 @@ export default function Returns() {
       </div>
 
       <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-8">
-        {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs font-inter mb-6" style={{ color: '#9CA3AF' }}>
-          <Link to="/" className="hover:underline">Boutique</Link>
+          <Link to="/" className="hover:underline">{content.breadcrumbShop}</Link>
           <span>/</span>
-          <span style={{ color: '#374151' }}>Politique de Remboursement</span>
+          <span style={{ color: '#374151' }}>{content.breadcrumbPolicy}</span>
         </div>
 
         <div className="flex flex-col md:flex-row gap-6 items-start">
-          {/* TOC — sticky */}
           <aside className="md:w-56 flex-shrink-0 sticky" style={{ top: '96px' }}>
-            <p className="text-xs font-poppins font-semibold uppercase tracking-wider mb-3" style={{ color: '#9CA3AF' }}>Sommaire</p>
+            <p className="text-xs font-poppins font-semibold uppercase tracking-wider mb-3" style={{ color: '#9CA3AF' }}>{content.tocTitle}</p>
             <div className="space-y-0.5">
               {TOC_SECTIONS.map((s) => (
                 <button key={s.id} onClick={() => scrollToSection(s.id)}
@@ -93,25 +191,19 @@ export default function Returns() {
             </div>
           </aside>
 
-          {/* Content */}
           <div className="flex-1 space-y-5">
-            {/* Introduction */}
             <div ref={setRef('intro')} className="bg-white rounded-xl p-6" style={{ border: '1px solid #E5E7EB' }}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#EBF4FB' }}>
                   <i className="ri-information-line text-sm" style={{ color: '#125C8D' }}></i>
                 </div>
-                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>Introduction</h2>
+                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>{content.intro.title}</h2>
               </div>
               <p className="text-sm font-inter leading-relaxed mb-5" style={{ color: '#6B7280' }}>
-                TrustLink exploite la proximité commerciale entre le Nigéria et le Bénin pour offrir une sécurité d'achat qui surpasse les plateformes analogiques. En faisant confiance à ces mécanismes d'assurance, nous fournissons à nos acheteurs un système de commerce transfrontalier en une expérience sécurisée, similaire à un achat local.
+                {content.intro.content}
               </p>
               <div className="grid grid-cols-3 gap-4">
-                {[
-                  { icon: 'ri-shield-check-line', label: 'Escrow Sécurisé', desc: 'Fonds bloqués jusqu\'à confirmation de la livraison' },
-                  { icon: 'ri-map-pin-line', label: 'Proximité Régionale', desc: 'Lagos → Cotonou, voilà votre matière' },
-                  { icon: 'ri-customer-service-2-line', label: 'Support Dédié', desc: 'Équipe TrustLink disponible 7j/7' },
-                ].map((item) => (
+                {content.intro.cards.map((item) => (
                   <div key={item.label} className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E5E7EB' }}>
                     <i className={`${item.icon} text-xl mb-2 block`} style={{ color: '#125C8D' }}></i>
                     <p className="text-xs font-poppins font-semibold mb-1" style={{ color: '#111827' }}>{item.label}</p>
@@ -121,24 +213,18 @@ export default function Returns() {
               </div>
             </div>
 
-            {/* Le Pilier Escrow */}
             <div ref={setRef('escrow')} className="bg-white rounded-xl p-6" style={{ border: '1px solid #E5E7EB', borderLeft: '4px solid #FF6A00' }}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#FFF3EC' }}>
                   <i className="ri-shield-star-line text-sm" style={{ color: '#FF6A00' }}></i>
                 </div>
-                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>Le Pilier Escrow</h2>
+                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>{content.escrow.title}</h2>
               </div>
               <p className="text-sm font-inter leading-relaxed mb-4" style={{ color: '#6B7280' }}>
-                Tous les paiements sont conservés dans un compte escrow sécurisé. Les fonds ne sont libérés au vendeur que lorsque le client confirme la réception, ou après 10 heures sans litige ouvert.
+                {content.escrow.content}
               </p>
               <div className="grid grid-cols-2 gap-3">
-                {[
-                  { icon: 'ri-lock-line', label: 'Fonds Bloqués', desc: 'Sécurisé dès le paiement lors de la commande' },
-                  { icon: 'ri-check-double-line', label: 'Libération conditionnelle', desc: 'Uniquement après confirmation de réception' },
-                  { icon: 'ri-time-line', label: 'Fenêtre 48h', desc: 'Délai pour signaler toute réclamation' },
-                  { icon: 'ri-refund-2-line', label: 'Remboursement garanti', desc: 'En cas de litige valide correctement ouvert' },
-                ].map((item) => (
+                {content.escrow.items.map((item) => (
                   <div key={item.label} className="flex items-start gap-2.5 p-3 rounded-lg" style={{ backgroundColor: '#F8FAFC' }}>
                     <i className={`${item.icon} text-sm mt-0.5 flex-shrink-0`} style={{ color: '#125C8D' }}></i>
                     <div>
@@ -150,19 +236,18 @@ export default function Returns() {
               </div>
             </div>
 
-            {/* FCFA / Naira */}
             <div ref={setRef('fcfa')} className="bg-white rounded-xl p-6" style={{ border: '1px solid #E5E7EB' }}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#EBF4FB' }}>
                   <i className="ri-exchange-funds-line text-sm" style={{ color: '#125C8D' }}></i>
                 </div>
-                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>Conversion Automatique FCFA / Naira</h2>
+                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>{content.fcfa.title}</h2>
               </div>
               <p className="text-sm font-inter leading-relaxed mb-4" style={{ color: '#6B7280' }}>
-                Dès que l'acheteur effectue son paiement en FCFA, les fonds sont automatiquement convertis en Naira pour éviter les erreurs de taux de change lors de la transaction.
+                {content.fcfa.content}
               </p>
               <div className="flex items-center justify-between mb-4">
-                {['Paiement FCFA', 'Cours Naira', 'Vendeur Nigéria'].map((label, i) => (
+                {content.fcfa.steps.map((label, i) => (
                   <div key={label} className="flex items-center gap-2">
                     <div className="text-center">
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-1 mx-auto" style={{ backgroundColor: '#EBF4FB' }}>
@@ -176,32 +261,26 @@ export default function Returns() {
               </div>
               <div className="rounded-lg p-3" style={{ backgroundColor: '#FFF3EC', border: '1px solid #FFD0B0' }}>
                 <p className="text-xs font-poppins font-semibold mb-1" style={{ color: '#FF6A00' }}>
-                  <i className="ri-information-line mr-1"></i>Important — Blocage de change en cas de remboursement
+                  <i className="ri-information-line mr-1"></i>{content.fcfa.alertTitle}
                 </p>
                 <p className="text-xs font-inter" style={{ color: '#92400E' }}>
-                  En cas de remboursement suite à un litige justifié, la reconversion (Naira → FCFA) sera effectuée au taux de change en vigueur au moment du remboursement.
+                  {content.fcfa.alertDesc}
                 </p>
               </div>
             </div>
 
-            {/* Vendor responsibility */}
             <div ref={setRef('vendeur')} className="bg-white rounded-xl p-6" style={{ border: '1px solid #E5E7EB' }}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#EBF4FB' }}>
                   <i className="ri-store-2-line text-sm" style={{ color: '#125C8D' }}></i>
                 </div>
-                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>Responsabilité du Vendeur</h2>
+                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>{content.vendeur.title}</h2>
               </div>
               <p className="text-sm font-inter leading-relaxed mb-4" style={{ color: '#6B7280' }}>
-                La conformité est la responsabilité ultime du vendeur. Il doit télécharger une photo ou vidéo détaillée du produit prêt à l'expédition. En cas de non-conformité majeure, le vendeur supporte les frais d'envoi et de retour.
+                {content.vendeur.content}
               </p>
               <div className="grid grid-cols-2 gap-3">
-                {[
-                  { icon: 'ri-vidicon-line', label: 'Preuve d\'expédition obligatoire', desc: 'Photo ou vidéo du produit avant dépôt à la boutique' },
-                  { icon: 'ri-checkbox-circle-line', label: 'Conformité produit', desc: 'Le produit doit correspondre exactement à la description' },
-                  { icon: 'ri-money-dollar-circle-line', label: 'Frais de retour', desc: 'En cas de non-conformité majeure, à la charge du vendeur' },
-                  { icon: 'ri-shield-check-line', label: 'Vérification TrustLink', desc: 'Contrôle qualité au Hub Lagos avant expédition' },
-                ].map((item) => (
+                {content.vendeur.items.map((item) => (
                   <div key={item.label} className="flex items-start gap-2.5 p-3 rounded-lg" style={{ backgroundColor: '#F8FAFC' }}>
                     <i className={`${item.icon} text-sm mt-0.5 flex-shrink-0`} style={{ color: '#125C8D' }}></i>
                     <div>
@@ -213,24 +292,18 @@ export default function Returns() {
               </div>
             </div>
 
-            {/* Collecte de preuves */}
             <div ref={setRef('preuves')} className="bg-white rounded-xl p-6" style={{ border: '1px solid #E5E7EB' }}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#EBF4FB' }}>
                   <i className="ri-vidicon-line text-sm" style={{ color: '#125C8D' }}></i>
                 </div>
-                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>Collecte de Preuves — Fenêtre 48h</h2>
+                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>{content.preuves.title}</h2>
               </div>
               <p className="text-sm font-inter leading-relaxed mb-4" style={{ color: '#6B7280' }}>
-                Pour ouvrir un litige, le client doit soumettre une vidéo de déballage continue dans les 48 heures suivant la livraison. Les preuves soumises via WhatsApp ne sont pas recevables.
+                {content.preuves.content}
               </p>
               <div className="space-y-3">
-                {[
-                  { n: 1, label: 'Réception du colis', desc: 'Vous recevez votre commande et avez 48h pour agir' },
-                  { n: 2, label: 'Vidéo de déballage continue', desc: 'Filmer l\'ouverture du colis, sans coupure, du début à la fin' },
-                  { n: 3, label: 'Soumission via l\'app uniquement', desc: 'Télécharger la vidéo directement dans l\'application TrustLink. Les preuves WhatsApp ne sont pas acceptées.' },
-                  { n: 4, label: 'Ouverture du litige', desc: 'Notre équipe examine votre cas sous 48-72h ouvrables' },
-                ].map((step) => (
+                {content.preuves.steps.map((step) => (
                   <div key={step.n} className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: '#F8FAFC' }}>
                     <span className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: '#125C8D' }}>{step.n}</span>
                     <div>
@@ -242,21 +315,15 @@ export default function Returns() {
               </div>
             </div>
 
-            {/* Matrice de résolution */}
             <div ref={setRef('matrice')} className="bg-white rounded-xl p-6" style={{ border: '1px solid #E5E7EB' }}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#EBF4FB' }}>
                   <i className="ri-git-branch-line text-sm" style={{ color: '#125C8D' }}></i>
                 </div>
-                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>Matrice de Résolution des Litiges</h2>
+                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>{content.matrice.title}</h2>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                {[
-                  { icon: 'ri-shield-flash-line', case: 'Accident / Perte', badge: 'Assurance', badgeColor: '#16A34A', badgeBg: '#DCFCE7', result: 'Remboursement 100%', desc: 'Prix + frais de livraison en assurance' },
-                  { icon: 'ri-close-circle-line', case: 'Non-Conformité', badge: 'Grave', badgeColor: '#DC2626', badgeBg: '#FEE2E2', result: 'Remboursement 100%', desc: 'Prix + frais de livraison ou échange' },
-                  { icon: 'ri-hammer-line', case: 'Dommage Mineur', badge: 'Négociation', badgeColor: '#D97706', badgeBg: '#FEF3C7', result: 'Crédit partiel', desc: 'Pas de retrait réel — le client conserve le produit' },
-                  { icon: 'ri-user-star-line', case: 'Changement d\'Avis', badge: 'Forfait', badgeColor: '#6B7280', badgeBg: '#F1F5F9', result: 'Non remboursé', desc: 'Frais d\'état de rééchange — retour à la charge du client' },
-                ].map((item) => (
+                {content.matrice.cases.map((item) => (
                   <div key={item.case} className="p-4 rounded-xl" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E5E7EB' }}>
                     <div className="flex items-center gap-2 mb-2">
                       <i className={`${item.icon} text-sm`} style={{ color: '#125C8D' }}></i>
@@ -270,23 +337,18 @@ export default function Returns() {
               </div>
             </div>
 
-            {/* Traitement remboursements */}
             <div ref={setRef('traitement')} className="bg-white rounded-xl p-6" style={{ border: '1px solid #E5E7EB' }}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#EBF4FB' }}>
                   <i className="ri-refund-2-line text-sm" style={{ color: '#125C8D' }}></i>
                 </div>
-                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>Traitement des Remboursements</h2>
+                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>{content.traitement.title}</h2>
               </div>
               <p className="text-sm font-inter leading-relaxed mb-5" style={{ color: '#6B7280' }}>
-                Les preuves sont examinées dans un délai de 48 à 72 heures ouvrées. Le remboursement est émis directement sur le compte Mobile Money du profil de l'utilisateur.
+                {content.traitement.content}
               </p>
               <div className="grid grid-cols-3 gap-4">
-                {[
-                  { icon: 'ri-time-line', label: '48 – 72h ouvrées', desc: 'Délai d\'examen des preuves soumises' },
-                  { icon: 'ri-smartphone-line', label: 'Mobile Money', desc: 'Remboursement sur MTN MoMo, Moov ou Wave' },
-                  { icon: 'ri-user-line', label: 'Compte lié', desc: 'Versé sur le compte Mobile Money au profil utilisateur' },
-                ].map((item) => (
+                {content.traitement.items.map((item) => (
                   <div key={item.label} className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F8FAFC' }}>
                     <i className={`${item.icon} text-xl mb-2 block`} style={{ color: '#125C8D' }}></i>
                     <p className="text-xs font-poppins font-semibold mb-1" style={{ color: '#111827' }}>{item.label}</p>
@@ -296,24 +358,18 @@ export default function Returns() {
               </div>
             </div>
 
-            {/* Exclusions */}
             <div ref={setRef('exclusions')} className="bg-white rounded-xl p-6" style={{ border: '1px solid #E5E7EB' }}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#FFF1F2' }}>
                   <i className="ri-close-circle-line text-sm text-red-500"></i>
                 </div>
-                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>Exclusions</h2>
+                <h2 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>{content.exclusions.title}</h2>
               </div>
               <p className="text-sm font-inter leading-relaxed mb-4" style={{ color: '#6B7280' }}>
-                Les remboursements sont refusés dans les cas suivants. Les retours sont consolidés au hub TrustLink Cotonou puis réexpédiés au Nigéria.
+                {content.exclusions.content}
               </p>
               <div className="space-y-2 mb-5">
-                {[
-                  { n: 1, label: 'Vidéo de déballage manquante ou incomplète', color: '#FEF3C7', border: '#FCD34D', text: '#92400E' },
-                  { n: 2, label: 'Plainte de 48h dépassée après la livraison', color: '#FFF1F2', border: '#FECDD3', text: '#991B1B' },
-                  { n: 3, label: 'Dommage causé par une mauvaise utilisation du client', color: '#FFF1F2', border: '#FECDD3', text: '#991B1B' },
-                  { n: 4, label: 'Preuves soumises en dehors de l\'application (WhatsApp, email, SMS)', color: '#FFF1F2', border: '#FECDD3', text: '#991B1B' },
-                ].map((item) => (
+                {content.exclusions.items.map((item) => (
                   <div key={item.n} className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: item.color, border: `1px solid ${item.border}` }}>
                     <span className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: item.text }}>{item.n}</span>
                     <p className="text-sm font-inter" style={{ color: item.text }}>{item.label}</p>
@@ -323,23 +379,22 @@ export default function Returns() {
               <div className="p-3 rounded-lg" style={{ backgroundColor: '#EBF4FB', border: '1px solid #BFDBFE' }}>
                 <p className="text-xs font-inter" style={{ color: '#1E40AF' }}>
                   <i className="ri-information-line mr-1"></i>
-                  <strong>Hub TrustLink Cotonou</strong> : Tous les retours sont d'abord consolidés dans notre entrepôt à Cotonou avant d'être réexpédiés groupés vers le Nigéria.
+                  {content.exclusions.hubNote}
                 </p>
               </div>
             </div>
 
-            {/* CTA */}
             <div className="rounded-xl p-8 text-center" style={{ backgroundColor: '#0E3A4F' }}>
               <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
                 <i className="ri-customer-service-2-line text-xl text-white"></i>
               </div>
-              <h3 className="text-lg font-poppins font-semibold text-white mb-2">Une question sur cette politique ?</h3>
-              <p className="text-sm font-inter text-white/70 mb-5">Notre équipe support est disponible 7j/7. Utilisez le chat à droite de l'écran.</p>
+              <h3 className="text-lg font-poppins font-semibold text-white mb-2">{content.ctaTitle}</h3>
+              <p className="text-sm font-inter text-white/70 mb-5">{content.ctaDesc}</p>
               <Link to="/support"
                 className="inline-flex items-center gap-2 px-6 py-2.5 text-white font-poppins font-semibold rounded-lg transition-opacity hover:opacity-90 text-sm"
                 style={{ backgroundColor: '#FF6A00' }}>
                 <i className="ri-chat-3-line"></i>
-                Contacter le support
+                {content.ctaButton}
               </Link>
             </div>
           </div>

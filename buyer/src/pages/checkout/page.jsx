@@ -6,15 +6,18 @@ import { createOrder, updateOrdersAfterPayment } from '@/lib/supabase/orders';
 import { openKkiapayPayment } from '@/lib/kkiapay';
 import { useCurrencyContext } from '@/lib/CurrencyContext';
 import { supabase } from '@/lib/supabaseClient';
+import { useI18n } from '@/lib/I18nContext';
 
-const STEPS = ['Adresse', 'Paiement', 'Confirmation'];
 const GUEST_KEY = 'trustlink_guest_info';
 
 export default function Checkout() {
+  const { t, locale } = useI18n();
   const { items, totalPrice, clearCart } = useCart();
   const { formatPrice } = useCurrencyContext();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+
+  const STEPS = [t('checkout.stepAddress'), t('checkout.stepPayment'), t('checkout.stepConfirm')];
 
   const [step, setStep] = useState(1);
   const [guestMode, setGuestMode] = useState(false);
@@ -97,13 +100,13 @@ export default function Checkout() {
       .eq('active', true)
       .maybeSingle();
     if (error || !data) {
-      setCouponError('Code promo invalide');
+      setCouponError(t('checkout.invalidCoupon'));
     } else if (data.expires_at && new Date(data.expires_at) < new Date()) {
-      setCouponError('Ce code promo a expiré');
+      setCouponError(t('checkout.couponExpired'));
     } else if (data.max_uses && data.used_count >= data.max_uses) {
-      setCouponError('Ce code promo a atteint sa limite d\'utilisations');
+      setCouponError(t('checkout.couponMaxUses'));
     } else if (data.min_order_amount && totalPrice < data.min_order_amount) {
-      setCouponError(`Montant minimum de commande : ${formatPrice(data.min_order_amount)}`);
+      setCouponError(t('checkout.couponMinAmount').replace('{amount}', formatPrice(data.min_order_amount)));
     } else {
       setCouponData(data);
     }
@@ -122,11 +125,16 @@ export default function Checkout() {
   };
 
   const handleConfirm = async () => {
+    if (!user) {
+      setSubmitError(t('checkout.loginRequiredSubmit'));
+      setSubmitting(false);
+      return;
+    }
     setSubmitting(true);
     setSubmitError(null);
     try {
       const groupId = await createOrder({
-        buyerId: user?.id || null,
+        buyerId: user.id,
         items,
         address,
         paymentMethod: payMethod,
@@ -161,7 +169,7 @@ export default function Checkout() {
             orderId: groupId,
           });
           if (result.cancelled) {
-            setSubmitError('Paiement annulé. Vous pouvez réessayer ou choisir une autre méthode.');
+            setSubmitError(t('checkout.paymentCancelled'));
             setSubmitting(false);
             return;
           }
@@ -174,7 +182,7 @@ export default function Checkout() {
             newOrderData.kkiapayData = result.data;
           }
         } catch (err) {
-          setSubmitError(`Erreur de paiement : ${err.message}. La commande a été créée, contactez le support.`);
+          setSubmitError(t('checkout.paymentError').replace('{message}', err.message));
           setSubmitting(false);
           return;
         }
@@ -192,7 +200,7 @@ export default function Checkout() {
       setOrderData(newOrderData);
       setStep(3);
     } catch {
-      setSubmitError('Une erreur est survenue. Veuillez réessayer.');
+      setSubmitError(t('checkout.genericError'));
     } finally {
       setSubmitting(false);
     }
@@ -212,33 +220,33 @@ export default function Checkout() {
     <div className="pt-24 pb-12">
       <div className="max-w-[768px] mx-auto px-4 md:px-6">
         <h1 className="text-2xl font-poppins font-bold mb-6 text-center" style={{ color: '#111827' }}>
-          Finaliser ma commande
+          {t('checkout.title')}
         </h1>
 
         {!user && !guestMode && (
           <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
-            <p className="text-sm font-poppins font-medium mb-2" style={{ color: '#111827' }}>Vous avez déjà un compte ?</p>
+            <p className="text-sm font-poppins font-medium mb-2" style={{ color: '#111827' }}>{t('checkout.alreadyHaveAccount')}</p>
             <div className="flex gap-2">
-              <Link to="/login" className="px-4 py-2 text-xs font-poppins font-semibold rounded-lg border border-[#125C8D] text-[#125C8D]">Se connecter</Link>
-              <span className="text-xs font-inter self-center text-gray-400">ou</span>
+              <Link to="/login" className="px-4 py-2 text-xs font-poppins font-semibold rounded-lg border border-[#125C8D] text-[#125C8D]">{t('auth.login')}</Link>
+              <span className="text-xs font-inter self-center text-gray-400">{t('checkout.or')}</span>
               <button onClick={() => setGuestMode(true)}
                 className="px-4 py-2 text-xs font-poppins font-semibold rounded-lg text-white cursor-pointer"
-                style={{ backgroundColor: '#FF6A00' }}>Continuer en tant qu'invité</button>
+                style={{ backgroundColor: '#FF6A00' }}>{t('checkout.guestCheckout')}</button>
             </div>
           </div>
         )}
 
         {!user && guestMode && (
           <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
-            <h3 className="text-sm font-poppins font-semibold mb-3" style={{ color: '#111827' }}>Informations invité</h3>
+            <h3 className="text-sm font-poppins font-semibold mb-3" style={{ color: '#111827' }}>{t('checkout.guestInfo')}</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-poppins font-medium mb-1" style={{ color: '#111827' }}>Nom complet</label>
+                <label className="block text-xs font-poppins font-medium mb-1" style={{ color: '#111827' }}>{t('checkout.fullName')}</label>
                 <input required value={guestInfo.name || ''} onChange={(e) => setGuestInfo(i => ({ ...i, name: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-inter outline-none focus:border-[#125C8D]" placeholder="Kouassi Mensah" />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-inter outline-none focus:border-[#125C8D]" placeholder={t('checkout.fullName')} />
               </div>
               <div>
-                <label className="block text-xs font-poppins font-medium mb-1" style={{ color: '#111827' }}>Email</label>
+                <label className="block text-xs font-poppins font-medium mb-1" style={{ color: '#111827' }}>{t('checkout.email')}</label>
                 <input required type="email" value={guestInfo.email || ''} onChange={(e) => setGuestInfo(i => ({ ...i, email: e.target.value }))}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-inter outline-none focus:border-[#125C8D]" placeholder="kouassi@email.com" />
               </div>
@@ -272,39 +280,39 @@ export default function Checkout() {
         {/* Step 1 — Adresse */}
         {step === 1 && (
           <form onSubmit={handleStep1} className="bg-white border border-gray-100 rounded-xl p-6">
-            <h2 className="text-base font-poppins font-semibold mb-5" style={{ color: '#111827' }}>Adresse de livraison</h2>
+            <h2 className="text-base font-poppins font-semibold mb-5" style={{ color: '#111827' }}>{t('checkout.address')}</h2>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-xs font-poppins font-medium mb-1.5" style={{ color: '#111827' }}>Prénom</label>
+                <label className="block text-xs font-poppins font-medium mb-1.5" style={{ color: '#111827' }}>{t('checkout.firstName')}</label>
                 <input required value={address.firstName} onChange={(e) => setAddress({ ...address, firstName: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-inter outline-none focus:border-[#125C8D]" placeholder="Kouassi" />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-inter outline-none focus:border-[#125C8D]" placeholder={t('checkout.firstName')} />
               </div>
               <div>
-                <label className="block text-xs font-poppins font-medium mb-1.5" style={{ color: '#111827' }}>Nom</label>
+                <label className="block text-xs font-poppins font-medium mb-1.5" style={{ color: '#111827' }}>{t('checkout.lastName')}</label>
                 <input required value={address.lastName} onChange={(e) => setAddress({ ...address, lastName: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-inter outline-none focus:border-[#125C8D]" placeholder="Mensah" />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-inter outline-none focus:border-[#125C8D]" placeholder={t('checkout.lastName')} />
               </div>
             </div>
             <div className="mb-4">
-              <label className="block text-xs font-poppins font-medium mb-1.5" style={{ color: '#111827' }}>Ville</label>
+              <label className="block text-xs font-poppins font-medium mb-1.5" style={{ color: '#111827' }}>{t('checkout.city')}</label>
               <select required value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-inter outline-none focus:border-[#125C8D]">
-                <option value="">Sélectionner une ville</option>
+                <option value="">{t('checkout.selectCity')}</option>
                 {cities.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="mb-4">
-              <label className="block text-xs font-poppins font-medium mb-1.5" style={{ color: '#111827' }}>Quartier</label>
+              <label className="block text-xs font-poppins font-medium mb-1.5" style={{ color: '#111827' }}>{t('checkout.district')}</label>
               <input required value={address.district} onChange={(e) => setAddress({ ...address, district: e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-inter outline-none focus:border-[#125C8D]" placeholder="Cadjehoun" />
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-inter outline-none focus:border-[#125C8D]" placeholder={t('checkout.district')} />
             </div>
             <div className="mb-6">
-              <label className="block text-xs font-poppins font-medium mb-1.5" style={{ color: '#111827' }}>Téléphone</label>
+              <label className="block text-xs font-poppins font-medium mb-1.5" style={{ color: '#111827' }}>{t('checkout.phone')}</label>
               <input required value={address.phone} onChange={(e) => setAddress({ ...address, phone: e.target.value })}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-inter outline-none focus:border-[#125C8D]" placeholder="+229 97 12 34 56" />
             </div>
             <button type="submit" className="w-full py-3 text-white font-poppins font-bold rounded-full transition-opacity hover:opacity-90" style={{ backgroundColor: '#FF6A00' }}>
-              Continuer vers le paiement →
+              {t('checkout.continueToPayment')}
             </button>
           </form>
         )}
@@ -312,7 +320,7 @@ export default function Checkout() {
         {/* Step 2 — Paiement */}
         {step === 2 && (
           <div className="bg-white border border-gray-100 rounded-xl p-6">
-            <h2 className="text-base font-poppins font-semibold mb-4" style={{ color: '#111827' }}>Récapitulatif de commande</h2>
+            <h2 className="text-base font-poppins font-semibold mb-4" style={{ color: '#111827' }}>{t('checkout.orderSummary')}</h2>
             <div className="space-y-2 mb-4">
               {items.map((item) => (
                 <div key={item.productId} className="flex justify-between text-sm font-inter">
@@ -322,17 +330,17 @@ export default function Checkout() {
               ))}
               <hr className="border-gray-100" />
               <div className="flex justify-between text-sm font-inter">
-                <span style={{ color: '#6B7280' }}>Sous-total</span>
+                <span style={{ color: '#6B7280' }}>{t('checkout.subtotal')}</span>
                 <span style={{ color: '#111827' }}>{formatPrice(totalPrice)}</span>
               </div>
               {config.spread_pct > 0 && (
                 <div className="flex justify-between text-sm font-inter">
-                  <span style={{ color: '#6B7280' }}>Commission TrustLink ({config.spread_pct}%)</span>
+                  <span style={{ color: '#6B7280' }}>{t('checkout.commission').replace('{pct}', config.spread_pct)}</span>
                   <span style={{ color: '#125C8D' }}>{formatPrice(commissionAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm font-inter">
-                <span style={{ color: '#6B7280' }}>Livraison</span>
+                <span style={{ color: '#6B7280' }}>{t('checkout.delivery')}</span>
                 <span style={{ color: '#111827' }}>{formatPrice(config.delivery_fee)}</span>
               </div>
               {/* Coupon */}
@@ -341,12 +349,12 @@ export default function Checkout() {
                   <div className="flex gap-2 items-center">
                     <input value={couponCode} onChange={e => setCouponCode(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), applyCoupon())}
-                      placeholder="Code promo"
+                      placeholder={t('checkout.couponCode')}
                       className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm font-inter outline-none focus:border-[#125C8D]" />
                     <button onClick={applyCoupon} disabled={couponLoading || !couponCode.trim()}
                       className="px-4 py-2 text-xs font-poppins font-semibold rounded-lg text-white disabled:opacity-50 cursor-pointer"
                       style={{ backgroundColor: '#125C8D' }}>
-                      {couponLoading ? '...' : 'Appliquer'}
+                      {couponLoading ? '...' : t('checkout.apply')}
                     </button>
                   </div>
                 ) : (
@@ -357,13 +365,13 @@ export default function Checkout() {
                         {couponData.code} : -{couponData.discount_type === 'percentage' ? `${couponData.discount_value}%` : formatPrice(couponData.discount_value)}
                       </span>
                     </div>
-                    <button onClick={removeCoupon} className="text-xs text-red-500 cursor-pointer hover:underline">Retirer</button>
+                    <button onClick={removeCoupon} className="text-xs text-red-500 cursor-pointer hover:underline">{t('checkout.remove')}</button>
                   </div>
                 )}
                 {couponError && <p className="text-xs text-red-500 mt-1">{couponError}</p>}
                 {couponDiscount > 0 && (
                   <div className="flex justify-between text-sm font-inter mt-1">
-                    <span style={{ color: '#16A34A' }}>Réduction</span>
+                    <span style={{ color: '#16A34A' }}>{t('checkout.discount')}</span>
                     <span style={{ color: '#16A34A' }}>-{formatPrice(couponDiscount)}</span>
                   </div>
                 )}
@@ -377,19 +385,19 @@ export default function Checkout() {
             {/* Escrow info */}
             <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#E1F0F9' }}>
               <p className="text-xs font-poppins font-semibold mb-2" style={{ color: '#125C8D' }}>
-                <i className="ri-shield-check-line mr-1"></i>Comment fonctionne l&apos;Escrow
+                <i className="ri-shield-check-line mr-1"></i>{t('checkout.howEscrowWorks')}
               </p>
               <div className="grid grid-cols-4 gap-2">
-                {['1. Vous payez', '2. TrustLink sécurise', '3. Vendeur livre', '4. Vous validez'].map((s) => (
+                {[t('checkout.escrowStep1'), t('checkout.escrowStep2'), t('checkout.escrowStep3'), t('checkout.escrowStep4')].map((s) => (
                   <p key={s} className="text-xs font-poppins font-medium text-center" style={{ color: '#125C8D' }}>{s}</p>
                 ))}
               </div>
             </div>
-            <h3 className="text-sm font-poppins font-semibold mb-3" style={{ color: '#111827' }}>Méthode de paiement</h3>
+            <h3 className="text-sm font-poppins font-semibold mb-3" style={{ color: '#111827' }}>{t('checkout.paymentMethod')}</h3>
             <p className="text-xs font-inter mb-3" style={{ color: '#6B7280' }}>
-              Les méthodes en ligne sont traitées via notre plateforme sécurisée.<br />
-              Les méthodes hors ligne sont traitées par nos administrateurs.
-              Vos fonds seront bloqués sur Escrow jusqu'à confirmation de réception.
+              {t('checkout.paymentInfo').split('\n').map((line, i) => (
+                <span key={i}>{line}{i < t('checkout.paymentInfo').split('\n').length - 1 && <br />}</span>
+              ))}
             </p>
             <div className="space-y-3 mb-6">
               {paymentMethods.map((m) => (
@@ -409,12 +417,12 @@ export default function Checkout() {
             )}
             <div className="flex gap-3">
               <button onClick={() => setStep(1)} className="flex-1 py-3 text-sm font-poppins font-semibold rounded-full border border-gray-200 hover:bg-gray-50 cursor-pointer" style={{ color: '#111827' }}>
-                ← Retour
+                {t('checkout.back')}
               </button>
               <button onClick={handleConfirm} disabled={submitting}
                 className="flex-1 py-3 text-white font-poppins font-bold rounded-full transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer"
                 style={{ backgroundColor: '#FF6A00' }}>
-                {submitting ? 'Traitement...' : 'Confirmer et payer'}
+                {submitting ? t('checkout.processing') : t('checkout.confirmAndPay')}
               </button>
             </div>
           </div>
@@ -424,78 +432,78 @@ export default function Checkout() {
         {step === 3 && orderData && (
           <div className="bg-white border border-gray-100 rounded-xl p-8 text-center">
             <i className="ri-checkbox-circle-fill text-6xl mb-4 block" style={{ color: '#16A34A' }}></i>
-            <h2 className="text-2xl font-poppins font-bold mb-2" style={{ color: '#111827' }}>Commande confirmée !</h2>
+            <h2 className="text-2xl font-poppins font-bold mb-2" style={{ color: '#111827' }}>{t('checkout.orderConfirmed')}</h2>
             <p className="text-sm font-inter mb-6" style={{ color: '#6B7280' }}>
-              Merci pour votre achat. Vos fonds sont sécurisés par Escrow.
+              {t('checkout.thankYou')}
               {orderData.sellerCount > 1 && (
                 <span className="block mt-2 font-medium" style={{ color: '#125C8D' }}>
-                  Votre commande a été divisée en {orderData.sellerCount} commandes (un par vendeur) pour faciliter la livraison.
+                  {t('checkout.orderSplit').replace('{count}', orderData.sellerCount)}
                 </span>
               )}
               {!paymentMethods.find(m => m.code === payMethod)?.is_online && (
                 <span className="block mt-2 font-medium" style={{ color: '#B45309' }}>
                   <i className="ri-information-line mr-1"></i>
-                  Paiement hors ligne sélectionné. Les administrateurs vous contacteront pour finaliser le paiement.
+                  {t('checkout.offlinePaymentNotice')}
                 </span>
               )}
             </p>
             <div className="rounded-xl p-4 mb-6 text-left space-y-2" style={{ backgroundColor: '#E1F0F9' }}>
               <p className="text-sm font-poppins">
-                <span className="font-medium" style={{ color: '#6B7280' }}>N° de groupe : </span>
+                <span className="font-medium" style={{ color: '#6B7280' }}>{t('checkout.groupNumber')} : </span>
                 <span className="font-bold" style={{ color: '#125C8D' }}>{orderData.groupId?.substring(0, 8).toUpperCase()}</span>
               </p>
               <p className="text-sm font-poppins">
-                <span className="font-medium" style={{ color: '#6B7280' }}>N° suivi : </span>
+                <span className="font-medium" style={{ color: '#6B7280' }}>{t('checkout.trackingNumber')} : </span>
                 <span className="font-bold" style={{ color: '#125C8D' }}>{orderData.trackingNumber}</span>
               </p>
               <p className="text-sm font-poppins">
-                <span className="font-medium" style={{ color: '#6B7280' }}>Sous-total : </span>
+                <span className="font-medium" style={{ color: '#6B7280' }}>{t('checkout.subtotal')} : </span>
                 <span className="font-bold" style={{ color: '#125C8D' }}>{formatPrice(totalPrice)}</span>
               </p>
               {orderData.commissionAmount > 0 && (
                 <p className="text-sm font-poppins">
-                  <span className="font-medium" style={{ color: '#6B7280' }}>Commission ({orderData.spreadPct}%) : </span>
+                  <span className="font-medium" style={{ color: '#6B7280' }}>{t('checkout.commission').replace('{pct}', orderData.spreadPct)} : </span>
                   <span className="font-bold" style={{ color: '#125C8D' }}>{formatPrice(orderData.commissionAmount)}</span>
                 </p>
               )}
               <p className="text-sm font-poppins">
-                <span className="font-medium" style={{ color: '#6B7280' }}>Livraison : </span>
+                <span className="font-medium" style={{ color: '#6B7280' }}>{t('checkout.delivery')} : </span>
                 <span className="font-bold" style={{ color: '#125C8D' }}>{formatPrice(orderData.deliveryFee)}</span>
               </p>
               {orderData.couponDiscount > 0 && (
                 <p className="text-sm font-poppins">
-                  <span className="font-medium" style={{ color: '#6B7280' }}>Code promo ({orderData.couponCode}) : </span>
+                  <span className="font-medium" style={{ color: '#6B7280' }}>{t('checkout.couponCode')} ({orderData.couponCode}) : </span>
                   <span className="font-bold" style={{ color: '#16A34A' }}>-{formatPrice(orderData.couponDiscount)}</span>
                 </p>
               )}
               <p className="text-sm font-poppins">
-                <span className="font-medium" style={{ color: '#6B7280' }}>Total : </span>
+                <span className="font-medium" style={{ color: '#6B7280' }}>{t('checkout.total')} : </span>
                 <span className="font-bold" style={{ color: '#125C8D' }}>{formatPrice(orderData.totalAmount)}</span>
               </p>
               {orderData.paymentReference && (
                 <p className="text-sm font-poppins">
-                  <span className="font-medium" style={{ color: '#6B7280' }}>Réf. paiement : </span>
+                  <span className="font-medium" style={{ color: '#6B7280' }}>{t('checkout.reference')} : </span>
                   <span className="font-bold" style={{ color: '#16A34A' }}>{orderData.paymentReference}</span>
                 </p>
               )}
               <p className="text-sm font-poppins">
-                <span className="font-medium" style={{ color: '#6B7280' }}>Méthode : </span>
+                <span className="font-medium" style={{ color: '#6B7280' }}>{t('checkout.method')} : </span>
                 <span className="font-semibold" style={{ color: '#111827' }}>
                   {paymentMethods.find(m => m.code === payMethod)?.is_online
-                    ? `${paymentMethods.find(m => m.code === payMethod)?.label} (en ligne)`
+                    ? `${paymentMethods.find(m => m.code === payMethod)?.label} (${t('checkout.online')})`
                     : paymentMethods.find(m => m.code === payMethod)?.label || payMethod}
                 </span>
               </p>
               <p className="text-sm font-inter" style={{ color: '#6B7280' }}>
-                Délai estimé : <span className="font-medium" style={{ color: '#111827' }}>2 à 7 jours ouvrables</span>
+                {t('checkout.estimatedDelivery')} : <span className="font-medium" style={{ color: '#111827' }}>{t('checkout.estimatedDeliveryValue')}</span>
               </p>
             </div>
             <div className="flex gap-3">
               <Link to="/account" className="flex-1 py-3 text-center text-sm font-poppins font-semibold rounded-full border border-gray-200 hover:bg-gray-50" style={{ color: '#111827' }}>
-                Voir mes commandes
+                {t('checkout.viewOrders')}
               </Link>
               <Link to="/" className="flex-1 py-3 text-center text-white font-poppins font-bold rounded-full hover:opacity-90" style={{ backgroundColor: '#FF6A00' }}>
-                Continuer mes achats
+                {t('checkout.continueShopping')}
               </Link>
             </div>
           </div>

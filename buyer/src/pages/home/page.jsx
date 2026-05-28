@@ -6,7 +6,9 @@ import CategoryBar from './components/CategoryBar';
 import TrustBanner from './components/TrustBanner';
 import ProductGrid from './components/ProductGrid';
 import RecentlyViewed from './components/RecentlyViewed';
+import { useI18n } from '@/lib/I18nContext';
 export default function Home() {
+  const { t } = useI18n();
   const [searchParams] = useSearchParams();
   const [sort, setSort] = useState('popular');
   const search = searchParams.get('search') || '';
@@ -21,10 +23,10 @@ export default function Home() {
   const showHero = !search;
 
   const gridTitle = search
-    ? `Résultats pour "${search}"`
+    ? t('home.resultsFor').replace('{query}', search)
     : category
-    ? `Catégorie : ${category.charAt(0).toUpperCase() + category.slice(1)}`
-    : 'Tous les produits';
+    ? t('home.category').replace('{name}', category.charAt(0).toUpperCase() + category.slice(1))
+    : t('home.allProducts');
   return (
     <div className="pt-20 md:pt-20">
       {showHero && <HeroBanner />}
