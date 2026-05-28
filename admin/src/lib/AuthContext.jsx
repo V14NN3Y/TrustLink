@@ -8,7 +8,6 @@ export const AuthProvider = ({ children }) => {
   const [profile, setProfile] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [appPublicSettings] = useState({ id: 'trustlink-admin', public_settings: {} });
@@ -93,7 +92,11 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
   const logout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('[Auth] logout error:', err);
+    }
     setUser(null);
     setProfile(null);
     setIsAuthenticated(false);
@@ -123,7 +126,6 @@ export const AuthProvider = ({ children }) => {
       profile,
       isAuthenticated,
       isLoadingAuth,
-      isLoadingPublicSettings,
       authError,
       appPublicSettings,
       authChecked,
