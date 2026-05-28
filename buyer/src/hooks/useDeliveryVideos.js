@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { supabase } from '@/lib/supabaseClient';
 import { createDeliveryVideoRecord, getSignedVideoUrl } from '@/lib/supabase/deliveryVideos';
 export function useDeliveryVideos() {
     const { user } = useAuth();
@@ -18,11 +17,6 @@ export function useDeliveryVideos() {
                     videoUrl: videoFilePath,
                     durationSeconds: 0,
                 });
-                const { error } = await supabase
-                    .from('orders')
-                    .update({ status: 'confirmed', updated_at: new Date().toISOString() })
-                    .eq('id', orderId);
-                if (error) throw error;
                 return { videoId };
             } catch (err) {
                 setError(err.message);

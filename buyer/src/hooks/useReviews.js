@@ -57,7 +57,7 @@ export const useReviews = (productId) => {
       });
       await fetchAll(); // Refresh
     } catch (err) {
-      throw err;
+      setError(err.message);
     } finally {
       setSubmitting(false);
     }

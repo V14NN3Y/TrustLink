@@ -20,6 +20,10 @@ export function useCurrency() {
           setRate(data.rate);
           localStorage.setItem(RATE_KEY, data.rate.toString());
         }
+      })
+      .catch(() => {
+        const cached = localStorage.getItem(RATE_KEY);
+        if (cached) setRate(parseFloat(cached));
       });
   }, []);
 
@@ -36,10 +40,11 @@ export function useCurrency() {
   }, []);
 
   const formatPrice = useCallback((amountXOF) => {
+    const amount = Number(amountXOF) || 0;
     if (currency === 'NGN' && rate) {
-      return `₦${Math.round(amountXOF / rate).toLocaleString()}`;
+      return `₦${Math.round(amount / rate).toLocaleString()}`;
     }
-    return `${Number(amountXOF).toLocaleString()} FCFA`;
+    return `${amount.toLocaleString()} FCFA`;
   }, [currency, rate]);
 
   return { currency, setCurrency, rate, formatPrice };
