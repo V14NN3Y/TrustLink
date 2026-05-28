@@ -35,9 +35,9 @@ import AnnouncementsPage from '@/pages/announcements/page';
 import ActivityCalendarPage from '@/pages/activity-calendar/page';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, isAuthenticated, authError } = useAuth();
+  const { isLoadingAuth, isAuthenticated, authError } = useAuth();
 
-  if (isLoadingPublicSettings || isLoadingAuth) {
+  if (isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[#0A0F1D]">
         <div className="w-12 h-12 border-4 border-[#00C2FF]/20 border-t-[#00C2FF] rounded-full animate-spin"></div>
@@ -88,8 +88,8 @@ const AuthenticatedApp = () => {
             <Route path="/finance" element={<FinancePage />} />
             <Route path="/logistics" element={<LogisticsPage />} />
             <Route path="/moderation" element={<ModerationPage />} />
-            <Route path="/users" element={<UsersPage />} />        {/* ← AJOUTE */}
-            <Route path="/products" element={<ProductsPage />} />   {/* ← AJOUTE */}
+            <Route path="/users" element={<UsersPage />} />
+            <Route path="/products" element={<ProductsPage />} />
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/admin-logs" element={<AdminLogsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
