@@ -13,8 +13,20 @@ module.exports = {
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
   		},
-  		colors: {
-  			background: 'hsl(var(--background))',
+   		colors: {
+        trustblue: {
+          DEFAULT: '#125C8D',
+          50: '#E8F2FA', 100: '#C5DCF0', 200: '#8BBDE0',
+          300: '#519ED1', 400: '#2B7DB8', 500: '#125C8D',
+          600: '#0E4A72', 700: '#0A3857', 800: '#07263C', 900: '#031421',
+        },
+        trustorange: {
+          DEFAULT: '#FF6A00',
+          50: '#FFF0E5', 100: '#FFD6B3', 200: '#FFAD66',
+          300: '#FF8533', 400: '#FF6A00', 500: '#CC5500',
+          600: '#994000', 700: '#662B00',
+        },
+   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
   				DEFAULT: 'hsl(var(--card))',
