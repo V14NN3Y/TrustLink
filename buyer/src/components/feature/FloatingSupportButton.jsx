@@ -1,33 +1,37 @@
-import { useState, useEffect, useRef } from 'react';
-
-const INITIAL_MESSAGES = [
-  { role: 'bot', text: 'Bonjour ! 👋 Bienvenue sur le support TrustLink. Je suis là pour vous aider avec vos commandes, paiements Escrow ou toute autre question.', time: '07:53' },
-];
-
-const QUICK_REPLIES = ['Où est ma commande ?', 'Problème avec un produit'];
-
-const getAutoReply = (msg) => {
-  const m = msg.toLowerCase();
-  if (m.includes('commande') || m.includes('suivi')) return 'Pour suivre votre commande, rendez-vous dans Mon Compte → Mes Commandes. La livraison prend 2 à 7 jours ouvrables.';
-  if (m.includes('remboursement') || m.includes('retour') || m.includes('escrow')) return 'Notre système Escrow sécurise votre argent. Vous avez 48h après livraison pour ouvrir un litige.';
-  return 'Je vais vous mettre en contact avec notre équipe. En attendant, consultez notre Centre d\'aide.';
-};
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useI18n } from '@/lib/I18nContext';
 
 export default function FloatingSupportButton() {
+  const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState(INITIAL_MESSAGES);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const bottomRef = useRef(null);
 
   useEffect(() => {
+    if (messages.length === 0) {
+      setMessages([{ role: 'bot', text: t('supportChat.greeting'), time: new Date().toLocaleTimeString(locale === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' }) }]);
+    }
+  }, [t, locale, messages.length]);
+
+  useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, typing, open]);
+
+  const quickReplies = [t('supportChat.quickOrder'), t('supportChat.quickProduct')];
+
+  const getAutoReply = useMemo(() => (msg) => {
+    const m = msg.toLowerCase();
+    if (m.includes(t('supportChat.quickOrder').slice(0, 5).toLowerCase()) || m.includes('suivi')) return t('supportChat.autoOrder');
+    if (m.includes('remboursement') || m.includes('retour') || m.includes('escrow')) return t('supportChat.autoRefund');
+    return t('supportChat.autoDefault');
+  }, [t, locale]);
 
   const sendMessage = (text) => {
     const msg = text || input.trim();
     if (!msg) return;
-    const time = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const time = new Date().toLocaleTimeString(locale === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
     setMessages((prev) => [...prev, { role: 'user', text: msg, time }]);
     setInput('');
     setTyping(true);
@@ -48,10 +52,10 @@ export default function FloatingSupportButton() {
                 <i className="ri-shield-check-line text-base"></i>
               </div>
               <div>
-                <p className="text-white text-sm font-poppins font-semibold">Support TrustLink</p>
+                <p className="text-white text-sm font-poppins font-semibold">{t('supportChat.title')}</p>
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
-                  <span className="text-xs text-white/70">En ligne · Répond en &lt; 5 min</span>
+                  <span className="text-xs text-white/70">{t('supportChat.online')}</span>
                 </div>
               </div>
             </div>
@@ -63,7 +67,7 @@ export default function FloatingSupportButton() {
           {/* Security notice */}
           <div className="flex items-start gap-2 px-3 py-2.5" style={{ backgroundColor: '#FFFBEB', borderBottom: '1px solid #FEF3C7' }}>
             <i className="ri-shield-check-line text-xs mt-0.5 flex-shrink-0" style={{ color: '#D97706' }}></i>
-            <p className="text-xs font-inter" style={{ color: '#92400E' }}>Ne partagez jamais vos codes MoMo ou mots de passe. TrustLink ne vous les demandera jamais.</p>
+            <p className="text-xs font-inter" style={{ color: '#92400E' }}>{t('supportChat.securityNotice')}</p>
           </div>
 
           {/* Messages */}
@@ -109,7 +113,7 @@ export default function FloatingSupportButton() {
           {/* Quick replies */}
           {messages.length <= 2 && (
             <div className="px-3 py-2 border-t border-gray-100 flex flex-wrap gap-1.5 bg-white">
-              {QUICK_REPLIES.map((r) => (
+              {quickReplies.map((r) => (
                 <button key={r} onClick={() => sendMessage(r)}
                   className="text-xs font-inter px-2.5 py-1 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors" style={{ color: '#374151' }}>
                   {r}
@@ -122,7 +126,7 @@ export default function FloatingSupportButton() {
           <div className="flex gap-2 p-3 border-t border-gray-100 bg-white">
             <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') sendMessage(); }}
-              placeholder="Écrivez votre message..."
+              placeholder={t('supportChat.placeholder')}
               className="flex-1 text-xs font-inter border border-gray-200 rounded-full px-3 py-2 outline-none" />
             <button onClick={() => sendMessage()}
               className="w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0"
