@@ -39,12 +39,13 @@ export default function GlobalSearch({ open: externalOpen, onOpenChange }) {
     const promises = SEARCHABLES.map(s =>
       supabase.from(s.table).select('id, ' + s.searchField).ilike(s.searchField, `%${query}%`).limit(5)
         .then(({ data }) => (data || []).map(d => ({ ...s, id: d.id, display: d[s.displayField] })))
+        .catch(() => [])
     );
     Promise.all(promises).then(all => {
       setResults(all.flat());
       setSelectedIdx(0);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [query]);
 
   const handleSelect = (item) => {

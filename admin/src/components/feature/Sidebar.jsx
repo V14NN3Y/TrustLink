@@ -90,7 +90,7 @@ export default function Sidebar({ isOpen, onToggle }) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-slate-800 text-sm truncate" style={{ fontFamily: 'Inter, sans-serif' }}>{profile?.full_name || 'Admin Principal'}</p>
-            <p className="text-xs text-slate-500 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>{profile?.email || 'admin@trustlink.bj'}</p>
+            <p className="text-xs text-slate-500 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>{profile?.email || ''}</p>
           </div>
           <i className="ri-arrow-right-s-line text-slate-400" />
         </div>

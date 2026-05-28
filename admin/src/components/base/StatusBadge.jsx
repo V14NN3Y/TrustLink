@@ -23,7 +23,7 @@ const STATUS_CONFIG = {
 };
 
 export default function StatusBadge({ status, size = 'sm' }) {
-  const cfg = STATUS_CONFIG[status] || { label: status, classes: 'bg-slate-50 text-slate-600 border border-slate-200', icon: 'ri-question-line' };
+  const cfg = STATUS_CONFIG[status?.toLowerCase?.() || status] || { label: status, classes: 'bg-slate-50 text-slate-600 border border-slate-200', icon: 'ri-question-line' };
   const sizeClass = size === 'md' ? 'px-3 py-1.5 text-xs' : 'px-2.5 py-1 text-xs';
   return (
     <span className={`inline-flex items-center gap-1.5 ${sizeClass} font-semibold rounded-full ${cfg.classes}`} style={{ fontFamily: 'Inter, sans-serif' }}>
