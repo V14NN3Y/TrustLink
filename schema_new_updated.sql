@@ -669,16 +669,6 @@ create policy "Buyers can view their own orders"
   on orders for select using (buyer_id = auth.uid());
 create policy "Buyers can create orders"
   on orders for insert with check (buyer_id = auth.uid());
-create policy "Buyers can confirm or dispute their own delivered orders"
-  on orders for update
-  using (
-    buyer_id = auth.uid()
-    AND status IN ('delivered', 'in_transit')
-  )
-  with check (
-    buyer_id = auth.uid()
-    AND status IN ('confirmed', 'disputed')
-  );
 create policy "Admins can manage all orders"
   on orders for all using (is_admin(auth.uid()));
 
