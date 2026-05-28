@@ -6,35 +6,52 @@ export function useSupabaseNotifications(userId) {
   const fetchNotifications = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
-    const { data } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(50);
-    setNotifications(data || []);
+    try {
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      setNotifications(data || []);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    }
     setLoading(false);
   }, [userId]);
   const markAsRead = useCallback(async (id) => {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    try {
+      await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
+    }
   }, []);
   const markAllAsRead = useCallback(async () => {
     if (!userId) return;
-    await supabase.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false);
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    try {
+      await supabase.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false);
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (err) {
+      console.error('Error marking all notifications as read:', err);
+    }
   }, [userId]);
   const createNotification = useCallback(async ({ userId: targetId, type, title, body, resourceType, resourceId }) => {
-    const { data } = await supabase.from('notifications').insert({
-      user_id: targetId,
-      type,
-      title,
-      body,
-      resource_type: resourceType,
-      resource_id: resourceId,
-      is_read: false,
-    }).select().single();
-    return data;
+    try {
+      const { data } = await supabase.from('notifications').insert({
+        user_id: targetId,
+        type,
+        title,
+        body,
+        resource_type: resourceType,
+        resource_id: resourceId,
+        is_read: false,
+      }).select().single();
+      return data;
+    } catch (err) {
+      console.error('Error creating notification:', err);
+      return null;
+    }
   }, []);
   useEffect(() => {
     if (!userId) return;

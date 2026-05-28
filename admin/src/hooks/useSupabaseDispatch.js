@@ -93,54 +93,59 @@ export function useSupabaseDispatch() {
   const dispatchItems = useCallback(async (itemIds, sellerId, adminId) => {
     const now = new Date().toISOString();
 
-    const { data: itemsToDispatch, error: fetchErr } = await supabase
-      .from('order_items')
-      .select('order_id')
-      .in('id', itemIds);
+    try {
+      const { data: itemsToDispatch, error: fetchErr } = await supabase
+        .from('order_items')
+        .select('order_id')
+        .in('id', itemIds);
 
-    if (fetchErr) throw fetchErr;
+      if (fetchErr) throw fetchErr;
 
-    const { error: updateErr } = await supabase
-      .from('order_items')
-      .update({ dispatched_at: now, status: 'processing' })
-      .in('id', itemIds);
+      const { error: updateErr } = await supabase
+        .from('order_items')
+        .update({ dispatched_at: now, status: 'processing' })
+        .in('id', itemIds);
 
-    if (updateErr) throw updateErr;
+      if (updateErr) throw updateErr;
 
-    const orderIds = [...new Set((itemsToDispatch || []).map(i => i.order_id))];
-    if (orderIds.length > 0) {
-      const { error: orderErr } = await supabase
-        .from('orders')
-        .update({ status: 'processing', updated_at: now })
-        .in('id', orderIds);
-      if (orderErr) console.error('Order status update error:', orderErr);
+      const orderIds = [...new Set((itemsToDispatch || []).map(i => i.order_id))];
+      if (orderIds.length > 0) {
+        const { error: orderErr } = await supabase
+          .from('orders')
+          .update({ status: 'processing', updated_at: now })
+          .in('id', orderIds);
+        if (orderErr) console.error('Order status update error:', orderErr);
+      }
+
+      const { error: notifErr } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: sellerId,
+          type: 'new_order',
+          title: 'Nouvelles commandes assignées',
+          body: `${itemIds.length} article(s) à traiter vous ont été assignés par l'administration.`,
+          resource_type: 'order_item',
+          resource_id: null,
+        });
+
+      const { error: logErr } = await supabase
+        .from('admin_logs')
+        .insert({
+          admin_id: adminId,
+          action: 'dispatch_to_seller',
+          resource_type: 'order_item',
+          new_value: { seller_id: sellerId, item_ids: itemIds, count: itemIds.length },
+        });
+
+      if (notifErr || logErr) {
+        console.error('Notification or log error:', notifErr || logErr);
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error('Error dispatching items:', err);
+      return { success: false, error: err.message };
     }
-
-    const { error: notifErr } = await supabase
-      .from('notifications')
-      .insert({
-        user_id: sellerId,
-        type: 'new_order',
-        title: 'Nouvelles commandes assignées',
-        body: `${itemIds.length} article(s) à traiter vous ont été assignés par l'administration.`,
-        resource_type: 'order_item',
-        resource_id: null,
-      });
-
-    const { error: logErr } = await supabase
-      .from('admin_logs')
-      .insert({
-        admin_id: adminId,
-        action: 'dispatch_to_seller',
-        resource_type: 'order_item',
-        new_value: { seller_id: sellerId, item_ids: itemIds, count: itemIds.length },
-      });
-
-    if (notifErr || logErr) {
-      console.error('Notification or log error:', notifErr || logErr);
-    }
-
-    return { success: true };
   }, []);
 
   useEffect(() => {

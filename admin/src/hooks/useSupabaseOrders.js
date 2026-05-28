@@ -15,18 +15,29 @@ export function useSupabaseOrders() {
     const rateData = StorageManager.getExchangeRate();
     const liveRate = rateData?.rate || 0.4107;
 
-    const { data, error: err } = await supabase
-      .from('orders')
-      .select(`
-        *,
-        order_items (
+    let data, err;
+    try {
+      const res = await supabase
+        .from('orders')
+        .select(`
           *,
-          seller:profiles!seller_id (full_name, business_name),
-          product:products (name)
-        ),
-        buyer:profiles!buyer_id (full_name, email)
-      `)
-      .order('created_at', { ascending: false });
+          order_items (
+            *,
+            seller:profiles!seller_id (full_name, business_name),
+            product:products (name)
+          ),
+          buyer:profiles!buyer_id (full_name, email)
+        `)
+        .order('created_at', { ascending: false });
+      data = res.data;
+      err = res.error;
+    } catch (e) {
+      console.error('Erreur Supabase orders:', e);
+      setError(e.message);
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
 
     if (err) {
       console.error('Erreur Supabase orders:', err);
@@ -38,10 +49,16 @@ export function useSupabaseOrders() {
 
     // Fetch dispatch_orders for voyage_id
     const orderIds = (data || []).map(o => o.id);
-    const { data: dispatchOrders } = await supabase
-      .from('dispatch_orders')
-      .select(`order_id, dispatch:dispatch_id (id, dispatch_code, status)`)
-      .in('order_id', orderIds);
+    let dispatchOrders;
+    try {
+      const res = await supabase
+        .from('dispatch_orders')
+        .select(`order_id, dispatch:dispatch_id (id, dispatch_code, status)`)
+        .in('order_id', orderIds);
+      dispatchOrders = res.data;
+    } catch (e) {
+      console.error('Erreur Supabase dispatch_orders:', e);
+    }
 
     const dispatchMap = (dispatchOrders || []).reduce((acc, d) => {
       acc[d.order_id] = d.dispatch;
@@ -76,15 +93,19 @@ export function useSupabaseOrders() {
   }, []);
 
   const updateOrder = useCallback(async (updatedOrder) => {
-    const { error: err } = await supabase
-      .from('orders')
-      .update({ status: updatedOrder.status, updated_at: new Date().toISOString() })
-      .eq('id', updatedOrder.id);
-    if (err) {
-      console.error('Erreur mise à jour order:', err);
-      return;
+    try {
+      const { error: err } = await supabase
+        .from('orders')
+        .update({ status: updatedOrder.status, updated_at: new Date().toISOString() })
+        .eq('id', updatedOrder.id);
+      if (err) {
+        console.error('Erreur mise à jour order:', err);
+        return;
+      }
+      setOrders(prev => prev.map(o => o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o));
+    } catch (e) {
+      console.error('Erreur mise à jour order:', e);
     }
-    setOrders(prev => prev.map(o => o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o));
   }, []);
 
   useEffect(() => {

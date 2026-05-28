@@ -23,25 +23,37 @@ export function useSupabaseFinance() {
     const liveRate = rateData?.rate || 0.4107;
 
     // Run payouts + audit in parallel
-    const [{ data: payoutsData, error: payoutsError }, { data: logsData }] = await Promise.all([
-      supabase
-        .from('payouts')
-        .select(`
-          id,
-          seller_id,
-          amount_xof,
-          status,
-          created_at,
-          resolved_at,
-          resolved_by,
-          seller:profiles!seller_id (full_name, business_name)
-        `)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('admin_logs')
-        .select('*')
-        .order('created_at', { ascending: false }),
-    ]);
+    let payoutsData, payoutsError, logsData;
+    try {
+      const results = await Promise.all([
+        supabase
+          .from('payouts')
+          .select(`
+            id,
+            seller_id,
+            amount_xof,
+            status,
+            created_at,
+            resolved_at,
+            resolved_by,
+            seller:profiles!seller_id (full_name, business_name)
+          `)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('admin_logs')
+          .select('*')
+          .order('created_at', { ascending: false }),
+      ]);
+      payoutsData = results[0].data;
+      payoutsError = results[0].error;
+      logsData = results[1].data;
+    } catch (e) {
+      console.error('Erreur chargement données finance:', e);
+      setPayouts([]);
+      setAuditEntries([]);
+      setLoading(false);
+      return;
+    }
 
     if (payoutsError) {
       console.error('Erreur chargement payouts:', payoutsError);

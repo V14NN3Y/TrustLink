@@ -31,7 +31,7 @@ export function useSupabaseDisputes() {
       buyer_name: d.buyer?.full_name || '—',
       seller_name: sellerMap[d.order_id] || '—',
       reason: d.reason,
-      status: d.status === 'open' ? 'OPEN' : 'RESOLVED',
+      status: d.status,
       amount_xof: d.order?.total_amount || 0,
       created_at: d.created_at,
       video_url: d.video?.video_url || null,

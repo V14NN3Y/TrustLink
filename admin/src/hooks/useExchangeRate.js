@@ -20,7 +20,8 @@ export function useExchangeRate() {
           setData({ rate: data.rate, lastUpdated: new Date().toISOString() });
           StorageManager.setExchangeRate(data.rate);
         }
-      });
+      })
+      .catch(err => console.error('Error fetching exchange rate:', err));
   }, []);
 
   useEffect(() => {
