@@ -16,7 +16,8 @@ export default function ActivityCalendarPage() {
       .gte('created_at', start.toISOString())
       .lt('created_at', end.toISOString())
       .order('created_at', { ascending: false })
-      .then(({ data }) => { setLogs(data || []); setLoading(false); });
+      .then(({ data }) => { setLogs(data || []); setLoading(false); })
+      .catch(() => setLoading(false));
   }, [selectedMonth]);
 
   const byDay = {};

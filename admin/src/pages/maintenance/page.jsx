@@ -12,7 +12,8 @@ export default function MaintenancePage() {
       .then(({ data }) => {
         if (data) setEnabled(data.value === true || data.value === 'true');
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   const toggle = async () => {

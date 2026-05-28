@@ -5,7 +5,7 @@ import { useExchangeRate } from '@/hooks/useExchangeRate';
 import StatusBadge from '@/components/base/StatusBadge';
 import { formatXOF, formatDate } from '@/components/base/DataTransformer';
 import VariantModal from './VariantModal';
-const STATUSES = ['', 'PENDING_REVIEW', 'APPROVED', 'REJECTED'];
+const STATUSES = ['', 'pending_review', 'approved', 'rejected'];
 export default function ProductsTable() {
   const { rate } = useExchangeRate();
   const { products, loading, updateProduct } = useSupabaseProducts(null, rate);
@@ -14,7 +14,7 @@ export default function ProductsTable() {
   const [selected, setSelected] = useState(null);
   const [variantProduct, setVariantProduct] = useState(null);
   const filtered = products.filter(p => {
-    const matchStatus = !statusFilter || p.status === statusFilter;
+    const matchStatus = !statusFilter || p.status?.toLowerCase?.() === statusFilter;
     const matchSearch = !search ||
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.seller_name.toLowerCase().includes(search.toLowerCase());
@@ -63,9 +63,9 @@ export default function ProductsTable() {
             className="px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none cursor-pointer bg-white"
           >
             <option value="">Tous statuts</option>
-            <option value="PENDING_REVIEW">En attente</option>
-            <option value="APPROVED">Approuvés</option>
-            <option value="REJECTED">Rejetés</option>
+            <option value="pending_review">En attente</option>
+            <option value="approved">Approuvés</option>
+            <option value="rejected">Rejetés</option>
           </select>
           <span className="text-xs text-slate-400 self-center">{filtered.length} produit(s)</span>
         </div>
@@ -86,7 +86,7 @@ export default function ProductsTable() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
-                        <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
+                        <img src={p.images?.[0] || ''} alt={p.name} className="w-full h-full object-cover" />
                       </div>
                       <p className="text-sm font-medium text-slate-800 max-w-xs truncate">{p.name}</p>
                     </div>
@@ -115,7 +115,7 @@ export default function ProductsTable() {
                       >
                         <i className="ri-eye-line text-trustblue" />
                       </button>
-                      {p.status === 'PENDING_REVIEW' && (
+                      {(p.status === 'pending_review' || p.status === 'PENDING_REVIEW') && (
                         <>
                           <button
                             onClick={() => handleModerate(p, 'APPROVED')}
@@ -152,7 +152,7 @@ export default function ProductsTable() {
               </button>
             </div>
             <div className="w-full h-48 rounded-xl overflow-hidden bg-slate-100 mb-4">
-              <img src={selected.images[0]} alt={selected.name} className="w-full h-full object-cover" />
+              <img src={selected.images?.[0] || ''} alt={selected.name} className="w-full h-full object-cover" />
             </div>
             <h4 className="font-bold text-slate-800 mb-1">{selected.name}</h4>
             <p className="text-xs text-slate-500 mb-3">{selected.category} · {selected.seller_name}</p>
@@ -167,7 +167,7 @@ export default function ProductsTable() {
                 <StatusBadge status={selected.status} />
               </div>
             </div>
-            {selected.status === 'PENDING_REVIEW' && (
+            {(selected.status === 'pending_review' || selected.status === 'PENDING_REVIEW') && (
               <div className="flex gap-3 mt-4">
                 <button
                   onClick={() => updateProduct(selected.id, 'APPROVED')}

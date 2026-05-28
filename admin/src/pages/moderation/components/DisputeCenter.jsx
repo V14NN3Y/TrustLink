@@ -35,7 +35,7 @@ export default function DisputeCenter({ disputes, onUpdate }) {
       content: message.trim(),
     });
     if (!error) {
-      const newMsg = { id: Date.now(), role: 'ADMIN', author: user.email || 'Admin', content: message.trim(), timestamp: new Date().toISOString() };
+      const newMsg = { id: Date.now(), sender_id: user.id, author: user.email || 'Admin', content: message.trim(), timestamp: new Date().toISOString() };
       const updated = { ...selected, messages: [...(selected.messages || []), newMsg] };
       onUpdate(updated); setSelected(updated); setMessage('');
     }
@@ -77,7 +77,7 @@ export default function DisputeCenter({ disputes, onUpdate }) {
       new_value: { status: newStatus },
     });
 
-    const updated = { ...selected, status: 'RESOLVED', resolution: resolutionText };
+    const updated = { ...selected, status: newStatus, resolution: resolutionText };
     onUpdate(updated); setSelected(updated);
     setResolving(false); setResolveAction(null);
   }
@@ -88,7 +88,7 @@ export default function DisputeCenter({ disputes, onUpdate }) {
     <div className="bg-white rounded-2xl border border-slate-100 flex flex-col" style={{ height: 640 }}>
       <div className="flex-shrink-0 px-5 py-4 border-b border-slate-100 flex items-center justify-between">
         <h3 className="font-semibold text-slate-800 text-base" style={{ fontFamily: 'Poppins, sans-serif' }}>Centre de litiges</h3>
-        <span className="text-xs text-slate-500">{disputes.filter(d => d.status !== 'RESOLVED').length} actif(s)</span>
+        <span className="text-xs text-slate-500">{disputes.filter(d => d.status === 'open' || d.status === 'OPEN').length} actif(s)</span>
       </div>
 
       <div className="flex flex-1 min-h-0">
@@ -97,7 +97,7 @@ export default function DisputeCenter({ disputes, onUpdate }) {
             <button key={d.id} onClick={() => setSelected(d)} className={`w-full text-left px-4 py-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer ${selected.id === d.id ? 'bg-blue-50 border-l-2 border-l-trustblue' : ''}`}>
               <div className="flex items-start justify-between gap-2 mb-1">
                 <p className="text-sm font-semibold text-slate-800 truncate">{d.order_ref}</p>
-                <StatusBadge status={d.status === 'OPEN' ? 'disputed' : d.status === 'INVESTIGATING' ? 'pending' : 'resolved'} />
+                <StatusBadge status={d.status === 'open' || d.status === 'OPEN' ? 'disputed' : d.status === 'resolved_refund' ? 'resolved_refund' : d.status === 'resolved_no_refund' ? 'resolved_no_refund' : 'resolved_refund'} />
               </div>
               <p className="text-xs text-slate-500 truncate">{d.buyer_name} vs {d.seller_name}</p>
               <p className="text-xs font-bold text-trustblue mt-0.5">{formatXOF(d.amount_xof)}</p>
@@ -134,17 +134,20 @@ export default function DisputeCenter({ disputes, onUpdate }) {
           </div>
 
           <div ref={chatRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-            {(selected.messages || []).map(msg => (
-              <div key={msg.id} className={`flex flex-col ${ROLE_ALIGN[msg.role]}`}>
-                <span className="text-xs text-slate-400 mb-1 px-1">{msg.author} · {formatDateTime(msg.timestamp)}</span>
-                <div className={`max-w-xs px-4 py-2.5 ${BUBBLE_STYLE[msg.role]}`}>
-                  <p className="text-sm">{msg.content}</p>
+            {(selected.messages || []).map(msg => {
+              const role = msg.sender_id === selected.buyer_id ? 'BUYER' : msg.sender_id === selected.seller_id ? 'SELLER' : 'ADMIN';
+              return (
+                <div key={msg.id} className={`flex flex-col ${ROLE_ALIGN[role]}`}>
+                  <span className="text-xs text-slate-400 mb-1 px-1">{msg.author} · {formatDateTime(msg.timestamp)}</span>
+                  <div className={`max-w-xs px-4 py-2.5 ${BUBBLE_STYLE[role]}`}>
+                    <p className="text-sm">{msg.content}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {selected.status !== 'RESOLVED' && (
+          {(selected.status === 'open' || selected.status === 'OPEN') && (
             <div className="flex-shrink-0 border-t border-slate-100 p-3 space-y-2">
               {resolving && (
                 <div className="animate-fade-in bg-amber-50 border border-amber-200 rounded-xl p-3">

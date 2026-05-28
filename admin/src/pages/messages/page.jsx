@@ -102,7 +102,8 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!showNewConv || !user?.id) return;
     supabase.from('profiles').select('id, full_name, role').neq('id', user.id).order('full_name')
-      .then(({ data }) => setAllUsers(data || []));
+      .then(({ data }) => setAllUsers(data || []))
+      .catch(() => {});
   }, [showNewConv, user?.id]);
 
   async function handleSend() {

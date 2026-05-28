@@ -28,7 +28,8 @@ export default function ReportsPage() {
       .then(({ data }) => {
         setOrders(data || []);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, [days]);
 
   const totalRevenue = orders.reduce((s, o) => s + Number(o.total_amount || 0), 0);

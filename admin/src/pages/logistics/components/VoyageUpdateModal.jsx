@@ -10,7 +10,7 @@ const STEPS = [
 
 export default function VoyageUpdateModal({ voyage, onClose, onUpdate }) {
   const { user } = useAuth();
-  const [newStatus, setNewStatus] = useState(voyage.status);
+  const [newStatus, setNewStatus] = useState(voyage.status?.toLowerCase?.() || voyage.status);
   const [customsAgent, setCustomsAgent] = useState(voyage.customs_agent || '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -22,7 +22,7 @@ export default function VoyageUpdateModal({ voyage, onClose, onUpdate }) {
     if (!hasChanges || !user || saving) return;
     setSaving(true);
     const updates = {
-      status: newStatus,
+      status: newStatus.toLowerCase(),
       customs_agent: customsAgent || null,
       actual_arrival: newStatus === 'delivered' && !voyage.actual_arrival
         ? new Date().toISOString() : voyage.actual_arrival,

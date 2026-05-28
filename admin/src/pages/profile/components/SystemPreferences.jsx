@@ -12,7 +12,8 @@ export default function SystemPreferences() {
   const [saved, setSaved] = useState(false);
   useEffect(() => {
     supabase.from('hubs').select('*').order('code')
-      .then(({ data }) => { if (data) setHubs(data); });
+      .then(({ data }) => { if (data) setHubs(data); })
+      .catch(() => {});
   }, []);
 
   const rateNum = parseFloat(ngnXofRate);
@@ -20,9 +21,7 @@ export default function SystemPreferences() {
 
   async function handleSave() {
     if (rateValid) setRate(rateNum);
-    for (const hub of hubs) {
-      await supabase.from('hubs').update({ active: hub.active }).eq('code', hub.code);
-    }
+    await Promise.all(hubs.map(hub => supabase.from('hubs').update({ active: hub.active }).eq('code', hub.code)));
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   }

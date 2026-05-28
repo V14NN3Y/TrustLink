@@ -10,40 +10,60 @@ export default function DeliveryCitiesPage() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from('delivery_cities').select('*').order('sort_order');
-    setCities(data || []);
+    try {
+      const { data } = await supabase.from('delivery_cities').select('*').order('sort_order');
+      setCities(data || []);
+    } catch (err) {
+      console.error('Error loading cities:', err);
+    }
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
   const toggleActive = async (city) => {
-    await supabase.from('delivery_cities').update({ is_active: !city.is_active }).eq('id', city.id);
+    try {
+      await supabase.from('delivery_cities').update({ is_active: !city.is_active }).eq('id', city.id);
+    } catch (err) {
+      console.error('Error toggling city:', err);
+    }
     load();
   };
 
   const addCity = async () => {
     if (!newName.trim()) return;
-    const { error } = await supabase.from('delivery_cities').insert({
-      name: newName.trim(),
-      sort_order: cities.length + 1,
-    });
-    if (!error) {
-      setNewName('');
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
-      load();
+    try {
+      const { error } = await supabase.from('delivery_cities').insert({
+        name: newName.trim(),
+        sort_order: cities.length + 1,
+      });
+      if (!error) {
+        setNewName('');
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+        load();
+      }
+    } catch (err) {
+      console.error('Error adding city:', err);
     }
   };
 
   const editCity = async (city, field, value) => {
-    await supabase.from('delivery_cities').update({ [field]: value }).eq('id', city.id);
+    try {
+      await supabase.from('delivery_cities').update({ [field]: value }).eq('id', city.id);
+    } catch (err) {
+      console.error('Error editing city:', err);
+    }
     load();
   };
 
   const deleteCity = async (city) => {
     if (!confirm(`Supprimer "${city.name}" ?`)) return;
-    await supabase.from('delivery_cities').delete().eq('id', city.id);
+    try {
+      await supabase.from('delivery_cities').delete().eq('id', city.id);
+    } catch (err) {
+      console.error('Error deleting city:', err);
+    }
     load();
   };
 
@@ -107,24 +127,28 @@ export default function DeliveryCitiesPage() {
                   <ToggleSwitch enabled={c.is_active} onClick={() => toggleActive(c)} size="sm" />
                 </div>
                 <div className="col-span-2 flex justify-center gap-1">
-                  <button onClick={() => {
+                  <button onClick={async () => {
                     const idx = cities.indexOf(c);
                     if (idx > 0) {
                       const prev = cities[idx - 1];
-                      editCity(c, 'sort_order', prev.sort_order);
-                      editCity(prev, 'sort_order', c.sort_order);
+                      await Promise.all([
+                        editCity(c, 'sort_order', prev.sort_order),
+                        editCity(prev, 'sort_order', c.sort_order),
+                      ]);
                     }
                   }} disabled={cities.indexOf(c) === 0}
                     className="w-6 h-6 rounded flex items-center justify-center text-slate-300 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-20 cursor-pointer">
                     <i className="ri-arrow-up-s-line text-sm" />
                   </button>
                   <span className="text-sm text-slate-500 w-4 text-center">{c.sort_order}</span>
-                  <button onClick={() => {
+                  <button onClick={async () => {
                     const idx = cities.indexOf(c);
                     if (idx < cities.length - 1) {
                       const next = cities[idx + 1];
-                      editCity(c, 'sort_order', next.sort_order);
-                      editCity(next, 'sort_order', c.sort_order);
+                      await Promise.all([
+                        editCity(c, 'sort_order', next.sort_order),
+                        editCity(next, 'sort_order', c.sort_order),
+                      ]);
                     }
                   }} disabled={cities.indexOf(c) === cities.length - 1}
                     className="w-6 h-6 rounded flex items-center justify-center text-slate-300 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-20 cursor-pointer">

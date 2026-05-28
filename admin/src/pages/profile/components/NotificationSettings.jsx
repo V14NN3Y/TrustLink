@@ -32,7 +32,7 @@ export default function NotificationSettings() {
       setEnabled(prefs);
       if (profileRes.data?.notification_frequency) setFrequency(profileRes.data.notification_frequency);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [user]);
 
   async function handleSave() {
@@ -43,9 +43,7 @@ export default function NotificationSettings() {
       channel: 'email',
       enabled: enabled[n.key],
     }));
-    for (const row of rows) {
-      await supabase.from('notification_preferences').upsert(row, { onConflict: 'user_id, type, channel' });
-    }
+    await Promise.all(rows.map(row => supabase.from('notification_preferences').upsert(row, { onConflict: 'user_id, type, channel' })));
     await supabase.from('profiles').update({ notification_frequency: frequency }).eq('id', user.id);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);

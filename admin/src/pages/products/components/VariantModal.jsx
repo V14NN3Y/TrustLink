@@ -8,7 +8,8 @@ export default function VariantModal({ productId, productName, onClose }) {
   useEffect(() => {
     if (!productId) return;
     supabase.from('product_variants').select('*').eq('product_id', productId).order('sort_order')
-      .then(({ data }) => { setVariants(data || []); setLoading(false); });
+      .then(({ data }) => { setVariants(data || []); setLoading(false); })
+      .catch(() => setLoading(false));
   }, [productId]);
 
   return (

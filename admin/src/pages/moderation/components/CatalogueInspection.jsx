@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { formatNGN, formatXOF } from '@/components/base/DataTransformer';
 
 export default function CatalogueInspection({ products, onUpdate }) {
-  const pending = products.filter(p => p.status === 'PENDING_REVIEW');
+  const pending = products.filter(p => p.status === 'pending_review' || p.status === 'PENDING_REVIEW');
   const [currentIdx, setCurrentIdx] = useState(0);
   const [imgIdx, setImgIdx] = useState(0);
   const [swipeDir, setSwipeDir] = useState(null);
@@ -50,7 +50,7 @@ export default function CatalogueInspection({ products, onUpdate }) {
       onUpdate({ ...current, status: newStatus });
       setSwipeDir(null);
       setImgIdx(0);
-      setCurrentIdx(i => Math.min(i, pending.length - 2));
+      setCurrentIdx(i => Math.max(0, Math.min(i, pending.length - 2)));
     }, 300);
   }
 
@@ -109,13 +109,16 @@ export default function CatalogueInspection({ products, onUpdate }) {
       <div className="px-5 pb-4 border-t border-slate-100 mt-2 pt-4">
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Dernières décisions</p>
         <div className="space-y-1.5">
-          {products.filter(p => p.status !== 'PENDING_REVIEW').slice(0, 3).map(p => (
+          {products.filter(p => p.status !== 'pending_review' && p.status !== 'PENDING_REVIEW').slice(0, 3).map(p => {
+            const isApproved = p.status === 'approved' || p.status === 'APPROVED';
+            return (
             <div key={p.id} className="flex items-center gap-2">
-              <i className={`text-xs ${p.status === 'APPROVED' ? 'ri-checkbox-circle-line text-emerald-500' : 'ri-close-circle-line text-red-500'}`} />
+              <i className={`text-xs ${isApproved ? 'ri-checkbox-circle-line text-emerald-500' : 'ri-close-circle-line text-red-500'}`} />
               <p className="text-xs text-slate-600 truncate flex-1">{p.name}</p>
-              <span className={`text-xs font-semibold ${p.status === 'APPROVED' ? 'text-emerald-600' : 'text-red-500'}`}>{p.status === 'APPROVED' ? 'OK' : 'KO'}</span>
+              <span className={`text-xs font-semibold ${isApproved ? 'text-emerald-600' : 'text-red-500'}`}>{isApproved ? 'OK' : 'KO'}</span>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

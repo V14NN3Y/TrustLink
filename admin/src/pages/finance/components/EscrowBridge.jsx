@@ -26,20 +26,27 @@ export default function EscrowBridge() {
       const vol = (ordersRes.data || []).reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
       setEscrowVolume(vol);
       setLoading(false);
+    }).catch(err => {
+      console.error('Error loading escrow data:', err);
+      setLoading(false);
     });
   }, []);
 
   async function handleSave() {
     if (!user) return;
-    const { error } = await supabase
-      .from('escrow_config')
-      .update({ ...draft, updated_by: user.id, updated_at: new Date().toISOString() })
-      .eq('id', config.id);
-    if (!error) {
-      setConfig(draft);
-      setEditMode(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+    try {
+      const { error } = await supabase
+        .from('escrow_config')
+        .update({ ...draft, updated_by: user.id, updated_at: new Date().toISOString() })
+        .eq('id', config.id);
+      if (!error) {
+        setConfig(draft);
+        setEditMode(false);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (err) {
+      console.error('Error saving escrow config:', err);
     }
   }
 

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import StatusBadge from '@/components/base/StatusBadge';
 import { supabase } from '@/lib/supabaseClient';
 import { formatXOF, formatNGN, formatDate } from '@/components/base/DataTransformer';
+import { exportToCSV } from '@/lib/export';
 
 const ITEMS_PER_PAGE = 8;
 const ALL_STATUSES = ['pending', 'paid', 'processing', 'in_transit', 'delivered', 'confirmed', 'disputed', 'cancelled', 'refunded'];
@@ -152,14 +153,17 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
             </select>
             <button onClick={() => {
               const selectedOrders = orders.filter(o => selected.has(o.id));
-              const csv = [
-                ['Ref', 'Produit', 'Acheteur', 'Vendeur', 'Hub', 'Montant XOF', 'Montant NGN', 'Statut', 'Date'].join(','),
-                ...selectedOrders.map(o => [o.ref, o.product, o.buyer_name, o.seller_name, o.hub_origin, o.amount_xof, o.amount_ngn, o.status, o.created_at].join(','))
-              ].join('\n');
-              const blob = new Blob([csv], { type: 'text/csv' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a'); a.href = url; a.download = `commandes_${new Date().toISOString().slice(0,10)}.csv`; a.click();
-              URL.revokeObjectURL(url);
+              exportToCSV(selectedOrders, 'commandes', [
+                { label: 'Ref', accessor: o => o.ref },
+                { label: 'Produit', accessor: o => o.product },
+                { label: 'Acheteur', accessor: o => o.buyer_name },
+                { label: 'Vendeur', accessor: o => o.seller_name },
+                { label: 'Hub', accessor: o => o.hub_origin },
+                { label: 'Montant XOF', accessor: o => o.amount_xof },
+                { label: 'Montant NGN', accessor: o => o.amount_ngn },
+                { label: 'Statut', accessor: o => o.status },
+                { label: 'Date', accessor: o => o.created_at },
+              ]);
             }} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 bg-white cursor-pointer">
               <i className="ri-download-2-line" />Export CSV
             </button>

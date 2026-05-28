@@ -9,7 +9,8 @@ export default function StockNotificationsPage() {
     supabase.from('stock_notifications')
       .select('*, product:product_id(name)')
       .order('created_at', { ascending: false })
-      .then(({ data }) => { setSubs(data || []); setLoading(false); });
+      .then(({ data }) => { setSubs(data || []); setLoading(false); })
+      .catch(() => setLoading(false));
   }, []);
 
   const markNotified = async (id) => {

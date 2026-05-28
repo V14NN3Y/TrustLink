@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import ToggleSwitch from '@/components/base/ToggleSwitch';
+import { toast } from 'react-hot-toast';
 
 const ICON_OPTIONS = [
   { value: 'ri-t-shirt-line', label: 'Mode' },
@@ -44,13 +45,16 @@ export default function CategoriesPage() {
   const [form, setForm] = useState({ name: '', slug: '', icon: 'ri-price-tag-3-line', parent_id: '', is_active: true, sort_order: 0 });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(null);
-  const [saved, setSaved] = useState(false);
   const [search, setSearch] = useState('');
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from('categories').select('*, parent:parent_id(name)').order('sort_order', { ascending: true }).order('name');
-    setCategories(data || []);
+    try {
+      const { data } = await supabase.from('categories').select('*, parent:parent_id(name)').order('sort_order', { ascending: true }).order('name');
+      setCategories(data || []);
+    } catch (err) {
+      console.error('Error loading categories:', err);
+    }
     setLoading(false);
   };
 
@@ -79,16 +83,22 @@ export default function CategoriesPage() {
       is_active: form.is_active,
       sort_order: parseInt(form.sort_order) || 0,
     };
-    if (editItem) {
-      const { error } = await supabase.from('categories').update(payload).eq('id', editItem.id);
-      if (error) { alert('Erreur: ' + error.message); setSaving(false); return; }
-    } else {
-      const { error } = await supabase.from('categories').insert(payload);
-      if (error) { alert('Erreur: ' + error.message); setSaving(false); return; }
+    try {
+      if (editItem) {
+        const { error } = await supabase.from('categories').update(payload).eq('id', editItem.id);
+        if (error) { toast.error('Erreur: ' + error.message); setSaving(false); return; }
+      } else {
+        const { error } = await supabase.from('categories').insert(payload);
+        if (error) { toast.error('Erreur: ' + error.message); setSaving(false); return; }
+      }
+    } catch (err) {
+      console.error('Error saving category:', err);
+      toast.error('Erreur: ' + err.message);
+      setSaving(false);
+      return;
     }
     setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    toast.success('Catégorie ' + (editItem ? 'modifiée' : 'créée'));
     resetForm();
     load();
   };
@@ -100,14 +110,22 @@ export default function CategoriesPage() {
       : 'Supprimer cette catégorie ? Les produits associés ne seront plus catégorisés.';
     if (!confirm(msg)) return;
     setDeleting(id);
-    if (children.length > 0) await supabase.from('categories').delete().eq('parent_id', id);
-    await supabase.from('categories').delete().eq('id', id);
+    try {
+      if (children.length > 0) await supabase.from('categories').delete().eq('parent_id', id);
+      await supabase.from('categories').delete().eq('id', id);
+    } catch (err) {
+      console.error('Error deleting category:', err);
+    }
     setDeleting(null);
     load();
   };
 
   const toggleActive = async (cat) => {
-    await supabase.from('categories').update({ is_active: !cat.is_active }).eq('id', cat.id);
+    try {
+      await supabase.from('categories').update({ is_active: !cat.is_active }).eq('id', cat.id);
+    } catch (err) {
+      console.error('Error toggling category:', err);
+    }
     load();
   };
 
@@ -116,8 +134,12 @@ export default function CategoriesPage() {
     const idx = sorted.findIndex(c => c.id === cat.id);
     if (idx <= 0) return;
     const prev = sorted[idx - 1];
-    await supabase.from('categories').update({ sort_order: prev.sort_order || 0 }).eq('id', cat.id);
-    await supabase.from('categories').update({ sort_order: cat.sort_order || 0 }).eq('id', prev.id);
+    try {
+      await supabase.from('categories').update({ sort_order: prev.sort_order || 0 }).eq('id', cat.id);
+      await supabase.from('categories').update({ sort_order: cat.sort_order || 0 }).eq('id', prev.id);
+    } catch (err) {
+      console.error('Error moving category up:', err);
+    }
     load();
   };
   const moveDown = async (cat) => {
@@ -125,8 +147,12 @@ export default function CategoriesPage() {
     const idx = sorted.findIndex(c => c.id === cat.id);
     if (idx >= sorted.length - 1) return;
     const next = sorted[idx + 1];
-    await supabase.from('categories').update({ sort_order: next.sort_order || 0 }).eq('id', cat.id);
-    await supabase.from('categories').update({ sort_order: cat.sort_order || 0 }).eq('id', next.id);
+    try {
+      await supabase.from('categories').update({ sort_order: next.sort_order || 0 }).eq('id', cat.id);
+      await supabase.from('categories').update({ sort_order: cat.sort_order || 0 }).eq('id', next.id);
+    } catch (err) {
+      console.error('Error moving category down:', err);
+    }
     load();
   };
 
@@ -257,11 +283,7 @@ export default function CategoriesPage() {
               <ToggleSwitch enabled={form.is_active} onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))} size="md" />
             </div>
 
-            {saved && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 text-emerald-700 text-sm flex items-center gap-2">
-                <i className="ri-checkbox-circle-line" />Catégorie {editItem ? 'modifiée' : 'créée'}
-              </div>
-            )}
+
             <div className="flex gap-2">
               <button type="submit" disabled={saving}
                 className="flex-1 py-2.5 bg-trustblue text-white rounded-xl font-semibold text-sm cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2">

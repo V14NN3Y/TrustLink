@@ -15,8 +15,12 @@ export default function CouponsPage() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
-    setCoupons(data || []);
+    try {
+      const { data } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
+      setCoupons(data || []);
+    } catch (err) {
+      console.error('Error loading coupons:', err);
+    }
     setLoading(false);
   };
 
@@ -48,10 +52,14 @@ export default function CouponsPage() {
       expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
       active: form.active,
     };
-    if (editItem) {
-      await supabase.from('coupons').update(payload).eq('id', editItem.id);
-    } else {
-      await supabase.from('coupons').insert(payload);
+    try {
+      if (editItem) {
+        await supabase.from('coupons').update(payload).eq('id', editItem.id);
+      } else {
+        await supabase.from('coupons').insert(payload);
+      }
+    } catch (err) {
+      console.error('Error saving coupon:', err);
     }
     setSaving(false);
     setSaved(true);
@@ -62,12 +70,20 @@ export default function CouponsPage() {
 
   const handleDelete = async (id) => {
     if (!confirm('Supprimer ce coupon ?')) return;
-    await supabase.from('coupons').delete().eq('id', id);
+    try {
+      await supabase.from('coupons').delete().eq('id', id);
+    } catch (err) {
+      console.error('Error deleting coupon:', err);
+    }
     load();
   };
 
   const toggleActive = async (c) => {
-    await supabase.from('coupons').update({ active: !c.active }).eq('id', c.id);
+    try {
+      await supabase.from('coupons').update({ active: !c.active }).eq('id', c.id);
+    } catch (err) {
+      console.error('Error toggling coupon:', err);
+    }
     load();
   };
 
