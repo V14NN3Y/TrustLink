@@ -501,6 +501,20 @@ insert into app_settings (key, value) values ('maintenance_mode', 'false')
 on conflict (key) do nothing;
 
 -- ============================================
+-- INVITATION CODES (admin invite system)
+-- ============================================
+create table invitation_codes (
+  id uuid primary key default gen_random_uuid(),
+  code text unique not null,
+  created_by uuid not null references profiles(id),
+  used_by uuid references profiles(id),
+  used_at timestamptz,
+  expires_at timestamptz,
+  is_active boolean default true,
+  created_at timestamptz default now()
+);
+
+-- ============================================
 -- ROW LEVEL SECURITY
 -- ============================================
 alter table profiles enable row level security;
@@ -536,6 +550,7 @@ alter table admin_logs enable row level security;
 alter table seller_logs enable row level security;
 alter table system_announcements enable row level security;
 alter table app_settings enable row level security;
+alter table invitation_codes enable row level security;
 
 -- ============================================
 -- HELPER FUNCTION
@@ -547,6 +562,56 @@ security definer
 set search_path = public
 as $$
   select exists (select 1 from profiles where id = user_id and role = 'admin');
+$$;
+
+-- ============================================
+-- INVITATION CODE FUNCTIONS
+-- ============================================
+
+create or replace function generate_invitation_code()
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  new_code text;
+begin
+  if not exists (select 1 from profiles where id = auth.uid() and role = 'admin') then
+    raise exception 'Unauthorized: admin only';
+  end if;
+  new_code := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 8));
+  insert into invitation_codes (code, created_by, expires_at)
+  values (new_code, auth.uid(), now() + interval '30 days');
+  return new_code;
+end;
+$$;
+
+create or replace function use_invitation_code(p_code text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_invite invitation_codes;
+begin
+  select * into v_invite
+  from invitation_codes
+  where code = p_code
+    and is_active = true
+    and used_by is null
+    and (expires_at is null or expires_at > now());
+  if v_invite.id is null then
+    return false;
+  end if;
+  update invitation_codes
+  set used_by = auth.uid(),
+      used_at = now(),
+      is_active = false
+  where id = v_invite.id;
+  return true;
+end;
 $$;
 
 -- ============================================
@@ -814,6 +879,10 @@ create policy "Anyone can view app settings"
 create policy "Admins can manage app settings"
   on app_settings for all using (is_admin(auth.uid()));
 
+-- INVITATION CODES
+create policy "Admins can manage invitation codes"
+  on invitation_codes for all using (is_admin(auth.uid()));
+
 -- ============================================
 -- INDEXES
 -- ============================================
@@ -859,6 +928,7 @@ create index idx_payment_methods_active on payment_methods(is_active);
 create index idx_payment_methods_sort on payment_methods(sort_order);
 create index idx_delivery_cities_active on delivery_cities(is_active);
 create index idx_delivery_cities_sort on delivery_cities(sort_order);
+create index idx_invitation_codes_code on invitation_codes(code);
 
 -- ============================================
 -- TRIGGERS
