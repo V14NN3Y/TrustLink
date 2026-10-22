@@ -15,7 +15,21 @@ const getOrCreateCart = async (userId) => {
     .insert({ buyer_id: userId })
     .select('id')
     .single();
-  if (error) throw error;
+  if (error) {
+    // Course possible (deux onglets, double-clic...) : un autre appel a
+    // créé le panier entre notre select et notre insert. La contrainte
+    // unique sur buyer_id fait échouer CET insert avec le code Postgres
+    // 23505 ; on récupère simplement le panier qui existe désormais.
+    if (error.code === '23505') {
+      const { data: retry } = await supabase
+        .from('carts')
+        .select('id')
+        .eq('buyer_id', userId)
+        .maybeSingle();
+      if (retry) return retry.id;
+    }
+    throw error;
+  }
   return created.id;
 };
 /**

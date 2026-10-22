@@ -1194,3 +1194,8 @@ create policy "Buyers can update their own reviews"
 create policy "Buyers can delete their own reviews"
   on reviews for delete using (buyer_id = auth.uid());
 
+-- ============================================================
+-- MIGRATION: carts unique buyer_id (2026-10-22)
+-- See supabase/migrations/20261022102848_carts_unique_buyer.sql
+-- ============================================================
+alter table carts add constraint carts_buyer_id_key unique (buyer_id);
