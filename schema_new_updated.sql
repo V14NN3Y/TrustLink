@@ -1042,3 +1042,19 @@ create policy "Users can view their own KYC documents"
 create policy "Admins can manage all KYC documents"
   on storage.objects for all
   using ( bucket_id = 'kyc-documents' and is_admin(auth.uid()) );
+
+-- ============================================================
+-- MIGRATION: internal supplier + admin RLS fixes (2026-10-21)
+-- See supabase/migrations/20261021182111_internal_supplier_and_admin_rls.sql
+-- ============================================================
+-- Run scripts/create-internal-supplier.mjs first to create the internal
+-- "fournisseur interne" profile (business_slug = 'trustlink-sourcing')
+-- before applying the two policies below.
+
+create policy "Admins can manage all product images"
+  on product_images for all using (is_admin(auth.uid()));
+
+create policy "Admins can manage product images storage"
+  on storage.objects for all
+  using ( bucket_id = 'product-images' and is_admin(auth.uid()) );
+

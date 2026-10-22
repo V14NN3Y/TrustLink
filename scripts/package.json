@@ -1,0 +1,9 @@
+{
+  "name": "trustlink-scripts",
+  "private": true,
+  "type": "module",
+  "description": "One-off maintenance/admin scripts for TrustLink, run manually with a Supabase service-role key. Not part of any app build.",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.104.1"
+  }
+}
