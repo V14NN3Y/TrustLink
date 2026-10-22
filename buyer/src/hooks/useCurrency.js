@@ -3,6 +3,10 @@ import { supabase } from '@/lib/supabaseClient';
 
 const CURRENCY_KEY = 'trustlink_currency';
 const RATE_KEY = 'trustlink_rate';
+// Pas de temps réel sur exchange_rates : on revérifie périodiquement pour
+// qu'un onglet resté ouvert plusieurs heures/jours ne continue pas
+// d'afficher un taux NGN périmé indéfiniment.
+const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 
 export function useCurrency() {
   const [currency, setCurrencyState] = useState(() => {
@@ -14,17 +18,22 @@ export function useCurrency() {
   });
 
   useEffect(() => {
-    supabase.from('exchange_rates').select('rate').eq('from_currency', 'NGN').eq('to_currency', 'XOF').maybeSingle()
-      .then(({ data }) => {
-        if (data?.rate) {
-          setRate(data.rate);
-          localStorage.setItem(RATE_KEY, data.rate.toString());
-        }
-      })
-      .catch(() => {
-        const cached = localStorage.getItem(RATE_KEY);
-        if (cached) setRate(parseFloat(cached));
-      });
+    const fetchRate = () => {
+      supabase.from('exchange_rates').select('rate').eq('from_currency', 'NGN').eq('to_currency', 'XOF').maybeSingle()
+        .then(({ data }) => {
+          if (data?.rate) {
+            setRate(data.rate);
+            localStorage.setItem(RATE_KEY, data.rate.toString());
+          }
+        })
+        .catch(() => {
+          const cached = localStorage.getItem(RATE_KEY);
+          if (cached) setRate(parseFloat(cached));
+        });
+    };
+    fetchRate();
+    const interval = setInterval(fetchRate, REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
