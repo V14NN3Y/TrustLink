@@ -66,14 +66,12 @@ export const fetchThreadMessages = async (threadId) => {
 };
 export const sendNewMessage = async ({ senderId, subject, body }) => {
     if (!senderId) throw new Error('senderId required');
-    const { data: admin, error: adminError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('role', 'admin')
-        .limit(1)
-        .maybeSingle();
+    // La RLS interdit à un buyer de lire un profil role='admin' directement
+    // (seul son propre profil est lisible) : cette RPC résout un admin
+    // destinataire côté serveur, sans exposer la table profiles.
+    const { data: receiverId, error: adminError } = await supabase.rpc('get_support_admin_id');
     if (adminError) throw adminError;
-    const receiverId = admin?.id || null;
+    if (!receiverId) throw new Error('Aucun administrateur disponible pour le moment.');
     const { data, error } = await supabase
         .from('messages')
         .insert({
