@@ -4,6 +4,9 @@ TrustLink — Documentation Complète du Projet
 > Version du schéma : v3 (schema_new_updated.sql)  
 > Stack : React + Vite + Supabase + Tailwind CSS + shadcn/ui
 ---
+
+> **Mise à jour du 21 octobre 2026 — Fin des vendeurs externes.** TrustLink ne sollicite plus de vendeurs tiers au Nigéria : c'est désormais l'équipe TrustLink (admin) qui source et publie elle-même les produits dans le catalogue buyer, attribués à un profil interne unique ("TrustLink Sourcing"). L'application `seller/` est débranchée (inscription fermée, non déployée) mais conservée dans le dépôt pour référence et pour une éventuelle réintroduction future sous forme de comptes admin à droits restreints, plutôt qu'un rôle/app séparé. Les sections ci-dessous décrivant l'app seller et le fonctionnement multi-vendeur restent utiles comme référence historique du modèle de données, mais ne reflètent plus le fonctionnement commercial actuel.
+---
 ## Table des matières
 1. [Vue d'ensemble du projet](#1-vue-densemble-du-projet)
 2. [Architecture générale](#2-architecture-générale)

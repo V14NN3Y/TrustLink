@@ -126,6 +126,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
   const register = async (email, password, metadata = {}) => {
+    // TrustLink no longer onboards external sellers — admins source and
+    // publish products themselves. This app is disconnected; registration
+    // is closed rather than removed, to keep the file reversible.
+    throw new Error('Les inscriptions vendeur sont fermées. Contactez TrustLink.');
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
