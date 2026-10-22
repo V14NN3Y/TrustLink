@@ -9,11 +9,13 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
   const { formatPrice } = useCurrencyContext();
   const [step, setStep] = useState(1);
   const [videoFilePath, setVideoFilePath] = useState(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
   const [error, setError] = useState(null);
   const [confirmationChoice, setConfirmationChoice] = useState(null); // 'ok' ou 'defective'
   const [defectReason, setDefectReason] = useState('');
-  const handleVideoRecorded = (filePath) => {
+  const handleVideoRecorded = (filePath, previewUrl) => {
     setVideoFilePath(filePath);
+    setVideoPreviewUrl(previewUrl || null);
     setStep(3);
   };
   const handleConfirm = async (isDefective, reason = '') => {
@@ -155,8 +157,14 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
                 </div>
               </div>
               {videoFilePath && (
-                <div className="mb-4 rounded-xl overflow-hidden bg-gray-900 flex items-center justify-center" style={{ height: '200px' }}>
-                  <p className="text-white text-sm font-inter">{t('confirmDelivery.videoUploaded')}</p>
+                <div className="mb-4 rounded-xl overflow-hidden bg-gray-900" style={{ height: '200px' }}>
+                  {videoPreviewUrl ? (
+                    <video src={videoPreviewUrl} controls className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <p className="text-white text-sm font-inter">{t('confirmDelivery.videoUploaded')}</p>
+                    </div>
+                  )}
                 </div>
               )}
               <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E5E7EB' }}>
@@ -210,7 +218,7 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
                   {uploading ? t('confirmDelivery.uploading') : confirmationChoice === 'defective' ? t('confirmDelivery.openDispute') : t('confirmDelivery.submitValidation')}
                 </button>
                 <button
-                  onClick={() => { setVideoFilePath(null); setConfirmationChoice(null); setDefectReason(''); setStep(2); }}
+                  onClick={() => { setVideoFilePath(null); setVideoPreviewUrl(null); setConfirmationChoice(null); setDefectReason(''); setStep(2); }}
                   disabled={uploading}
                   className="w-full py-2.5 text-sm font-poppins font-medium rounded-full border transition-colors hover:bg-gray-50 disabled:opacity-50 cursor-pointer whitespace-nowrap"
                   style={{ borderColor: '#E5E7EB', color: '#6B7280' }}

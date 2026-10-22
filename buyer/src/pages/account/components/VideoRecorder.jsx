@@ -52,7 +52,7 @@ const startRecording = async () => {
                         .from('delivery-videos')
                         .upload(fileName, blob, { contentType: 'video/webm', upsert: false });
                     if (upErr) throw upErr;
-                    onRecorded && onRecorded(fileName); // Retourne le chemin relatif
+                    onRecorded && onRecorded(fileName, url); // chemin relatif + aperçu local
                 } catch {
                     toast({ title: 'Erreur', description: 'Erreur lors de l\'envoi de la vidéo. Réessayez.', variant: 'destructive' });
                 } finally {
