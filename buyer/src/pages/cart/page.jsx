@@ -10,12 +10,18 @@ export default function Cart() {
   const { items, loading, removeItem, updateQuantity, totalPrice } = useCart();
   const { formatPrice } = useCurrencyContext();
   const [deliveryFee, setDeliveryFee] = useState(0);
+  const [spreadPct, setSpreadPct] = useState(0);
 
   useEffect(() => {
-    supabase.from('escrow_config').select('delivery_fee').limit(1).single()
-      .then(({ data }) => { if (data?.delivery_fee) setDeliveryFee(data.delivery_fee); })
+    supabase.from('escrow_config').select('delivery_fee, spread_pct').limit(1).single()
+      .then(({ data }) => {
+        if (data?.delivery_fee) setDeliveryFee(data.delivery_fee);
+        if (data?.spread_pct) setSpreadPct(Number(data.spread_pct));
+      })
       .catch(err => console.error("Error loading delivery fee:", err));
   }, []);
+
+  const commissionAmount = Math.round(totalPrice * spreadPct / 100);
 
   if (loading) {
     return (
@@ -120,10 +126,16 @@ export default function Cart() {
                   <span style={{ color: '#6B7280' }}>{t('cart.shipping')}</span>
                   <span style={{ color: '#111827' }}>{formatPrice(deliveryFee)}</span>
                 </div>
+                {commissionAmount > 0 && (
+                  <div className="flex justify-between text-sm font-inter">
+                    <span style={{ color: '#6B7280' }}>{t('checkout.commission').replace('{pct}', spreadPct)}</span>
+                    <span style={{ color: '#111827' }}>{formatPrice(commissionAmount)}</span>
+                  </div>
+                )}
                 <hr className="border-gray-100" />
                 <div className="flex justify-between font-poppins font-bold">
                   <span style={{ color: '#111827' }}>{t('cart.total')}</span>
-                  <span style={{ color: '#125C8D' }}>{formatPrice(totalPrice + deliveryFee)}</span>
+                  <span style={{ color: '#125C8D' }}>{formatPrice(totalPrice + deliveryFee + commissionAmount)}</span>
                 </div>
               </div>
               <div className="rounded-xl p-3 mb-4" style={{ backgroundColor: '#E1F0F9' }}>
