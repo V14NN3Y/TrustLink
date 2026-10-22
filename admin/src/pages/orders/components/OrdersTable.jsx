@@ -22,7 +22,6 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
   const [search, setSearch] = useState('');
   const [filterHub, setFilterHub] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [filterSeller, setFilterSeller] = useState('');
   const [page, setPage] = useState(1);
   const [dropdownId, setDropdownId] = useState(null);
   const [flashId, setFlashId] = useState(null);
@@ -44,15 +43,14 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  useEffect(() => { setPage(1); }, [search, filterHub, filterStatus, filterSeller]);
+  useEffect(() => { setPage(1); }, [search, filterHub, filterStatus]);
 
   const filtered = orders.filter(o => {
     const s = search.toLowerCase();
     const matchSearch = !search || o.ref.toLowerCase().includes(s) || o.product.toLowerCase().includes(s) || o.buyer_name.toLowerCase().includes(s);
     const matchHub = !filterHub || o.hub_origin === filterHub;
     const matchStatus = !filterStatus || o.status === filterStatus;
-    const matchSeller = !filterSeller || o.seller_name.toLowerCase().includes(filterSeller.toLowerCase());
-    return matchSearch && matchHub && matchStatus && matchSeller;
+    return matchSearch && matchHub && matchStatus;
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
@@ -65,9 +63,8 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
     setFlashId(order.id);
     setTimeout(() => setFlashId(null), 1000);
 
-    const [{ data: orderData }, { data: orderItems }, { data: { user: adminUser } }] = await Promise.all([
+    const [{ data: orderData }, { data: { user: adminUser } }] = await Promise.all([
       supabase.from('orders').select('buyer_id').eq('id', order.id).single(),
-      supabase.from('order_items').select('seller_id').eq('order_id', order.id).limit(1),
       supabase.auth.getUser(),
     ]);
 
@@ -78,17 +75,6 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
         type: 'order_update',
         title: `Commande ${order.ref} : statut → ${status}`,
         body: `Votre commande est maintenant : ${status}`,
-        resource_type: 'order',
-        resource_id: order.id,
-        is_read: false,
-      }));
-    }
-    if (orderItems?.[0]?.seller_id) {
-      notifPromises.push(supabase.from('notifications').insert({
-        user_id: orderItems[0].seller_id,
-        type: 'order_update',
-        title: `Commande ${order.ref} : statut → ${status}`,
-        body: `Le statut a été changé en : ${status}`,
         resource_type: 'order',
         resource_id: order.id,
         is_read: false,
@@ -115,7 +101,7 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
             <h3 className="font-semibold text-slate-800 text-base" style={{ fontFamily: 'Poppins, sans-serif' }}>Commandes Escrow</h3>
             <p className="text-xs text-slate-500 mt-0.5" style={{ fontFamily: 'Inter, sans-serif' }}>{filtered.length} commande{filtered.length !== 1 ? 's' : ''} trouvée{filtered.length !== 1 ? 's' : ''}</p>
           </div>
-          <button onClick={() => { setSearch(''); setFilterHub(''); setFilterStatus(''); setFilterSeller(''); }} className="text-xs text-trustblue hover:underline cursor-pointer" style={{ fontFamily: 'Inter, sans-serif' }}>Réinitialiser filtres</button>
+          <button onClick={() => { setSearch(''); setFilterHub(''); setFilterStatus(''); }} className="text-xs text-trustblue hover:underline cursor-pointer" style={{ fontFamily: 'Inter, sans-serif' }}>Réinitialiser filtres</button>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -130,7 +116,6 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
             <option value="">Tous statuts</option>
             {ALL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <input value={filterSeller} onChange={e => setFilterSeller(e.target.value)} placeholder="Vendeur…" className={inputClass + ' w-36'} style={{ fontFamily: 'Inter, sans-serif' }} />
         </div>
       </div>
 
@@ -157,7 +142,6 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
                 { label: 'Ref', accessor: o => o.ref },
                 { label: 'Produit', accessor: o => o.product },
                 { label: 'Acheteur', accessor: o => o.buyer_name },
-                { label: 'Vendeur', accessor: o => o.seller_name },
                 { label: 'Hub', accessor: o => o.hub_origin },
                 { label: 'Montant XOF', accessor: o => o.amount_xof },
                 { label: 'Montant NGN', accessor: o => o.amount_ngn },
@@ -186,14 +170,14 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
                   }}
                   className="w-4 h-4 rounded border-slate-300 text-trustblue focus:ring-trustblue cursor-pointer" />
               </th>
-              {['Réf / Voyage', 'Produit / Acheteur', 'Vendeur', 'Hub', 'Montant', 'Statut', 'Date', ''].map(h => (
+              {['Réf / Voyage', 'Produit / Acheteur', 'Hub', 'Montant', 'Statut', 'Date', ''].map(h => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap" style={{ fontFamily: 'Inter, sans-serif' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {paginated.length === 0 ? (
-              <tr><td colSpan={9} className="px-4 py-12 text-center text-sm text-slate-400">Aucune commande trouvée</td></tr>
+              <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-slate-400">Aucune commande trouvée</td></tr>
             ) : paginated.map(order => (
               <tr key={order.id} className={`border-b border-slate-50 hover:bg-slate-50 transition-colors ${flashId === order.id ? 'bg-emerald-50' : ''} ${selected.has(order.id) ? 'bg-blue-50/50' : ''}`}>
                 <td className="px-4 py-3">
@@ -211,10 +195,6 @@ export default function OrdersTable({ orders, onSelect, onUpdate }) {
                 <td className="px-4 py-3 max-w-xs">
                   <p className="text-sm text-slate-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>{order.product}</p>
                   <p className="text-xs text-slate-400">{order.buyer_name}</p>
-                </td>
-                <td className="px-4 py-3">
-                  <p className="text-sm text-slate-700" style={{ fontFamily: 'Inter, sans-serif' }}>{order.seller_name}</p>
-                  <p className="text-xs text-slate-400">{order.seller_id}</p>
                 </td>
                 <td className="px-4 py-3">
                   <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">{order.hub_origin || '—'}</span>

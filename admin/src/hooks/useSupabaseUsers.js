@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { INTERNAL_SUPPLIER_SLUG } from '@/lib/internalSupplier';
 export function useSupabaseUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,7 +16,8 @@ export function useSupabaseUsers() {
       if (err) {
         setError(err.message);
       } else {
-        setUsers(data || []);
+        // The internal supplier account isn't a real user to manage here.
+        setUsers((data || []).filter(u => u.business_slug !== INTERNAL_SUPPLIER_SLUG));
       }
     } catch (e) {
       console.error('Error fetching users:', e);

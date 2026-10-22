@@ -11,7 +11,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('profiles').select('created_at, role, kyc_identity_verified'),
+      supabase.from('profiles').select('created_at, role'),
       supabase.from('products').select('id, name, price, status, stock_quantity'),
       supabase.from('dispatches').select('status, origin_hub, departure_date, actual_arrival, estimated_arrival'),
     ]).then(([profilesRes, productsRes, dispatchesRes]) => {
@@ -25,13 +25,10 @@ export default function AnalyticsPage() {
   const userGrowthMap = {};
   profiles.forEach(p => {
     const month = new Date(p.created_at).toISOString().slice(0, 7);
-    if (!userGrowthMap[month]) userGrowthMap[month] = { month, buyers: 0, sellers: 0, admins: 0 };
-    userGrowthMap[month][p.role === 'buyer' ? 'buyers' : p.role === 'seller' ? 'sellers' : 'admins']++;
+    if (!userGrowthMap[month]) userGrowthMap[month] = { month, buyers: 0, admins: 0 };
+    userGrowthMap[month][p.role === 'buyer' ? 'buyers' : 'admins']++;
   });
   const userGrowthData = Object.values(userGrowthMap).sort((a, b) => a.month.localeCompare(b.month));
-
-  const totalSellers = profiles.filter(p => p.role === 'seller').length;
-  const kycVerified = profiles.filter(p => p.kyc_identity_verified).length;
 
   const hubPerfMap = {};
   dispatches.forEach(d => {
@@ -57,24 +54,15 @@ export default function AnalyticsPage() {
         <p className="text-sm text-slate-500 mt-0.5">Indicateurs de performance et croissance</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-white rounded-xl border border-slate-100 p-4">
           <p className="text-xs text-slate-500">Total utilisateurs</p>
           <p className="text-2xl font-bold text-slate-900">{profiles.length}</p>
           <p className="text-xs text-green-600">{profiles.filter(p => p.role === 'buyer').length} acheteurs</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-100 p-4">
-          <p className="text-xs text-slate-500">Vendeurs</p>
-          <p className="text-2xl font-bold text-slate-900">{totalSellers}</p>
-          <p className="text-xs text-green-600">{kycVerified} KYC vérifiés</p>
-        </div>
-        <div className="bg-white rounded-xl border border-slate-100 p-4">
           <p className="text-xs text-slate-500">Produits approuvés</p>
           <p className="text-2xl font-bold text-slate-900">{products.filter(p => p.status === 'approved').length}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-slate-100 p-4">
-          <p className="text-xs text-slate-500">Taux complétion KYC</p>
-          <p className="text-2xl font-bold text-slate-900">{totalSellers > 0 ? Math.round((kycVerified / totalSellers) * 100) : 0}%</p>
         </div>
       </div>
 
@@ -88,7 +76,6 @@ export default function AnalyticsPage() {
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip />
               <Bar dataKey="buyers" name="Acheteurs" fill="#125C8D" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="sellers" name="Vendeurs" fill="#FF6A00" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

@@ -47,22 +47,6 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
       });
     }
 
-    // Notification seller
-    if (editStatus !== order.status) {
-      const { data: orderItems } = await supabase.from('order_items').select('seller_id').eq('order_id', order.id).limit(1);
-      if (orderItems?.[0]?.seller_id) {
-        await supabase.from('notifications').insert({
-          user_id: orderItems[0].seller_id,
-          type: 'order_update',
-          title: `Commande ${order.ref} mise à jour`,
-          body: `Nouveau statut : ${newStatus}`,
-          resource_type: 'order',
-          resource_id: order.id,
-          is_read: false,
-        });
-      }
-    }
-
     // Admin log
     const { data: { user: adminUser } } = await supabase.auth.getUser();
     if (editStatus !== order.status || editStep !== order.journey_step) {
@@ -134,7 +118,6 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
             <div>
               <div className="grid grid-cols-2 gap-4">
                 <InfoField label="Acheteur" value={order.buyer_name} />
-                <InfoField label="Vendeur" value={`${order.seller_name} (${order.seller_id})`} />
                 <InfoField label="Hub origine" value={order.hub_origin || '—'} />
                 <InfoField label="Voyage" value={order.voyage_id || '—'} />
                 <InfoField label="Groupement" value={order.group_id ? `${order.group_id.slice(0, 8)}...` : '—'} />
@@ -223,13 +206,13 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
                     <i className="ri-refund-2-line" />Rembourser acheteur
                   </button>
                   <button onClick={() => { setDisputeAction('force_pay'); setDisputePhase('confirming'); }} className="py-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl font-semibold text-sm cursor-pointer flex items-center justify-center gap-2">
-                    <i className="ri-bank-card-line" />Paiement forcé vendeur
+                    <i className="ri-bank-card-line" />Confirmer la commande (rejeter la réclamation)
                   </button>
                 </div>
               )}
               {disputePhase === 'confirming' && (
                 <div className="animate-fade-in bg-amber-50 border border-amber-200 rounded-xl p-4">
-                  <p className="font-semibold text-amber-700 mb-3">Confirmer : {disputeAction === 'refund' ? 'Remboursement total acheteur' : 'Paiement forcé au vendeur'} ?</p>
+                  <p className="font-semibold text-amber-700 mb-3">Confirmer : {disputeAction === 'refund' ? 'Remboursement total acheteur' : 'Confirmation de la commande, réclamation rejetée'} ?</p>
                   <div className="flex gap-3">
                     <button onClick={handleDisputeConfirm} className="px-6 py-2 bg-amber-600 text-white rounded-xl font-semibold text-sm cursor-pointer">Confirmer</button>
                     <button onClick={() => { setDisputePhase(null); setDisputeAction(null); }} className="px-6 py-2 border border-amber-300 text-amber-700 rounded-xl font-semibold text-sm cursor-pointer">Annuler</button>

@@ -19,7 +19,7 @@ export function useSupabaseDashboard() {
       const [
         { count: totalOrders, error: e1 },
         { data: escrowData, error: e2 },
-        { count: sellerCount, error: e3 },
+        { count: activeProductsCount, error: e3 },
         { count: pendingProducts, error: e4 },
         { count: pendingPayouts, error: e5 },
         { data: payoutOrders, error: e6 },
@@ -33,8 +33,8 @@ export function useSupabaseDashboard() {
         supabase.from('orders').select('*', { count: 'exact', head: true }),
         // 2. Escrow volume (active orders only)
         supabase.from('orders').select('total_amount').in('status', ['paid', 'processing', 'in_transit', 'delivered', 'confirmed']),
-        // 3. Active sellers
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'seller'),
+        // 3. Active catalogue products
+        supabase.from('products').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
         // 4. Pending catalogue products
         supabase.from('products').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
         // 5. Pending payouts count
@@ -87,7 +87,7 @@ export function useSupabaseDashboard() {
         total_orders: totalOrders || 0,
         escrow_volume_xof: escrowVolume,
         active_voyages: activeVoyages || 0,
-        sellers_active: sellerCount || 0,
+        products_active: activeProductsCount || 0,
         pending_payouts: pendingPayouts || 0,
         payouts_amount_ngn: payoutsAmount,
         pending_disputes: disputesCount || 0,

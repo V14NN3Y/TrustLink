@@ -32,7 +32,7 @@ export default function HeroStats() {
     total_orders: 0,
     escrow_volume_xof: 0,
     active_voyages: 0,
-    sellers_active: 0,
+    products_active: 0,
     pending_payouts: 0,
     payouts_amount_ngn: 0,
     pending_disputes: 0,
@@ -45,7 +45,7 @@ export default function HeroStats() {
       <StatCard icon="ri-shopping-bag-3-line text-trustblue" iconBg="bg-blue-50" label="Commandes totales" value={data.total_orders.toLocaleString('fr-FR')} />
       <StatCard icon="ri-shield-check-line text-emerald-600" iconBg="bg-emerald-50" label="Volume Escrow" value={formatXOF(data.escrow_volume_xof)} accent />
       <StatCard icon="ri-truck-2-line text-blue-600" iconBg="bg-blue-50" label="Voyages actifs" value={String(data.active_voyages)} live />
-      <StatCard icon="ri-store-2-line text-amber-600" iconBg="bg-amber-50" label="Vendeurs actifs" value={String(data.sellers_active)} />
+      <StatCard icon="ri-price-tag-3-line text-amber-600" iconBg="bg-amber-50" label="Produits au catalogue" value={String(data.products_active)} />
       <StatCard icon="ri-bank-card-line text-purple-600" iconBg="bg-purple-50" label="Payouts en attente" value={`${data.pending_payouts} · ${formatNGN(data.payouts_amount_ngn)}`} />
       <StatCard icon="ri-error-warning-line text-red-500" iconBg="bg-red-50" label="Litiges ouverts" value={String(data.pending_disputes)} live />
       <StatCard icon="ri-eye-line text-orange-500" iconBg="bg-orange-50" label="Modération en attente" value={String(data.catalogue_pending)} />

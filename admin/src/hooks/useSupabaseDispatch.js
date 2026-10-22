@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
 export function useSupabaseDispatch() {
-  const [sellers, setSellers] = useState([]);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -41,13 +41,6 @@ export function useSupabaseDispatch() {
           name,
           price,
           product_images (url, is_primary, sort_order)
-        ),
-        seller:profiles!seller_id (
-          id,
-          full_name,
-          business_name,
-          business_logo_url,
-          email
         )
       `)
       .eq('order.status', 'paid')
@@ -56,41 +49,16 @@ export function useSupabaseDispatch() {
 
     if (err) {
       setError(err.message);
-      setSellers([]);
+      setItems([]);
       setLoading(false);
       return;
     }
 
-    const groups = {};
-    (data || []).forEach(item => {
-      const sid = item.seller_id;
-      if (!groups[sid]) {
-        groups[sid] = {
-          seller: item.seller,
-          items: [],
-          totalAmount: 0,
-          itemCount: 0,
-          buyerCount: 0,
-          buyerIds: new Set(),
-        };
-      }
-      groups[sid].items.push(item);
-      groups[sid].totalAmount += Number(item.subtotal || item.product_price * item.quantity);
-      groups[sid].itemCount += item.quantity;
-      if (item.order?.buyer_id) groups[sid].buyerIds.add(item.order.buyer_id);
-    });
-
-    const result = Object.values(groups).map(g => ({
-      ...g,
-      buyerCount: g.buyerIds.size,
-      buyerIds: undefined,
-    }));
-
-    setSellers(result);
+    setItems(data || []);
     setLoading(false);
   }, []);
 
-  const dispatchItems = useCallback(async (itemIds, sellerId, adminId) => {
+  const dispatchItems = useCallback(async (itemIds, adminId) => {
     const now = new Date().toISOString();
 
     try {
@@ -117,28 +85,17 @@ export function useSupabaseDispatch() {
         if (orderErr) console.error('Order status update error:', orderErr);
       }
 
-      const { error: notifErr } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: sellerId,
-          type: 'new_order',
-          title: 'Nouvelles commandes assignées',
-          body: `${itemIds.length} article(s) à traiter vous ont été assignés par l'administration.`,
-          resource_type: 'order_item',
-          resource_id: null,
-        });
-
       const { error: logErr } = await supabase
         .from('admin_logs')
         .insert({
           admin_id: adminId,
-          action: 'dispatch_to_seller',
+          action: 'mark_processing',
           resource_type: 'order_item',
-          new_value: { seller_id: sellerId, item_ids: itemIds, count: itemIds.length },
+          new_value: { item_ids: itemIds, count: itemIds.length },
         });
 
-      if (notifErr || logErr) {
-        console.error('Notification or log error:', notifErr || logErr);
+      if (logErr) {
+        console.error('Log error:', logErr);
       }
 
       return { success: true };
@@ -174,5 +131,5 @@ export function useSupabaseDispatch() {
     fetchPending();
   }, [fetchPending]);
 
-  return { sellers, loading, error, dispatchItems, refresh };
+  return { items, loading, error, dispatchItems, refresh };
 }
