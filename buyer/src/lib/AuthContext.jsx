@@ -6,6 +6,7 @@ import {
   useCallback,
 } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { queryClientInstance } from '@/lib/query-client';
 const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -128,6 +129,10 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setProfile(null);
     setIsAuthenticated(false);
+    // Cart, orders, wishlist, notifications... are all cached by user id,
+    // so nothing leaks between accounts — but on a shared device with
+    // repeated login/logout cycles the cache otherwise grows unbounded.
+    queryClientInstance.clear();
   }, []);
   const refreshProfile = useCallback(async () => {
     if (!user?.id) return;
