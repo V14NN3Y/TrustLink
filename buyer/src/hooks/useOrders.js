@@ -32,7 +32,7 @@ export function useOrders() {
     if (!isAuthenticated || !user?.id) return;
 
     const channel = supabase
-      .channel('buyer-orders-realtime')
+      .channel(`buyer-orders-realtime:${user.id}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `buyer_id=eq.${user.id}` },
