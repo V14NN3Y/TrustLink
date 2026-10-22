@@ -24,40 +24,56 @@ export function useCart() {
     enabled: !!user?.id,
   });
 
+  const onMutationError = () => {
+    toast({ title: 'Erreur', description: 'Une erreur est survenue. Réessayez.', variant: 'destructive' });
+  };
+
   const addItemMutation = useMutation({
     mutationFn: (item) => addCartItem(user.id, item.productId, item.quantity || 1),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: cartKey }),
+    onError: onMutationError,
   });
 
   const removeItemMutation = useMutation({
     mutationFn: (itemId) => removeCartItem(itemId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: cartKey }),
+    onError: onMutationError,
   });
 
   const updateQuantityMutation = useMutation({
     mutationFn: ({ itemId, quantity }) => updateCartItemQuantity(itemId, quantity),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: cartKey }),
+    onError: onMutationError,
   });
 
   const clearCartMutation = useMutation({
     mutationFn: () => clearCartDB(user.id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: cartKey }),
+    onError: onMutationError,
   });
 
   useEffect(() => {
     if (user?.id && guestItems.length > 0 && !mergedRef.current) {
       mergedRef.current = true;
       (async () => {
+        let failed = 0;
         for (const item of guestItems) {
           try {
             await addCartItem(user.id, item.productId, item.quantity);
           } catch {
-            // Silently skip failed items during merge
+            failed += 1;
           }
         }
         clearGuestCart();
         setGuestItems([]);
         queryClient.invalidateQueries({ queryKey: cartKey });
+        if (failed > 0) {
+          toast({
+            title: 'Panier non entièrement synchronisé',
+            description: `${failed} article(s) de votre panier n'ont pas pu être ajoutés.`,
+            variant: 'destructive',
+          });
+        }
       })();
     }
     if (!user?.id) {

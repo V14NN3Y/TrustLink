@@ -35,6 +35,9 @@ export function useWishlist() {
       }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: wishlistKey }),
+    onError: () => {
+      toast({ title: 'Erreur', description: 'Impossible de mettre à jour la wishlist. Réessayez.', variant: 'destructive' });
+    },
   });
 
   const toggle = useCallback((productId) => {
