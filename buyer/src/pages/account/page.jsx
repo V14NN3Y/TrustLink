@@ -146,7 +146,7 @@ export default function Account() {
                       <i className="ri-arrow-right-s-line text-base text-gray-400"></i>
                     </button>
                     ))}
-                    <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-poppins text-red-500 hover:bg-red-50 transition-colors cursor-pointer">
+                    <button onClick={() => { if (window.confirm(t('account.confirmLogout'))) logout(); }} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-poppins text-red-500 hover:bg-red-50 transition-colors cursor-pointer">
                     <i className="ri-logout-box-r-line text-base"></i>
                     {t('account.logout')}
                     </button>
@@ -286,9 +286,9 @@ export default function Account() {
                                    </button>
                                  </>
                                )}
-                              <button className="flex items-center gap-1.5 px-4 py-2 text-xs font-poppins font-semibold rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer" style={{ color: '#374151' }}>
+                              <Link to={`/invoice/${order.id}`} className="flex items-center gap-1.5 px-4 py-2 text-xs font-poppins font-semibold rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer" style={{ color: '#374151' }}>
                                 <i className="ri-eye-line"></i> {t('account.details')}
-                              </button>
+                              </Link>
                             </div>
                           </div>
                         )}

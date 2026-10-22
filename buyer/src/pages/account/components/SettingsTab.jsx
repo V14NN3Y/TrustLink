@@ -4,15 +4,37 @@ import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/I18nContext';
+import { sendNewMessage } from '@/lib/supabase/messages';
+import { toast } from '@/components/ui/use-toast';
 import SavedPayments from './SavedPayments';
 
 export default function SettingsTab() {
   const { t } = useI18n();
   const { profile, loading, saving, saveSuccess, saveProfile, reload } = useProfile();
   const { rate } = useExchangeRate();
-  const { user, refreshProfile } = useAuth();
+  const { user, logout, refreshProfile } = useAuth();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [cities, setCities] = useState([]);
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm(t('settings.confirmDeleteAccount'))) return;
+    setDeletingAccount(true);
+    try {
+      await sendNewMessage({
+        senderId: user.id,
+        subject: 'Demande de suppression de compte',
+        body: `Le compte ${profile?.email || user?.email || user.id} demande la suppression définitive de son compte TrustLink.`,
+      });
+      toast({ title: t('settings.deleteAccount'), description: t('settings.deleteAccountRequestSent') });
+      await logout();
+    } catch (err) {
+      console.error('Error sending account deletion request:', err);
+      toast({ title: t('settings.deleteAccount'), description: t('settings.deleteAccountRequestError'), variant: 'destructive' });
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
   
   useEffect(() => {
     supabase.from('delivery_cities').select('name').eq('is_active', true).order('sort_order')
@@ -421,8 +443,12 @@ export default function SettingsTab() {
           <p className="text-xs font-inter text-red-500 mb-3">
             {t('settings.dangerZoneDesc')}
           </p>
-          <button className="flex items-center gap-2 text-sm font-poppins font-medium px-4 py-2 border border-red-200 rounded-lg text-red-600 hover:bg-red-50 cursor-pointer">
-            <i className="ri-delete-bin-line"></i> {t('settings.deleteAccount')}
+          <button
+            onClick={handleDeleteAccount}
+            disabled={deletingAccount}
+            className="flex items-center gap-2 text-sm font-poppins font-medium px-4 py-2 border border-red-200 rounded-lg text-red-600 hover:bg-red-50 disabled:opacity-50 cursor-pointer"
+          >
+            <i className="ri-delete-bin-line"></i> {deletingAccount ? t('settings.updating') : t('settings.deleteAccount')}
           </button>
         </div>
       </div>

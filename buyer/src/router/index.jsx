@@ -1,5 +1,5 @@
-import { Routes, Route, useLocation } from 'react-router-dom';
-import { useMemo } from 'react';
+import { Routes, Route, useLocation, useNavigationType } from 'react-router-dom';
+import { useMemo, useEffect } from 'react';
 import Home from '@/pages/home/page';
 import ProductPage from '@/pages/product/page';
 import Cart from '@/pages/cart/page';
@@ -31,9 +31,19 @@ const AUTH_ROUTES = ['/login', '/register', '/forgot-password', '/auth/reset-pas
 
 export default function AppRoutes() {
   const { pathname } = useLocation();
+  const navigationType = useNavigationType();
   const { isMaintenance, checked } = useMaintenance();
 
   const isAuthPage = useMemo(() => AUTH_ROUTES.includes(pathname), [pathname]);
+
+  // Remonte en haut à chaque navigation interne, sauf sur un retour/avance
+  // dans l'historique (bouton précédent du navigateur) où l'on restaure la
+  // position de scroll naturelle.
+  useEffect(() => {
+    if (navigationType !== 'POP') {
+      window.scrollTo(0, 0);
+    }
+  }, [pathname, navigationType]);
 
   if (!checked) {
     return (

@@ -52,6 +52,7 @@ export default function SavedPayments() {
   };
 
   const deleteMethod = async (id) => {
+    if (!window.confirm(t('settings.confirmDeletePayment'))) return;
     try {
       await supabase.from('saved_payments').delete().eq('id', id);
       setMethods(m => m.filter(x => x.id !== id));
