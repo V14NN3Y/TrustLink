@@ -94,10 +94,6 @@ const FAQS = [
     a: t('escrow.faqRefundTimeA'),
   },
   {
-    q: t('escrow.faqOptOut'),
-    a: t('escrow.faqOptOutA'),
-  },
-  {
     q: t('escrow.faqCommission'),
     a: t('escrow.faqCommissionA'),
   },

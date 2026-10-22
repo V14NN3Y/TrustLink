@@ -21,7 +21,6 @@ function getFaqData(t) {
         { q: t('faq.escrow_q0'), a: t('faq.escrow_a0') },
         { q: t('faq.escrow_q1'), a: t('faq.escrow_a1') },
         { q: t('faq.escrow_q2'), a: t('faq.escrow_a2') },
-        { q: t('faq.escrow_q3'), a: t('faq.escrow_a3') },
         { q: t('faq.escrow_q4'), a: t('faq.escrow_a4') },
       ],
     },
