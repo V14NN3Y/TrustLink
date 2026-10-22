@@ -67,7 +67,13 @@ export const fetchProducts = async ({ category, search, limit = 100 } = {}) => {
   }
 
   if (search) {
-    query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+    // PostgREST's `.or()` filter string uses `,` and `()` as syntax —
+    // a search term containing them (e.g. "sac, cuir" or "taille (M)")
+    // otherwise breaks the filter grammar and the query 400s. Quoting
+    // the value escapes it; embedded quotes/backslashes need their own
+    // escaping per PostgREST's logical-operator syntax.
+    const safeSearch = search.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    query = query.or(`name.ilike."%${safeSearch}%",description.ilike."%${safeSearch}%"`);
   }
 
   const { data, error } = await query;
