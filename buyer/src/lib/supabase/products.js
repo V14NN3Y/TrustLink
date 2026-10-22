@@ -2,6 +2,17 @@ import { supabase } from '@/lib/supabaseClient';
 
 const PLACEHOLDER_IMAGE = '/placeholder-product.svg';
 
+// product_variants.value est un texte libre ("Rouge", "Bleu marine"...) —
+// pas de code hex en base. On ne connaît que les noms courants ; une
+// couleur non reconnue retombe sur un gris neutre plutôt que de planter.
+const COLOR_HEX_MAP = {
+  rouge: '#DC2626', bleu: '#2563EB', 'bleu marine': '#1E3A8A', vert: '#16A34A',
+  jaune: '#F59E0B', noir: '#111827', blanc: '#FFFFFF', gris: '#9CA3AF',
+  marron: '#78350F', beige: '#D6CBB0', rose: '#EC4899', orange: '#EA580C',
+  violet: '#7C3AED', doré: '#B45309', argenté: '#9CA3AF',
+};
+const colorToHex = (name) => COLOR_HEX_MAP[(name || '').trim().toLowerCase()] || '#CBD5E1';
+
 /**
  * Fetch approved products with optional category filter, search, and pagination.
  * Returns an array of normalized products.
@@ -33,6 +44,13 @@ export const fetchProducts = async ({ category, search, limit = 100 } = {}) => {
       profiles!seller_id (
         full_name,
         business_name
+      ),
+      product_variants (
+        type,
+        value,
+        stock_quantity,
+        price_modifier,
+        sort_order
       )
     `)
     .eq('status', 'approved')
@@ -87,6 +105,13 @@ export const fetchProductById = async (id) => {
       profiles!seller_id (
         full_name,
         business_name
+      ),
+      product_variants (
+        type,
+        value,
+        stock_quantity,
+        price_modifier,
+        sort_order
       )
     `)
     .eq('id', id)
@@ -127,6 +152,14 @@ const normalizeProduct = (p) => {
   const diffDays = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
   const isNew = diffDays <= 14;
 
+  const variantRows = [...(p.product_variants || [])].sort(
+    (a, b) => (a.sort_order || 0) - (b.sort_order || 0)
+  );
+  const sizes = variantRows.filter((v) => v.type === 'size').map((v) => v.value);
+  const colors = variantRows
+    .filter((v) => v.type === 'color')
+    .map((v) => ({ name: v.value, hex: colorToHex(v.value) }));
+
   return {
     id: p.id,
     name: p.name,
@@ -147,9 +180,6 @@ const normalizeProduct = (p) => {
     category: p.categories?.slug || '',
     categoryName: p.categories?.name || '',
     images: images.length > 0 ? images : [PLACEHOLDER_IMAGE],
-    variants: {
-      sizes: [],
-      colors: [],
-    },
+    variants: { sizes, colors },
   };
 };
