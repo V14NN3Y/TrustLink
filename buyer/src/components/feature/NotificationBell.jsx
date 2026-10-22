@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/lib/AuthContext';
-import { formatRelative } from '@/utils/format';
+import { formatRelative, getResourceLink } from '@/utils/format';
 const TYPE_CONFIG = {
     order_update: { icon: 'ri-shopping-bag-line', color: '#125C8D', bg: '#EBF4FB' },
     new_message: { icon: 'ri-message-3-line', color: '#7C3AED', bg: '#F5F3FF' },
@@ -16,6 +16,13 @@ export default function NotificationBell() {
     const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
+    const navigate = useNavigate();
+    const handleClick = (notif) => {
+        markRead(notif.id);
+        setOpen(false);
+        const link = getResourceLink(notif.resource_type, notif.resource_id);
+        if (link) navigate(link);
+    };
     useEffect(() => {
         const handler = (e) => {
             if (ref.current && !ref.current.contains(e.target)) setOpen(false);
@@ -84,7 +91,7 @@ export default function NotificationBell() {
                                 return (
                                     <div
                                         key={notif.id}
-                                        onClick={() => { markRead(notif.id); setOpen(false); }}
+                                        onClick={() => handleClick(notif)}
                                         className="flex items-start gap-3 px-4 py-3 border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors"
                                         style={{ backgroundColor: notif.is_read ? 'transparent' : '#F0F7FF' }}
                                     >

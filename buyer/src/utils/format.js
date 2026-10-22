@@ -28,6 +28,17 @@ export const renderStars = (rating) => {
 export const generateTracking = () =>
   'TL-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
+export const getResourceLink = (resourceType, resourceId) => {
+  if (!resourceType || !resourceId) return null;
+  switch (resourceType) {
+    case 'order': return '/account';
+    case 'product': return `/product/${resourceId}`;
+    case 'message': return '/support';
+    case 'dispute': return '/account';
+    default: return null;
+  }
+};
+
 export const formatRelative = (dateStr) => {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);

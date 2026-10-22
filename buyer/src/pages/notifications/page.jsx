@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/lib/AuthContext';
-import { formatRelative } from '@/utils/format';
+import { formatRelative, getResourceLink } from '@/utils/format';
 import { useI18n } from '@/lib/I18nContext';
 function getTypeConfig(t) {
   return {
@@ -12,16 +12,6 @@ function getTypeConfig(t) {
     dispute_update: { icon: 'ri-shield-check-line', color: '#D97706', bg: '#FEF3C7', label: t('notifications.types.dispute_update') },
     new_order: { icon: 'ri-store-2-line', color: '#FF6A00', bg: '#FFF3EC', label: t('notifications.types.new_order') },
   };
-}
-function getResourceLink(resourceType, resourceId) {
-  if (!resourceType || !resourceId) return null;
-  switch (resourceType) {
-    case 'order': return `/account`;
-    case 'product': return `/product/${resourceId}`;
-    case 'message': return `/support`;
-    case 'dispute': return `/account`;
-    default: return null;
-  }
 }
 export default function Notifications() {
   const { t } = useI18n();
