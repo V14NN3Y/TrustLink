@@ -9,10 +9,9 @@ export default function ReviewsSection({ productId }) {
     const { reviews, stats, myReview, canReview, loading, submitting, submit } = useReviews(productId);
     const [showForm, setShowForm] = useState(false);
     const handleSubmit = async (data) => {
-        try {
-            await submit(data);
-        } catch {}
-        setShowForm(false);
+        // Laisse l'erreur remonter jusqu'à ReviewForm : il l'affiche et
+        // garde le formulaire ouvert au lieu de le fermer sur un échec.
+        await submit(data);
     };
     return (
         <section className="mt-10">

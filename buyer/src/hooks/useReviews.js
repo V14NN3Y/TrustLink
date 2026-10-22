@@ -47,6 +47,7 @@ export const useReviews = (productId) => {
   const submit = async ({ rating, comment, orderId }) => {
     if (!user) throw new Error('Non connecté');
     setSubmitting(true);
+    setError(null);
     try {
       await submitReview({
         productId,
@@ -58,6 +59,7 @@ export const useReviews = (productId) => {
       await fetchAll(); // Refresh
     } catch (err) {
       setError(err.message);
+      throw err;
     } finally {
       setSubmitting(false);
     }
