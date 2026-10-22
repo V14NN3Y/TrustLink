@@ -98,7 +98,20 @@ export default function Cart() {
                   <p className="text-sm font-poppins font-bold mb-3" style={{ color: '#125C8D' }}>{formatPrice(item.price)}</p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                      <button onClick={() => updateQuantity(item.productId, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center hover:bg-gray-50 text-sm font-medium">−</button>
+                      <button
+                        onClick={() => {
+                          if (item.quantity === 1) {
+                            if (window.confirm(t('cart.confirmRemove').replace('{name}', item.name))) {
+                              removeItem(item.productId);
+                            }
+                            return;
+                          }
+                          updateQuantity(item.productId, item.quantity - 1);
+                        }}
+                        className="w-8 h-8 flex items-center justify-center hover:bg-gray-50 text-sm font-medium"
+                      >
+                        −
+                      </button>
                       <span className="w-10 text-center text-sm font-inter">{item.quantity}</span>
                       <button onClick={() => updateQuantity(item.productId, item.quantity + 1)} className="w-8 h-8 flex items-center justify-center hover:bg-gray-50 text-sm font-medium">+</button>
                     </div>

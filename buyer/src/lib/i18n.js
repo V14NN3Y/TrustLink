@@ -307,6 +307,7 @@ const locales = {
       summary: 'Récapitulatif',
       secureEscrow: 'Paiement Escrow sécurisé',
       escrowDesc: 'Vos fonds sont protégés jusqu\'à la réception de votre commande.',
+      confirmRemove: 'Retirer "{name}" du panier ?',
     },
     auth: {
       login: 'Connexion',
@@ -1099,6 +1100,7 @@ const locales = {
       summary: 'Summary',
       secureEscrow: 'Secure Escrow Payment',
       escrowDesc: 'Your funds are protected until you receive your order.',
+      confirmRemove: 'Remove "{name}" from your cart?',
     },
     auth: {
       login: 'Login',
