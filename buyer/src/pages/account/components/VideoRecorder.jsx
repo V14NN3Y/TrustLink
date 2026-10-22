@@ -14,6 +14,14 @@ const timerRef = useRef(null);
 const videoRef = useRef(null);
 const { user } = useAuth();
 const startRecording = async () => {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+        toast({
+            title: 'Enregistrement vidéo non disponible',
+            description: 'Votre navigateur ne supporte pas l\'enregistrement vidéo. Essayez avec une version récente de Chrome, Safari ou Firefox.',
+            variant: 'destructive',
+        });
+        return;
+    }
     try {
         const mediaStream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'environment' },
@@ -58,8 +66,16 @@ const startRecording = async () => {
         setRecording(true);
         setDuration(0);
         timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
-    } catch {
-        toast({ title: 'Caméra refusée', description: 'Autorisez l\'accès à la caméra dans les paramètres de votre navigateur.', variant: 'destructive' });
+    } catch (err) {
+        if (err?.name === 'NotFoundError') {
+            toast({ title: 'Aucune caméra détectée', description: 'Aucune caméra n\'a été trouvée sur cet appareil.', variant: 'destructive' });
+        } else if (err?.name === 'NotReadableError') {
+            toast({ title: 'Caméra indisponible', description: 'Votre caméra est déjà utilisée par une autre application.', variant: 'destructive' });
+        } else if (err?.name === 'NotAllowedError' || err?.name === 'SecurityError') {
+            toast({ title: 'Caméra refusée', description: 'Autorisez l\'accès à la caméra dans les paramètres de votre navigateur.', variant: 'destructive' });
+        } else {
+            toast({ title: 'Erreur caméra', description: 'Impossible de démarrer l\'enregistrement. Réessayez.', variant: 'destructive' });
+        }
     }
 };
 const stopRecording = () => {
