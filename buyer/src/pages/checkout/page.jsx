@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/lib/AuthContext';
-import { createOrder, updateOrdersAfterPayment } from '@/lib/supabase/orders';
+import { createOrder, recordPaymentReference } from '@/lib/supabase/orders';
 import { openKkiapayPayment } from '@/lib/kkiapay';
 import { useCurrencyContext } from '@/lib/CurrencyContext';
 import { supabase } from '@/lib/supabaseClient';
@@ -174,7 +174,7 @@ export default function Checkout() {
             return;
           }
           if (result.success) {
-            await updateOrdersAfterPayment({
+            await recordPaymentReference({
               groupId,
               paymentReference: result.transactionId,
             });
@@ -190,7 +190,7 @@ export default function Checkout() {
 
       if (couponData) {
         try {
-          await supabase.from('coupons').update({ used_count: (couponData.used_count || 0) + 1 }).eq('id', couponData.id);
+          await supabase.rpc('increment_coupon_usage', { p_code: couponData.code });
         } catch {
           // coupon increment failure should not block order confirmation
         }

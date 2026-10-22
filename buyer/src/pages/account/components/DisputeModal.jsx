@@ -2,33 +2,36 @@ import { useState } from 'react';
 import { useDisputes } from '@/hooks/useDisputes';
 import VideoRecorder from './VideoRecorder';
 import { useCurrencyContext } from '@/lib/CurrencyContext';
-const REASONS = [
-  'Produit non conforme à la description',
-  'Produit défectueux / endommagé',
-  'Produit counterfeit / faux',
-  'Quantité incorrecte',
-  'Article manquant dans le colis',
-  'Autre',
-];
+import { useI18n } from '@/lib/I18nContext';
 export default function DisputeModal({ order, onClose, onSuccess }) {
+  const { t } = useI18n();
   const { openDispute, submitting } = useDisputes();
   const { formatPrice } = useCurrencyContext();
-  const [step, setStep] = useState(order.videoFilePath ? 3 : 1);
-  const [reason, setReason] = useState('');
-  const [customReason, setCustomReason] = useState('');
+  const REASONS = [
+    t('dispute.reason1'), t('dispute.reason2'), t('dispute.reason3'),
+    t('dispute.reason4'), t('dispute.reason5'), t('dispute.reasonOther'),
+  ];
+  const OTHER = t('dispute.reasonOther');
+  // Si on arrive depuis ConfirmDeliveryModal (produit déclaré défectueux),
+  // order.reason porte déjà le motif saisi par le buyer : on le réinjecte
+  // comme motif "Autre" pour ne pas le perdre, et on peut sauter direct à
+  // l'étape 3 puisque motif + vidéo sont déjà renseignés.
+  const [step, setStep] = useState(order.videoFilePath && order.reason ? 3 : 1);
+  const [reason, setReason] = useState(order.reason ? OTHER : '');
+  const [customReason, setCustomReason] = useState(order.reason || '');
   const [videoFilePath, setVideoFilePath] = useState(order.videoFilePath || null);
   const [error, setError] = useState(null);
   const handleSubmit = async () => {
     setError(null);
-    const fullReason = reason === 'Autre' ? customReason.trim() : reason;
-    if (!fullReason) { setError('Veuillez sélectionner un motif.'); return; }
-    if (!videoFilePath) { setError('La vidéo de déballage est obligatoire.'); return; }
+    const fullReason = reason === OTHER ? customReason.trim() : reason;
+    if (!fullReason) { setError(t('dispute.errorNoReason')); return; }
+    if (!videoFilePath) { setError(t('dispute.errorNoVideo')); return; }
     try {
       await openDispute({ orderId: order.id, reason: fullReason, videoFilePath });
       onSuccess?.();
       onClose();
     } catch (err) {
-      setError(err.message || 'Erreur lors de l\'ouverture du litige.');
+      setError(err.message || t('dispute.errorGeneric'));
     }
   };
   return (
@@ -37,8 +40,8 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
-            <h3 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>Ouvrir un litige</h3>
-            <p className="text-xs font-inter" style={{ color: '#9CA3AF' }}>Commande #{order.id.slice(0, 8).toUpperCase()}</p>
+            <h3 className="text-base font-poppins font-semibold" style={{ color: '#111827' }}>{t('dispute.title')}</h3>
+            <p className="text-xs font-inter" style={{ color: '#9CA3AF' }}>{t('dispute.orderId').replace('{id}', order.id.slice(0, 8).toUpperCase())}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer">
             <i className="ri-close-line text-lg" style={{ color: '#6B7280' }}></i>
@@ -46,7 +49,7 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
         </div>
         {/* Steps */}
         <div className="flex items-center px-5 py-3 gap-2 border-b border-gray-50">
-          {['Motif', 'Vidéo', 'Confirmation'].map((label, idx) => {
+          {[t('dispute.stepReason'), t('dispute.stepVideo'), t('dispute.stepConfirmation')].map((label, idx) => {
             const s = idx + 1;
             const done = step > s;
             const active = step === s;
@@ -70,7 +73,7 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
           {/* Étape 1 : Motif */}
           {step === 1 && (
             <form onSubmit={(e) => { e.preventDefault(); if (reason) setStep(2); }}>
-              <p className="text-sm font-inter mb-3" style={{ color: '#6B7280' }}>Pourquoi ouvrez-vous un litige ?</p>
+              <p className="text-sm font-inter mb-3" style={{ color: '#6B7280' }}>{t('dispute.reasonPrompt')}</p>
               <div className="space-y-2 mb-4">
                 {REASONS.map((r) => (
                   <label key={r} className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:bg-gray-50"
@@ -81,15 +84,15 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
                   </label>
                 ))}
               </div>
-              {reason === 'Autre' && (
+              {reason === OTHER && (
                 <textarea value={customReason} onChange={(e) => setCustomReason(e.target.value)}
-                  placeholder="Décrivez le problème..." rows={3}
+                  placeholder={t('dispute.otherPlaceholder')} rows={3}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-inter outline-none mb-4 resize-none"
                   style={{ color: '#111827' }} />
               )}
               <div className="flex gap-3">
-                <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-poppins font-medium rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer" style={{ color: '#374151' }}>Annuler</button>
-                <button type="submit" disabled={!reason} className="flex-1 py-2.5 text-sm font-poppins font-semibold rounded-lg text-white disabled:opacity-50 cursor-pointer" style={{ backgroundColor: '#125C8D' }}>Continuer →</button>
+                <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-poppins font-medium rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer" style={{ color: '#374151' }}>{t('dispute.cancel')}</button>
+                <button type="submit" disabled={!reason} className="flex-1 py-2.5 text-sm font-poppins font-semibold rounded-lg text-white disabled:opacity-50 cursor-pointer" style={{ backgroundColor: '#125C8D' }}>{t('dispute.continue')}</button>
               </div>
             </form>
           )}
@@ -100,14 +103,14 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
                 <div className="flex items-start gap-2">
                   <i className="ri-information-line text-sm mt-0.5 flex-shrink-0" style={{ color: '#D97706' }}></i>
                   <p className="text-xs font-inter leading-relaxed" style={{ color: '#92400E' }}>
-                    <strong>Vidéo obligatoire :</strong> filmez l'ouverture complète du colis <strong>sans coupure</strong>. Sans cette preuve, le litige sera rejeté.
+                    <strong>{t('dispute.videoRequiredLabel')}</strong> {t('dispute.videoRequiredDesc')}
                   </p>
                 </div>
               </div>
               <VideoRecorder orderId={order.id} onRecorded={setVideoFilePath} />
               <div className="flex gap-3 mt-4">
-                <button onClick={() => setStep(1)} className="flex-1 py-2.5 text-sm font-poppins font-medium rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer" style={{ color: '#374151' }}>← Retour</button>
-                <button onClick={() => setStep(3)} disabled={!videoFilePath} className="flex-1 py-2.5 text-sm font-poppins font-semibold rounded-lg text-white disabled:opacity-50 cursor-pointer" style={{ backgroundColor: '#125C8D' }}>Continuer →</button>
+                <button onClick={() => setStep(1)} className="flex-1 py-2.5 text-sm font-poppins font-medium rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer" style={{ color: '#374151' }}>{t('dispute.back')}</button>
+                <button onClick={() => setStep(3)} disabled={!videoFilePath} className="flex-1 py-2.5 text-sm font-poppins font-semibold rounded-lg text-white disabled:opacity-50 cursor-pointer" style={{ backgroundColor: '#125C8D' }}>{t('dispute.continue')}</button>
               </div>
             </div>
           )}
@@ -115,23 +118,23 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
           {step === 3 && (
             <div>
               <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E5E7EB' }}>
-                <p className="text-xs font-poppins font-semibold mb-2 uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Récapitulatif</p>
+                <p className="text-xs font-poppins font-semibold mb-2 uppercase tracking-wider" style={{ color: '#9CA3AF' }}>{t('dispute.summaryTitle')}</p>
                 <div className="space-y-2 text-sm font-inter">
-                  <div className="flex justify-between"><span style={{ color: '#6B7280' }}>Commande</span><span className="font-semibold" style={{ color: '#111827' }}>#{order.id.slice(0,8)}</span></div>
-                  <div className="flex justify-between"><span style={{ color: '#6B7280' }}>Motif</span><span className="font-semibold" style={{ color: '#111827' }}>{reason === 'Autre' ? customReason : reason}</span></div>
-                  <div className="flex justify-between"><span style={{ color: '#6B7280' }}>Vidéo</span><span className="flex items-center gap-1" style={{ color: '#15803D' }}><i className="ri-check-line"></i> Enregistrée</span></div>
-                  <div className="flex justify-between"><span style={{ color: '#6B7280' }}>Montant</span><span className="font-semibold" style={{ color: '#125C8D' }}>{formatPrice(order.total)}</span></div>
+                  <div className="flex justify-between"><span style={{ color: '#6B7280' }}>{t('dispute.summaryOrder')}</span><span className="font-semibold" style={{ color: '#111827' }}>#{order.id.slice(0,8)}</span></div>
+                  <div className="flex justify-between"><span style={{ color: '#6B7280' }}>{t('dispute.summaryReason')}</span><span className="font-semibold" style={{ color: '#111827' }}>{reason === OTHER ? customReason : reason}</span></div>
+                  <div className="flex justify-between"><span style={{ color: '#6B7280' }}>{t('dispute.summaryVideo')}</span><span className="flex items-center gap-1" style={{ color: '#15803D' }}><i className="ri-check-line"></i> {t('dispute.videoRecorded')}</span></div>
+                  <div className="flex justify-between"><span style={{ color: '#6B7280' }}>{t('dispute.summaryAmount')}</span><span className="font-semibold" style={{ color: '#125C8D' }}>{formatPrice(order.total)}</span></div>
                 </div>
               </div>
               <p className="text-xs font-inter mb-4 leading-relaxed" style={{ color: '#6B7280' }}>
-                En confirmant, vous attestez que les informations sont exactes. Notre équipe examine le dossier sous <strong>48–72h</strong>.
+                {t('dispute.disclaimer').split('{delay}')[0]}<strong>{t('dispute.disclaimerDelay')}</strong>{t('dispute.disclaimer').split('{delay}')[1]}
               </p>
               <div className="flex gap-3">
-                <button onClick={() => setStep(2)} className="flex-1 py-2.5 text-sm font-poppins font-medium rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer" style={{ color: '#374151' }}>← Retour</button>
+                <button onClick={() => setStep(2)} className="flex-1 py-2.5 text-sm font-poppins font-medium rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer" style={{ color: '#374151' }}>{t('dispute.back')}</button>
                 <button onClick={handleSubmit} disabled={submitting}
                   className="flex-1 py-2.5 text-sm font-poppins font-semibold rounded-lg text-white disabled:opacity-50 cursor-pointer whitespace-nowrap"
                   style={{ backgroundColor: '#DC2626' }}>
-                  {submitting ? 'Envoi en cours...' : 'Confirmer le litige'}
+                  {submitting ? t('dispute.submitting') : t('dispute.submit')}
                 </button>
               </div>
             </div>

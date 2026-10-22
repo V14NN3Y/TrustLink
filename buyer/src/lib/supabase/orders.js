@@ -139,7 +139,7 @@ export const fetchOrders = async (buyerId) => {
         total: 0,
         city: order.shipping_city,
         createdAt: order.created_at,
-        trackingNumber: `TL-${order.id.substring(0, 8).toUpperCase()}`,
+        trackingNumber: `TL-${(order.group_id || order.id).substring(0, 8).toUpperCase()}`,
         items: [],
         orderIds: [],
         dispatches: [],
@@ -233,14 +233,19 @@ export const fetchOrderById = async (orderId) => {
   return data;
 };
 
-export const updateOrdersAfterPayment = async ({ groupId, paymentReference }) => {
+// Les buyers n'ont pas de droit `update` sur orders (RLS) — et c'est
+// volontaire : rien ne vérifie côté serveur qu'un paiement KkiaPay a
+// réellement eu lieu, donc laisser le buyer se mettre lui-même "paid"
+// serait une faille (n'importe qui pourrait s'auto-valider sans payer).
+// On se contente d'enregistrer la référence de transaction pour que
+// l'admin puisse la rapprocher du dashboard KkiaPay ; c'est lui qui
+// bascule le statut en 'paid' après vérification (flux déjà documenté).
+export const recordPaymentReference = async ({ groupId, paymentReference, paymentMethod }) => {
   if (!groupId) return;
-  const updateData = { status: 'paid', updated_at: new Date().toISOString() };
-  if (paymentReference) updateData.payment_reference = paymentReference;
-
-  const { error } = await supabase
-    .from('orders')
-    .update(updateData)
-    .eq('group_id', groupId);
+  const { error } = await supabase.rpc('record_payment_reference', {
+    p_group_id: groupId,
+    p_reference: paymentReference || null,
+    p_method: paymentMethod || null,
+  });
   if (error) throw error;
 };

@@ -11,30 +11,23 @@ const uploadDisputeVideo = async (blob, buyerId, orderId) => {
 /**
  * Crée un litige + vidéo de déballage + passe la commande en status 'disputed'.
  * Accepte soit un Blob (via videoBlob, upload automatique), soit un chemin déjà uploadé (via videoFilePath).
+ * Passe par la fonction serveur open_order_dispute() : les buyers n'ont pas
+ * le droit de modifier orders.status directement (RLS), donc la bascule en
+ * 'disputed' doit être faite côté serveur, de façon atomique avec la
+ * création du litige.
  */
 export const createDispute = async ({ orderId, buyerId, reason, videoBlob, videoFilePath }) => {
     if (!buyerId || !orderId) throw new Error('buyerId and orderId required');
-    let videoUrl = null;
-    let videoId = null;
     const resolvedPath = videoFilePath
         ? supabase.storage.from('delivery-videos').getPublicUrl(videoFilePath).data.publicUrl
         : (videoBlob ? await uploadDisputeVideo(videoBlob, buyerId, orderId) : null);
-    if (resolvedPath) {
-        const { data: dv, error: dvErr } = await supabase
-            .from('delivery_videos')
-            .insert({ order_id: orderId, buyer_id: buyerId, video_url: resolvedPath })
-            .select('id')
-            .single();
-        if (dvErr) throw dvErr;
-        videoId = dv.id;
-    }
-    const { data, error } = await supabase
-        .from('disputes')
-        .insert({ order_id: orderId, buyer_id: buyerId, video_id: videoId, reason, status: 'open' })
-        .select()
-        .single();
+    const { data: disputeId, error } = await supabase.rpc('open_order_dispute', {
+        p_order_id: orderId,
+        p_reason: reason,
+        p_video_url: resolvedPath,
+    });
     if (error) throw error;
-    return { dispute: data, videoUrl };
+    return { disputeId, videoUrl: resolvedPath };
 };
 /**
  * Récupère les litiges du buyer connecté.

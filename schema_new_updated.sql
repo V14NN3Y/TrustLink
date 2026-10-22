@@ -1058,3 +1058,139 @@ create policy "Admins can manage product images storage"
   on storage.objects for all
   using ( bucket_id = 'product-images' and is_admin(auth.uid()) );
 
+-- ============================================================
+-- MIGRATION: buyer order lifecycle fixes (2026-10-22)
+-- See supabase/migrations/20261022101205_buyer_order_lifecycle_fixes.sql
+-- ============================================================
+
+create policy "Receivers can mark messages as read"
+  on messages for update using (receiver_id = auth.uid())
+  with check (receiver_id = auth.uid());
+
+create or replace function get_support_admin_id()
+returns uuid
+language sql
+security definer
+set search_path = public
+as $$
+  select id from profiles where role = 'admin' order by created_at asc limit 1;
+$$;
+
+create or replace function confirm_order_receipt(p_order_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_group_id uuid;
+begin
+  select group_id into v_group_id from orders where id = p_order_id;
+  update orders
+  set status = 'confirmed', updated_at = now()
+  where buyer_id = auth.uid()
+    and status in ('delivered', 'in_transit')
+    and (id = p_order_id or (v_group_id is not null and group_id = v_group_id));
+end;
+$$;
+
+create or replace function open_order_dispute(
+  p_order_id uuid,
+  p_reason text,
+  p_video_url text default null,
+  p_duration_seconds integer default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_video_id uuid;
+  v_dispute_id uuid;
+  v_group_id uuid;
+  v_owns boolean;
+begin
+  select (buyer_id = auth.uid()), group_id into v_owns, v_group_id
+  from orders where id = p_order_id;
+
+  if not coalesce(v_owns, false) then
+    raise exception 'Order not found or not owned by caller';
+  end if;
+
+  if p_video_url is not null then
+    insert into delivery_videos (order_id, buyer_id, video_url, duration_seconds)
+    values (p_order_id, auth.uid(), p_video_url, p_duration_seconds)
+    returning id into v_video_id;
+  end if;
+
+  insert into disputes (order_id, buyer_id, video_id, reason, status)
+  values (p_order_id, auth.uid(), v_video_id, p_reason, 'open')
+  returning id into v_dispute_id;
+
+  update orders
+  set status = 'disputed', updated_at = now()
+  where buyer_id = auth.uid()
+    and (id = p_order_id or (v_group_id is not null and group_id = v_group_id));
+
+  return v_dispute_id;
+end;
+$$;
+
+create or replace function record_payment_reference(
+  p_group_id uuid,
+  p_reference text,
+  p_method text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update orders
+  set payment_reference = p_reference,
+      payment_method = coalesce(p_method, payment_method),
+      updated_at = now()
+  where group_id = p_group_id
+    and buyer_id = auth.uid()
+    and status = 'pending';
+end;
+$$;
+
+create or replace function increment_coupon_usage(p_code text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update coupons
+  set used_count = used_count + 1
+  where code = p_code
+    and active = true
+    and (max_uses is null or used_count < max_uses);
+end;
+$$;
+
+create policy "Buyers can delete their own pending orders"
+  on orders for delete using (buyer_id = auth.uid() and status = 'pending');
+
+drop policy if exists "Buyers can manage their own reviews" on reviews;
+
+create policy "Buyers can insert reviews for delivered products"
+  on reviews for insert with check (
+    buyer_id = auth.uid()
+    and exists (
+      select 1 from order_items oi
+      join orders o on o.id = oi.order_id
+      where oi.product_id = reviews.product_id
+        and o.buyer_id = auth.uid()
+        and o.status in ('delivered', 'confirmed')
+    )
+  );
+create policy "Buyers can update their own reviews"
+  on reviews for update using (buyer_id = auth.uid());
+create policy "Buyers can delete their own reviews"
+  on reviews for delete using (buyer_id = auth.uid());
+
