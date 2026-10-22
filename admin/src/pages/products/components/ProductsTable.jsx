@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
@@ -7,6 +8,7 @@ import { formatXOF, formatDate } from '@/components/base/DataTransformer';
 import VariantModal from './VariantModal';
 const STATUSES = ['', 'pending_review', 'approved', 'rejected'];
 export default function ProductsTable() {
+  const navigate = useNavigate();
   const { rate } = useExchangeRate();
   const { products, loading, updateProduct } = useSupabaseProducts(null, rate);
   const [statusFilter, setStatusFilter] = useState('');
@@ -15,9 +17,7 @@ export default function ProductsTable() {
   const [variantProduct, setVariantProduct] = useState(null);
   const filtered = products.filter(p => {
     const matchStatus = !statusFilter || p.status?.toLowerCase?.() === statusFilter;
-    const matchSearch = !search ||
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.seller_name.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchSearch;
   });
 
@@ -53,7 +53,7 @@ export default function ProductsTable() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Nom produit, vendeur..."
+              placeholder="Nom produit..."
               className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-trustblue"
             />
           </div>
@@ -68,12 +68,18 @@ export default function ProductsTable() {
             <option value="rejected">Rejetés</option>
           </select>
           <span className="text-xs text-slate-400 self-center">{filtered.length} produit(s)</span>
+          <button
+            onClick={() => navigate('/products/new')}
+            className="px-4 py-2 bg-trustblue text-white rounded-xl text-sm font-semibold cursor-pointer hover:opacity-90 flex items-center gap-2 whitespace-nowrap"
+          >
+            <i className="ri-add-line" /> Ajouter un produit
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-100">
-                {['Produit', 'Vendeur', 'Catégorie', 'Prix XOF', 'Statut', 'Soumis le', 'Variantes', 'Actions'].map(h => (
+                {['Produit', 'Source', 'Catégorie', 'Prix XOF', 'Statut', 'Soumis le', 'Variantes', 'Actions'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
               </tr>

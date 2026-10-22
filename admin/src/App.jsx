@@ -18,6 +18,7 @@ import Register from '@/pages/auth/Register';
 import UsersPage from '@/pages/users/page';
 import AdminLogsPage from '@/pages/admin-logs/page';
 import ProductsPage from '@/pages/products/page';
+import ProductNewPage from '@/pages/products/new/page';
 import MessagesPage from '@/pages/messages/page';
 import DeliveryVideosPage from '@/pages/delivery-videos/page';
 import NotificationsPage from '@/pages/notifications/page';
@@ -90,6 +91,7 @@ const AuthenticatedApp = () => {
             <Route path="/moderation" element={<ModerationPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/products" element={<ProductsPage />} />
+            <Route path="/products/new" element={<ProductNewPage />} />
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/admin-logs" element={<AdminLogsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
