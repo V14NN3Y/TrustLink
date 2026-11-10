@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { formatDateTime } from '@/components/base/DataTransformer';
+import SignedMedia from '@/components/base/SignedMedia';
 export default function DeliveryVideosPage() {
   const [videos, setVideos] = useState([]);
   const [disputes, setDisputes] = useState([]);
@@ -162,7 +163,7 @@ export default function DeliveryVideosPage() {
             {filtered.map(v => (
               <div key={v.id} className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50">
                 <div className="w-32 h-20 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
-                  <video src={v.video_url} className="w-full h-full object-cover" />
+                  <SignedMedia kind="video" bucket="delivery-videos" src={v.video_url} controls={false} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                     <i className="ri-play-circle-line text-white text-2xl" />
                   </div>
@@ -262,7 +263,7 @@ function VideoReviewModal({ video, onClose, onReview }) {
             <i className="ri-close-line text-slate-500 text-xl" />
           </button>
         </div>
-        <video src={video.video_url} controls className="w-full rounded-xl mb-4 max-h-64 object-cover" />
+        <div className="w-full rounded-xl mb-4 h-64 overflow-hidden bg-slate-100"><SignedMedia kind="video" bucket="delivery-videos" src={video.video_url} className="w-full h-full object-cover" /></div>
         {video.is_defective === null && (
           <>
             <div className="mb-4">

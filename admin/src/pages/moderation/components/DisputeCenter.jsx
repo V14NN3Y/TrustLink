@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
 import StatusBadge from '@/components/base/StatusBadge';
+import SignedMedia from '@/components/base/SignedMedia';
 import { formatDateTime, formatXOF } from '@/components/base/DataTransformer';
 
 const ROLE_ALIGN = { BUYER: 'items-start', SELLER: 'items-end', ADMIN: 'items-center' };
@@ -13,9 +14,12 @@ const BUBBLE_STYLE = {
 
 export default function DisputeCenter({ disputes, onUpdate }) {
   const { user } = useAuth();
-  const [selected, setSelected] = useState(disputes[0]);
+  // Keep only the id: `disputes` arrives after the first render, so a
+  // useState(disputes[0]) would stay undefined forever. Derive `selected` instead.
+  const [selectedId, setSelectedId] = useState(null);
+  const selected = disputes.find(d => d.id === selectedId) || disputes[0];
   const [message, setMessage] = useState('');
-  const [videoExpanded, setVideoExpanded] = useState(false);
+  const [evidenceOpen, setEvidenceOpen] = useState(true);
   const [resolving, setResolving] = useState(false);
   const [resolveAction, setResolveAction] = useState(null);
   const [sending, setSending] = useState(false);
@@ -37,7 +41,7 @@ export default function DisputeCenter({ disputes, onUpdate }) {
     if (!error) {
       const newMsg = { id: Date.now(), sender_id: user.id, author: user.email || 'Admin', content: message.trim(), timestamp: new Date().toISOString() };
       const updated = { ...selected, messages: [...(selected.messages || []), newMsg] };
-      onUpdate(updated); setSelected(updated); setMessage('');
+      onUpdate(updated); setMessage('');
     }
     setSending(false);
   }
@@ -78,11 +82,17 @@ export default function DisputeCenter({ disputes, onUpdate }) {
     });
 
     const updated = { ...selected, status: newStatus, resolution: resolutionText };
-    onUpdate(updated); setSelected(updated);
+    onUpdate(updated);
     setResolving(false); setResolveAction(null);
   }
 
-  if (!selected) return null;
+  if (!selected) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-100 flex items-center justify-center text-sm text-slate-400" style={{ height: 640 }}>
+        Aucun litige pour le moment
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 flex flex-col" style={{ height: 640 }}>
@@ -94,7 +104,7 @@ export default function DisputeCenter({ disputes, onUpdate }) {
       <div className="flex flex-1 min-h-0">
         <div className="w-72 border-r border-slate-100 flex-shrink-0 overflow-y-auto">
           {disputes.map(d => (
-            <button key={d.id} onClick={() => setSelected(d)} className={`w-full text-left px-4 py-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer ${selected.id === d.id ? 'bg-blue-50 border-l-2 border-l-trustblue' : ''}`}>
+            <button key={d.id} onClick={() => setSelectedId(d.id)} className={`w-full text-left px-4 py-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer ${selected.id === d.id ? 'bg-blue-50 border-l-2 border-l-trustblue' : ''}`}>
               <div className="flex items-start justify-between gap-2 mb-1">
                 <p className="text-sm font-semibold text-slate-800 truncate">{d.order_ref}</p>
                 <StatusBadge status={d.status === 'open' || d.status === 'OPEN' ? 'disputed' : d.status === 'resolved_refund' ? 'resolved_refund' : d.status === 'resolved_no_refund' ? 'resolved_no_refund' : 'resolved_refund'} />
@@ -112,18 +122,42 @@ export default function DisputeCenter({ disputes, onUpdate }) {
                 <p className="text-sm font-semibold text-slate-800">{selected.order_ref} · {formatXOF(selected.amount_xof)}</p>
                 <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{selected.reason}</p>
               </div>
-              {selected.video_url && (
-                <button onClick={() => setVideoExpanded(v => !v)} className="flex-shrink-0 px-3 py-1.5 bg-blue-50 border border-blue-100 text-trustblue rounded-xl text-xs font-semibold cursor-pointer">
-                  <i className="ri-video-line mr-1" />{videoExpanded ? 'Masquer' : 'Vidéo'}
-                </button>
-              )}
+              <button onClick={() => setEvidenceOpen(v => !v)} className="flex-shrink-0 px-3 py-1.5 bg-blue-50 border border-blue-100 text-trustblue rounded-xl text-xs font-semibold cursor-pointer">
+                <i className="ri-layout-column-line mr-1" />{evidenceOpen ? 'Masquer les preuves' : 'Preuves'}
+              </button>
             </div>
-            {videoExpanded && selected.video_url && (
-              <div className="mt-3 relative rounded-xl overflow-hidden border border-slate-100 animate-fade-in">
-                <video src={selected.video_url} controls className="w-full max-h-40 object-cover" />
-                <span className="absolute top-2 right-2 bg-emerald-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <i className="ri-shield-check-line text-xs" />In-app · Certifiée
-                </span>
+            {evidenceOpen && (
+              <div className="mt-3 grid grid-cols-2 gap-3 animate-fade-in">
+                <EvidencePanel
+                  icon="ri-camera-line"
+                  title="Lagos · Photo de l'agent"
+                  meta={selected.inspection
+                    ? [selected.inspection.agent_name, selected.inspection.created_at && formatDateTime(selected.inspection.created_at)].filter(Boolean).join(' · ')
+                    : null}
+                  note={selected.inspection?.notes}
+                >
+                  <SignedMedia
+                    kind="image"
+                    bucket="inspection-photos"
+                    src={selected.inspection?.photo_path}
+                    alt="Inspection Lagos"
+                    className="w-full h-full object-cover"
+                    emptyLabel="Pas de photo d'inspection"
+                  />
+                </EvidencePanel>
+                <EvidencePanel
+                  icon="ri-video-line"
+                  title="Cotonou · Vidéo du client"
+                  meta={selected.video_created_at ? formatDateTime(selected.video_created_at) : null}
+                >
+                  <SignedMedia
+                    kind="video"
+                    bucket="delivery-videos"
+                    src={selected.video_url}
+                    className="w-full h-full object-cover"
+                    emptyLabel="Pas de vidéo client"
+                  />
+                </EvidencePanel>
               </div>
             )}
             {selected.resolution && (
@@ -178,6 +212,24 @@ export default function DisputeCenter({ disputes, onUpdate }) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function EvidencePanel({ icon, title, meta, note, children }) {
+  return (
+    <div className="rounded-xl border border-slate-100 overflow-hidden bg-slate-50">
+      <div className="px-3 py-1.5 bg-white border-b border-slate-100 flex items-center gap-1.5">
+        <i className={`${icon} text-trustblue text-sm`} />
+        <span className="text-xs font-semibold text-slate-700 truncate">{title}</span>
+      </div>
+      <div className="h-36 bg-slate-100">{children}</div>
+      {(meta || note) && (
+        <div className="px-3 py-1.5 border-t border-slate-100 bg-white">
+          {meta && <p className="text-xs text-slate-500 truncate">{meta}</p>}
+          {note && <p className="text-xs text-slate-600 mt-0.5 line-clamp-2">{note}</p>}
+        </div>
+      )}
     </div>
   );
 }
