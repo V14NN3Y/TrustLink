@@ -77,18 +77,31 @@ export const AuthProvider = ({ children }) => {
     if (!result.success) throw new Error(result.error);
     return data;
   };
-  const register = async ({ email, password, name }) => {
+  // The admin role is granted by the database (handle_new_user) only if
+  // invite_code matches a valid, unused row of invitation_codes. Any "role"
+  // sent from here would be ignored.
+  const register = async ({ email, password, name, inviteCode }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: name,
-          role: 'admin',
+          invite_code: (inviteCode || '').trim().toUpperCase(),
         },
       },
     });
     if (error) throw error;
+
+    // With email confirmation disabled we already have a session: check the
+    // role right away so an invalid code is reported now, not at login.
+    if (data.session && data.user) {
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).maybeSingle();
+      if (profile?.role !== 'admin') {
+        await supabase.auth.signOut();
+        throw new Error("Code d'invitation invalide, expiré ou déjà utilisé. Le compte a été créé sans accès admin.");
+      }
+    }
     return data;
   };
   const logout = async () => {
