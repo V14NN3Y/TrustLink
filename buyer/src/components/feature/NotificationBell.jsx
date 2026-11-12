@@ -78,7 +78,7 @@ export default function NotificationBell() {
                             </button>
                         )}
                     </div>
-                    {/* Liste preview */}
+                    {/* Preview list */}
                     <div className="max-h-72 overflow-y-auto">
                         {preview.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-10 text-center px-4">
