@@ -147,6 +147,7 @@ export function mapProduct(item, ctx) {
     ? { slug: categorySlug, name: (item.category_name || item.category_slug || categorySlug).toString().trim() }
     : null;
 
+  // Default description is buyer-facing copy, so it stays in French like the buyer UI.
   const description = typeof item.description === 'string' && item.description.trim()
     ? item.description.trim()
     : `${name} — importé du Nigeria, livré au Bénin sous protection TrustLink Escrow.`;
