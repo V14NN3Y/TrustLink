@@ -345,7 +345,7 @@ export default function SettingsPage() {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {/* Mon Profil */}
+          {/* My profile */}
           {active === "profile" && (
             <div>
               {uploadMsg && (
@@ -462,7 +462,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Boutique & Marque */}
+          {/* Shop & brand */}
           {active === "boutique" && (
             <div>
               <SectionTitle
@@ -516,7 +516,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-              {/* Info boutique */}
+              {/* Shop info */}
               <div className="bg-white rounded-xl border border-gray-100 p-6">
                 <h3 className="text-sm font-bold text-gray-800 mb-4">{t('pages.boutique.infoTitle')}</h3>
                 <div className="space-y-4">
@@ -707,7 +707,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Langue & Devise */}
+          {/* Language & currency */}
           {active === "langue" && (
             <div>
               <SectionTitle
