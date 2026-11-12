@@ -199,7 +199,7 @@ export default function DeliveryVideosPage() {
           </div>
         )}
       </div>
-      {/* Section Litiges */}
+      {/* Disputes section */}
       <div className="mt-8">
         <h2 className="font-bold text-slate-800 text-xl mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
           Litiges en cours
