@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 /**
- * Fetch le profil complet d'un utilisateur.
+ * Fetches a user's full profile.
  */
 export const fetchProfile = async (userId) => {
   if (!userId) return null;
@@ -13,7 +13,7 @@ export const fetchProfile = async (userId) => {
   return data;
 };
 /**
- * Met à jour le profil d'un utilisateur.
+ * Updates a user's profile.
  */
 export const updateProfile = async (userId, updates) => {
   if (!userId) throw new Error('userId required');
