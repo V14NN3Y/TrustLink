@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
       setAuthChecked(true);
       return { success: false, error: 'Profil non trouvé dans la base' };
     }
-    // Sécurité : seuls les admins peuvent utiliser l'app admin
+    // Security: only admins can use the admin app
     if (data.role !== 'admin') {
       console.error('[Auth] Accès refusé, rôle:', data.role);
       setAuthError({ type: 'not_admin', message: 'Accès réservé aux administrateurs' });
