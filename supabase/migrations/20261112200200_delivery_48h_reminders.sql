@@ -1,28 +1,28 @@
--- Migration: rappel automatique après la réception (fenêtre de 48h)
--- (tâche Evans, tableau TrustLink EIP).
+-- Migration: automatic reminder after delivery (48h window)
+-- (Evans task, TrustLink EIP board).
 --
--- Règle métier (doc + FAQ acheteur) : après la livraison, l'acheteur a 48h
--- pour filmer le déballage et confirmer, ou ouvrir un litige.
+-- Business rule (docs + buyer FAQ): after delivery the buyer has 48h to film
+-- the unboxing and confirm, or to open a dispute.
 --
--- `send_delivery_reminders()` est appelée toutes les 15 min par pg_cron
--- (voir supabase/setup/01_cron_delivery_reminders.sql) et, pour chaque
--- commande encore 'delivered' (ni confirmée, ni en litige) :
+-- `send_delivery_reminders()` is called every 15 min by pg_cron
+-- (see supabase/setup/01_cron_delivery_reminders.sql) and, for every order
+-- still 'delivered' (neither confirmed nor disputed):
 --
---   • à livraison + 24h  → rappel "il vous reste 24h"          (kind = 'window_closing')
---   • à livraison + 48h  → rappel "délai de 48h écoulé"       (kind = 'window_closed')
---                          + si escrow_config.auto_release = true, la commande
---                            passe automatiquement en 'confirmed'.
+--   • delivery + 24h → "24h left" reminder              (kind = 'window_closing')
+--   • delivery + 48h → "48h window over" notice         (kind = 'window_closed')
+--                      + if escrow_config.auto_release = true, the order is
+--                        moved to 'confirmed' automatically.
 --
--- Les délais sont réglables dans escrow_config (reminder_hours, dispute_window_hours).
--- La table `order_reminders` garantit qu'un rappel n'est jamais envoyé deux fois.
+-- Delays are configurable in escrow_config (reminder_hours, dispute_window_hours).
+-- The `order_reminders` table guarantees a reminder is never sent twice.
 --
--- Inclut aussi la fenêtre de litige de 48h appliquée côté base (même nom de
--- fonction/trigger que la migration de Joseph sur `temp`), avec une
--- correction : un ADMIN peut toujours ouvrir un litige après 48h (sinon la
--- page "Vidéos de réception", qui crée un litige quand une vidéo est jugée
--- défectueuse, plantait dès que la revue avait lieu après le délai).
+-- Also enforces the 48h dispute window in the database (same function/trigger
+-- names as Joseph's migration on `temp`), with one fix: an ADMIN can always
+-- open a dispute after 48h (otherwise the "Delivery videos" page, which
+-- creates a dispute when a video is judged defective, failed whenever the
+-- review happened after the deadline).
 --
--- Dépend de 20261112200000 (orders.delivered_at). Idempotente.
+-- Depends on 20261112200000 (orders.delivered_at). Idempotent.
 
 alter table escrow_config add column if not exists dispute_window_hours integer not null default 48;
 alter table escrow_config add column if not exists reminder_hours integer not null default 24;
@@ -61,7 +61,7 @@ begin
   v_reminder := coalesce(v_reminder, 24);
   v_auto := coalesce(v_auto, false);
 
-  -- 1) Rappel "il vous reste X h" (une notification par groupe de commande).
+  -- 1) "X hours left" reminder (one notification per order group).
   for r in
     select distinct on (coalesce(o.group_id, o.id)) o.id, o.buyer_id
     from orders o
@@ -83,7 +83,7 @@ begin
     v_count := v_count + 1;
   end loop;
 
-  -- Marque toutes les commandes concernées (y compris les autres commandes du même groupe).
+  -- Mark every matching order (including the other orders of the same group).
   insert into order_reminders (order_id, kind)
   select o.id, 'window_closing'
   from orders o
@@ -93,7 +93,7 @@ begin
     and now() <  o.delivered_at + make_interval(hours => v_window)
   on conflict (order_id, kind) do nothing;
 
-  -- 2) Délai écoulé.
+  -- 2) Window over.
   for r in
     select distinct on (coalesce(o.group_id, o.id)) o.id, o.buyer_id
     from orders o
@@ -135,10 +135,10 @@ begin
 end;
 $$;
 
--- Réservé au cron (rôle postgres) et à l'admin via service_role : pas d'appel depuis les apps.
+-- Reserved to the cron job (postgres role) and service_role: never called from the apps.
 revoke execute on function send_delivery_reminders() from public, anon, authenticated;
 
--- Fenêtre de litige de 48h appliquée côté base.
+-- 48h dispute window enforced in the database.
 create or replace function enforce_dispute_window() returns trigger
 language plpgsql
 security definer
@@ -150,7 +150,7 @@ declare
   v_window integer;
 begin
   if is_admin(auth.uid()) then
-    return new;  -- l'admin peut toujours ouvrir un litige (revue vidéo tardive, cas exceptionnel)
+    return new;  -- admins can always open a dispute (late video review, edge cases)
   end if;
 
   select delivered_at, status into d, v_status from orders where id = new.order_id;
@@ -158,8 +158,8 @@ begin
   from escrow_config order by updated_at desc nulls last limit 1;
 
   if d is null then
-    -- Le colis peut arriver avant que l'admin ne passe la commande en 'delivered' :
-    -- l'app acheteur propose déjà "Produit défectueux" dès 'in_transit', on l'accepte.
+    -- The parcel can arrive before the admin moves the order to 'delivered':
+    -- the buyer app already offers "Defective product" from 'in_transit', so accept it.
     if v_status = 'in_transit' then
       return new;
     end if;
