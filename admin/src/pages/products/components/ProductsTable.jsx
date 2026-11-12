@@ -147,7 +147,7 @@ export default function ProductsTable() {
           </table>
         </div>
       </div>
-      {/* Modal détail produit */}
+      {/* Product detail modal */}
       {selected && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
           <div className="bg-white rounded-3xl w-full max-w-lg p-6" onClick={e => e.stopPropagation()}>
