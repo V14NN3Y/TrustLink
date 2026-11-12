@@ -36,9 +36,9 @@ export default function AppRoutes() {
 
   const isAuthPage = useMemo(() => AUTH_ROUTES.includes(pathname), [pathname]);
 
-  // Remonte en haut à chaque navigation interne, sauf sur un retour/avance
-  // dans l'historique (bouton précédent du navigateur) où l'on restaure la
-  // position de scroll naturelle.
+  // Scroll to the top on every in-app navigation, except on history
+  // back/forward (browser buttons) where the natural scroll position is
+  // restored.
   useEffect(() => {
     if (navigationType !== 'POP') {
       window.scrollTo(0, 0);
