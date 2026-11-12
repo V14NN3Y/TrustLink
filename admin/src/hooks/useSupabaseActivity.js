@@ -7,7 +7,7 @@ export function useSupabaseActivity() {
   useEffect(() => {
     async function fetch() {
       try {
-        // Activité récente depuis admin_logs
+        // Recent activity from admin_logs
         const { data: logs } = await supabase
           .from('admin_logs')
           .select('*')
