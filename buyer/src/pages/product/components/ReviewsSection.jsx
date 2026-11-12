@@ -9,13 +9,13 @@ export default function ReviewsSection({ productId }) {
     const { reviews, stats, myReview, canReview, loading, submitting, submit } = useReviews(productId);
     const [showForm, setShowForm] = useState(false);
     const handleSubmit = async (data) => {
-        // Laisse l'erreur remonter jusqu'à ReviewForm : il l'affiche et
-        // garde le formulaire ouvert au lieu de le fermer sur un échec.
+        // Let the error bubble up to ReviewForm: it shows it and keeps the
+        // form open instead of closing it on failure.
         await submit(data);
     };
     return (
         <section className="mt-10">
-            {/* En-tête */}
+            {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h2 className="text-lg font-poppins font-bold" style={{ color: '#111827' }}>
@@ -36,7 +36,7 @@ export default function ReviewsSection({ productId }) {
                     </button>
                 )}
             </div>
-            {/* Résumé des notes */}
+            {/* Rating summary */}
             {stats.count > 0 && (
                 <div className="flex items-center gap-6 p-5 rounded-xl mb-6" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E5E7EB' }}>
                     <div className="text-center">
@@ -74,7 +74,7 @@ export default function ReviewsSection({ productId }) {
                     onCancel={() => setShowForm(false)}
                 />
             )}
-            {/* Message si pas connecté */}
+            {/* Message when signed out */}
             {!user && (
                 <div className="p-4 rounded-xl text-center mb-4" style={{ backgroundColor: '#EBF4FB', border: '1px solid #BFDBFE' }}>
                     <p className="text-sm font-inter" style={{ color: '#125C8D' }}>
@@ -82,7 +82,7 @@ export default function ReviewsSection({ productId }) {
                     </p>
                 </div>
             )}
-            {/* Message si connecté mais pas encore acheté */}
+            {/* Message when signed in but the product was not bought yet */}
             {user && !canReview && !loading && (
                 <div className="p-4 rounded-xl text-center mb-4" style={{ backgroundColor: '#FFF7ED', border: '1px solid #FED7AA' }}>
                     <p className="text-xs font-inter" style={{ color: '#92400E' }}>
@@ -90,7 +90,7 @@ export default function ReviewsSection({ productId }) {
                     </p>
                 </div>
             )}
-            {/* Liste des reviews */}
+            {/* Review list */}
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
