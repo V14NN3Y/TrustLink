@@ -1,29 +1,29 @@
--- Migration: envoi de la photo d'inspection de Lagos à l'acheteur
--- (tâche Evans + Samuel, tableau TrustLink EIP).
+-- Migration: send the Lagos inspection photo to the buyer
+-- (Evans + Samuel task, TrustLink EIP board).
 --
--- S'appuie sur la table `order_inspections` + le bucket privé
--- `inspection-photos` créés par 20261110120000_order_inspections.sql
--- (branche feat/beta-setup). Jusqu'ici seul l'admin voyait la photo ; cette
--- migration la "livre" à l'acheteur :
+-- Builds on the `order_inspections` table + the private `inspection-photos`
+-- bucket created by 20261110120000_order_inspections.sql (feat/beta-setup
+-- branch). Until now only the admin could see the photo; this migration
+-- "delivers" it to the buyer:
 --
---   1. `visible_to_buyer` : l'admin peut garder une photo interne.
---   2. L'acheteur peut LIRE les inspections visibles de SES commandes, et
---      générer une URL signée sur le fichier correspondant (bucket privé).
---   3. Trigger à l'ajout d'une photo : `orders.inspected_at` est posé, la
---      commande passe de 'paid' à 'processing' (= étape "Inspection à Lagos"
---      du suivi), et l'acheteur reçoit une notification in-app (realtime).
+--   1. `visible_to_buyer`: the admin can keep a photo internal.
+--   2. The buyer can READ the visible inspections of THEIR orders and create a
+--      signed URL on the matching file (private bucket).
+--   3. Trigger when a photo is added: `orders.inspected_at` is set, the order
+--      moves from 'paid' to 'processing' (= "Lagos inspection" tracking step)
+--      and the buyer gets an in-app (realtime) notification.
 --
--- Remarque pour Joseph (branche temp) : la colonne `orders.inspection_photo_url`
--- de ta migration n'est plus nécessaire — la photo est dans `order_inspections`
--- (plusieurs photos possibles, bucket privé → URL signée, pas d'URL publique).
--- `orders.inspected_at` est conservé avec le même nom.
+-- Note for Joseph (temp branch): the `orders.inspection_photo_url` column of
+-- your migration is no longer needed — photos live in `order_inspections`
+-- (several photos per order, private bucket → signed URL, no public URL).
+-- `orders.inspected_at` keeps the same name.
 --
--- Idempotente.
+-- Idempotent.
 
 alter table order_inspections add column if not exists visible_to_buyer boolean not null default true;
 alter table orders add column if not exists inspected_at timestamptz;
 
--- 1. Lecture côté acheteur (table)
+-- 1. Buyer read access (table)
 drop policy if exists "Buyers can view inspections of their orders" on order_inspections;
 create policy "Buyers can view inspections of their orders"
   on order_inspections for select using (
@@ -31,7 +31,7 @@ create policy "Buyers can view inspections of their orders"
     and exists (select 1 from orders o where o.id = order_inspections.order_id and o.buyer_id = auth.uid())
   );
 
--- 2. Lecture côté acheteur (fichier) — nécessaire pour createSignedUrl().
+-- 2. Buyer read access (file) — required by createSignedUrl().
 drop policy if exists "Buyers can view inspection photos of their orders" on storage.objects;
 create policy "Buyers can view inspection photos of their orders"
   on storage.objects for select using (
@@ -46,7 +46,7 @@ create policy "Buyers can view inspection photos of their orders"
     )
   );
 
--- 3. Effets de l'ajout d'une photo d'inspection.
+-- 3. Side effects of adding an inspection photo.
 create or replace function on_order_inspection_added()
 returns trigger
 language plpgsql
@@ -62,7 +62,7 @@ begin
   where id = new.order_id
   returning buyer_id into v_buyer;
 
-  -- Une seule notification par commande, même si plusieurs photos sont ajoutées.
+  -- Only one notification per order, even when several photos are added.
   if new.visible_to_buyer and v_buyer is not null and not exists (
     select 1 from order_inspections
     where order_id = new.order_id and id <> new.id and visible_to_buyer
@@ -87,7 +87,7 @@ create trigger trg_order_inspection_added
   after insert on order_inspections
   for each row execute function on_order_inspection_added();
 
--- Une photo passée de "interne" à "visible" après coup déclenche aussi la notification.
+-- A photo switched from "internal" to "visible" later also triggers the notification.
 create or replace function on_order_inspection_published()
 returns trigger
 language plpgsql
