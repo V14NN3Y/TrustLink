@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/lib/AuthContext';
-import { createOrder, recordPaymentReference } from '@/lib/supabase/orders';
+import { createOrder, recordPaymentReference, verifyPayment } from '@/lib/supabase/orders';
 import { openKkiapayPayment } from '@/lib/kkiapay';
 import { useCurrencyContext } from '@/lib/CurrencyContext';
 import { supabase } from '@/lib/supabaseClient';
@@ -133,28 +133,26 @@ export default function Checkout() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const groupId = await createOrder({
+      // Amounts come back from the server (create_checkout_order), which is the
+      // single source of truth: the screen total is only a preview.
+      const created = await createOrder({
         buyerId: user.id,
         items,
         address,
         paymentMethod: payMethod,
-        totalAmount: grandTotal,
-        deliveryFee: config.delivery_fee,
-        commissionAmount,
         couponCode: couponData?.code || null,
-        couponDiscount,
       });
+      const { groupId } = created;
 
-      const sellerCount = [...new Set(items.map(item => item.seller_id))].length;
       const newOrderData = {
         groupId,
-        sellerCount,
+        sellerCount: created.sellerCount,
         trackingNumber: `TL-${groupId.substring(0, 8).toUpperCase()}`,
-        totalAmount: grandTotal,
-        couponDiscount,
+        totalAmount: created.totalAmount,
+        couponDiscount: created.couponDiscount,
         couponCode: couponData?.code || null,
-        commissionAmount,
-        deliveryFee: config.delivery_fee,
+        commissionAmount: created.commissionAmount,
+        deliveryFee: created.deliveryFee,
         spreadPct: config.spread_pct,
       };
 
@@ -162,7 +160,7 @@ export default function Checkout() {
       if (selectedMethod?.is_online) {
         try {
           const result = await openKkiapayPayment({
-            amount: grandTotal,
+            amount: created.totalAmount,
             email: profile?.email || user?.email || guestInfo.email || '',
             phone: address.phone || profile?.phone || '',
             name: profile?.full_name || `${address.firstName} ${address.lastName}`.trim() || guestInfo.name || 'Client TrustLink',
@@ -178,6 +176,10 @@ export default function Checkout() {
               groupId,
               paymentReference: result.transactionId,
             });
+            // Server-side check with KkiaPay: marks the order 'paid' right away.
+            // If it fails, the reference is kept and the admin validates manually.
+            const verification = await verifyPayment({ groupId, transactionId: result.transactionId });
+            newOrderData.paymentVerified = verification.paid;
             newOrderData.paymentReference = result.transactionId;
             newOrderData.kkiapayData = result.data;
           }
@@ -188,19 +190,15 @@ export default function Checkout() {
         }
       }
 
-      if (couponData) {
-        try {
-          await supabase.rpc('increment_coupon_usage', { p_code: couponData.code });
-        } catch {
-          // coupon increment failure should not block order confirmation
-        }
-      }
+      // Coupon usage is counted server-side by create_checkout_order.
 
       await clearCart();
       setOrderData(newOrderData);
       setStep(3);
-    } catch {
-      setSubmitError(t('checkout.genericError'));
+    } catch (err) {
+      // Server-side checks (stock, coupon, product unavailable) return a readable message.
+      const msg = err?.message || '';
+      setSubmitError(/^(Stock insuffisant|Produit indisponible|Code promo|Montant minimum|Moyen de paiement|Ville de livraison|Panier vide|Quantité)/.test(msg) ? msg : t('checkout.genericError'));
     } finally {
       setSubmitting(false);
     }

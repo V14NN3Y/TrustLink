@@ -1,6 +1,13 @@
 import { supabase } from '@/lib/supabaseClient';
 
-export const createOrder = async ({ buyerId, items, address, paymentMethod, totalAmount, deliveryFee, commissionAmount, couponCode, couponDiscount }) => {
+/**
+ * Creates the order(s) for the current cart.
+ * Prices, delivery fee, escrow commission and coupon are computed SERVER-SIDE
+ * by the create_checkout_order() RPC (buyers cannot insert into orders /
+ * order_items directly anymore), so the amount sent to KkiaPay must be the
+ * `totalAmount` returned here, not a client-side calculation.
+ */
+export const createOrder = async ({ buyerId, items, address, paymentMethod, couponCode }) => {
   if (buyerId) {
     const profileUpdates = {};
     if (address.district) profileUpdates.default_address_line1 = address.district;
@@ -11,74 +18,43 @@ export const createOrder = async ({ buyerId, items, address, paymentMethod, tota
     }
   }
 
-  const groupId = crypto.randomUUID();
-  const itemsBySeller = items.reduce((acc, item) => {
-    const sellerId = item.seller_id;
-    if (!acc[sellerId]) acc[sellerId] = [];
-    acc[sellerId].push(item);
-    return acc;
-  }, {});
+  const { data, error } = await supabase.rpc('create_checkout_order', {
+    p_items: items.map((item) => ({ product_id: item.productId, quantity: item.quantity })),
+    p_shipping: { district: address.district || null, city: address.city || null, phone: address.phone || null },
+    p_payment_method: paymentMethod,
+    p_coupon_code: couponCode || null,
+  });
+  if (error) throw error;
 
-  const sellerIds = Object.keys(itemsBySeller);
-  const grandSubtotal = sellerIds.reduce((sum, sid) => {
-    return sum + itemsBySeller[sid].reduce((s, item) => s + item.price * item.quantity, 0);
-  }, 0);
+  return {
+    groupId: data.group_id,
+    orderIds: data.order_ids,
+    subtotal: Number(data.subtotal),
+    deliveryFee: Number(data.delivery_fee),
+    commissionAmount: Number(data.commission_amount),
+    couponDiscount: Number(data.coupon_discount),
+    totalAmount: Number(data.total_amount),
+    sellerCount: data.seller_count,
+  };
+};
 
-  const createdOrderIds = [];
+/**
+ * Asks the verify-payment Edge Function to check the KkiaPay transaction
+ * server-side; on success the orders are marked 'paid' immediately.
+ * Returns { paid: boolean, reason?: string }. Never throws: if the function is
+ * not deployed / unreachable, the admin still validates manually from the
+ * payment reference recorded by recordPaymentReference().
+ */
+export const verifyPayment = async ({ groupId, transactionId }) => {
+  if (!groupId || !transactionId) return { paid: false, reason: 'missing_reference' };
   try {
-    for (const sellerId of sellerIds) {
-      const sellerItems = itemsBySeller[sellerId];
-      const sellerSubtotal = sellerItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      const ratio = grandSubtotal > 0 ? sellerSubtotal / grandSubtotal : 1 / sellerIds.length;
-      const orderDeliveryFee = Math.round(ratio * (deliveryFee || 0));
-      const orderCommission = Math.round(ratio * (commissionAmount || 0));
-      const orderDiscount = Math.round(ratio * (couponDiscount || 0));
-      const sellerTotal = sellerSubtotal + orderDeliveryFee + orderCommission - orderDiscount;
-
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          buyer_id: buyerId,
-          group_id: groupId,
-          status: 'pending',
-          shipping_address_line1: address.district,
-          shipping_city: address.city,
-          shipping_country: 'Bénin',
-          total_amount: sellerTotal,
-          commission_amount: orderCommission,
-          delivery_fee: orderDeliveryFee,
-          coupon_code: couponCode || null,
-          coupon_discount: orderDiscount || 0,
-          currency: 'XOF',
-          payment_method: paymentMethod,
-          notes: `Paiement via ${paymentMethod}`,
-        })
-        .select('id')
-        .single();
-      if (orderError) throw orderError;
-      createdOrderIds.push(order.id);
-
-      const orderItems = sellerItems.map((item) => ({
-        order_id: order.id,
-        seller_id: sellerId,
-        product_id: item.productId,
-        product_name: item.name,
-        product_price: item.price,
-        quantity: item.quantity,
-        subtotal: item.price * item.quantity,
-        status: 'pending',
-      }));
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-      if (itemsError) throw itemsError;
-    }
-    return groupId;
+    const { data, error } = await supabase.functions.invoke('verify-payment', {
+      body: { group_id: groupId, transaction_id: transactionId },
+    });
+    if (error) return { paid: false, reason: error.message };
+    return { paid: Boolean(data?.paid), reason: data?.reason };
   } catch (err) {
-    if (createdOrderIds.length > 0) {
-      await supabase.from('orders').delete().in('id', createdOrderIds);
-    }
-    throw err;
+    return { paid: false, reason: err?.message || 'verify_failed' };
   }
 };
 
