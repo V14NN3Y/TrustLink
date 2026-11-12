@@ -24,7 +24,7 @@ export default function AuthCallback() {
         navigate('/', { replace: true });
         return;
       }
-      // Session pas encore dispo, on attend via onAuthStateChange
+      // Session not available yet: wait for onAuthStateChange
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((event, newSession) => {
@@ -33,7 +33,7 @@ export default function AuthCallback() {
           navigate('/', { replace: true });
         }
       });
-      // Timeout de sécurité 5s
+      // 5 s safety timeout
       const timeout = setTimeout(() => {
         subscription.unsubscribe();
         navigate('/login?error=timeout', { replace: true });
