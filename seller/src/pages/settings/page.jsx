@@ -84,7 +84,7 @@ export default function SettingsPage() {
   const saveProfile = async () => {
     if (!profile?.id) return;
     setSavingProfile(true);
-    // 1. Mettre à jour l'email dans auth.users si changé
+    // 1. Update the email in auth.users if it changed
     if (profileForm.email !== profile.email) {
       const { error: authError } = await supabase.auth.updateUser({ email: profileForm.email });
       if (authError) {
@@ -93,7 +93,7 @@ export default function SettingsPage() {
         return;
       }
     }
-    // 2. Mettre à jour le profil
+    // 2. Update the profile
     const { error } = await supabase
       .from("profiles")
       .update({
@@ -124,7 +124,7 @@ export default function SettingsPage() {
     }
     setPwSaving(true);
     setPwMessage(null);
-    // Étape 1 : vérifier le mot de passe actuel en re-essayant une connexion
+    // Step 1: check the current password by signing in again
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: profile?.email,
       password: passwords.current,
@@ -134,7 +134,7 @@ export default function SettingsPage() {
       setPwMessage({ type: 'error', text: t('pages.settingsToast.passwordIncorrect') });
       return;
     }
-    // Étape 2 : appeler Supabase pour mettre à jour le mot de passe
+    // Step 2: ask Supabase to update the password
     const { error } = await supabase.auth.updateUser({
       password: passwords.next,
     });
@@ -446,7 +446,7 @@ export default function SettingsPage() {
                       className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#125C8D] bg-gray-50 transition-colors resize-none"
                     />
                   </div>
-                  {/* Adresse par défaut */}
+                  {/* Default address */}
                   <div className="col-span-2 mt-2">
                     <p className="text-xs font-semibold text-gray-800 mb-2">{t('pages.profile.defaultAddress')}</p>
                     <div className="grid grid-cols-2 gap-4">
@@ -629,7 +629,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Sécurité */}
+          {/* Security */}
           {active === "securite" && (
             <div>
               <SectionTitle
