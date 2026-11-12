@@ -151,7 +151,7 @@ const FAQS = [
 
       <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-12">
 
-        {/* Comment ça marche */}
+        {/* How it works */}
         <div className="mb-16">
           <div className="text-center mb-10">
             <h2 className="text-2xl font-poppins font-bold mb-2" style={{ color: '#111827' }}>
@@ -217,7 +217,7 @@ const FAQS = [
           </div>
         </div>
 
-        {/* Schéma flux argent */}
+        {/* Money flow diagram */}
         <div className="bg-white rounded-2xl p-6 md:p-8 mb-16" style={{ border: '1px solid #F0F0F0' }}>
           <h2 className="text-xl font-poppins font-bold mb-2 text-center" style={{ color: '#111827' }}>
             {t('escrow.moneyFlow')}
