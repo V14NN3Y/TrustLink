@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 /**
- * Fetch tous les IDs produits de la wishlist.
+ * Fetches every product id in the wishlist.
  */
 export const fetchWishlistIds = async (userId) => {
   if (!userId) return [];
@@ -12,7 +12,7 @@ export const fetchWishlistIds = async (userId) => {
   return (data || []).map((w) => w.product_id);
 };
 /**
- * Fetch les produits complets de la wishlist.
+ * Fetches the full products of the wishlist.
  */
 export const fetchWishlistProducts = async (userId) => {
   if (!userId) return [];
@@ -47,7 +47,7 @@ export const fetchWishlistProducts = async (userId) => {
   });
 };
 /**
- * Ajoute un produit à la wishlist.
+ * Adds a product to the wishlist.
  */
 export const addToWishlist = async (userId, productId) => {
   if (!userId) return;
@@ -57,7 +57,7 @@ export const addToWishlist = async (userId, productId) => {
   if (error && error.code !== '23505') throw error; // ignore duplicate
 };
 /**
- * Retire un produit de la wishlist.
+ * Removes a product from the wishlist.
  */
 export const removeFromWishlist = async (userId, productId) => {
   if (!userId) return;
