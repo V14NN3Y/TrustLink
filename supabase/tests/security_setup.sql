@@ -2,7 +2,7 @@
 insert into auth.users (id,email) values ('00000000-0000-0000-0000-00000000000a','admin@t.l');
 update profiles set role='admin' where id='00000000-0000-0000-0000-00000000000a';
 insert into invitation_codes (code, created_by, expires_at) values ('GOODCODE','00000000-0000-0000-0000-00000000000a', now()+interval '1 day');
--- inscriptions
+-- sign-ups
 insert into auth.users (id,email,raw_user_meta_data) values
  ('00000000-0000-0000-0000-0000000000ee','hacker@t.l','{"role":"admin"}'),
  ('00000000-0000-0000-0000-0000000000e2','hacker2@t.l','{"role":"admin","invite_code":"BADCODE"}'),
@@ -10,7 +10,7 @@ insert into auth.users (id,email,raw_user_meta_data) values
  ('00000000-0000-0000-0000-0000000000f2','reuse@t.l','{"invite_code":"GOODCODE"}'),
  ('00000000-0000-0000-0000-00000000000b','buyer@t.l','{"full_name":"Awa"}'),
  ('00000000-0000-0000-0000-00000000000d','sourcing@t.l','{"role":"seller"}');
-\echo [1] roles apres inscription (attendu: hacker=buyer, hacker2=buyer, newadmin=admin, reuse=buyer, sourcing=buyer)
+\echo [1] roles after sign-up (expected: hacker=buyer, hacker2=buyer, newadmin=admin, reuse=buyer, sourcing=buyer)
 select email, role from profiles where id <> '00000000-0000-0000-0000-00000000000a' order by email;
 select code, used_by is not null as utilise from invitation_codes;
 insert into products (id,seller_id,name,price,status,stock_quantity) values
