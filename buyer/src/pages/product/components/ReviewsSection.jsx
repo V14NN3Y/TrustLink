@@ -65,7 +65,7 @@ export default function ReviewsSection({ productId }) {
                     </div>
                 </div>
             )}
-            {/* Formulaire */}
+            {/* Form */}
             {showForm && (
                 <ReviewForm
                     existing={myReview}
