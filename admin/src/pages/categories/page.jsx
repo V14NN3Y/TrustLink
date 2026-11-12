@@ -242,7 +242,7 @@ export default function CategoriesPage() {
               </div>
             </div>
 
-            {/* Icône Remix — grille de sélection */}
+            {/* Remix icon picker grid */}
             <div>
               <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 block">Icône</label>
               <div className="grid grid-cols-6 gap-1.5 max-h-40 overflow-y-auto p-1.5 border border-slate-200 rounded-xl">
