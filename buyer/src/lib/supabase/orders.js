@@ -209,13 +209,11 @@ export const fetchOrderById = async (orderId) => {
   return data;
 };
 
-// Les buyers n'ont pas de droit `update` sur orders (RLS) — et c'est
-// volontaire : rien ne vérifie côté serveur qu'un paiement KkiaPay a
-// réellement eu lieu, donc laisser le buyer se mettre lui-même "paid"
-// serait une faille (n'importe qui pourrait s'auto-valider sans payer).
-// On se contente d'enregistrer la référence de transaction pour que
-// l'admin puisse la rapprocher du dashboard KkiaPay ; c'est lui qui
-// bascule le statut en 'paid' après vérification (flux déjà documenté).
+// Buyers have no `update` right on orders (RLS), on purpose: letting a buyer
+// mark their own order "paid" would let anyone validate an order without
+// paying. This only stores the transaction reference so that it is never lost:
+// the verify-payment Edge Function (or, as a fallback, an admin checking the
+// KkiaPay dashboard) is what moves the order to 'paid'.
 export const recordPaymentReference = async ({ groupId, paymentReference, paymentMethod }) => {
   if (!groupId) return;
   const { error } = await supabase.rpc('record_payment_reference', {
