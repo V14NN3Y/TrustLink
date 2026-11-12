@@ -2,9 +2,9 @@ import { supabase } from '@/lib/supabaseClient';
 
 const PLACEHOLDER_IMAGE = '/placeholder-product.svg';
 
-// product_variants.value est un texte libre ("Rouge", "Bleu marine"...) —
-// pas de code hex en base. On ne connaît que les noms courants ; une
-// couleur non reconnue retombe sur un gris neutre plutôt que de planter.
+// product_variants.value is free text ("Rouge", "Bleu marine"...), with no
+// hex code in the database. Only common names are known; an unknown colour
+// falls back to a neutral grey instead of crashing.
 const COLOR_HEX_MAP = {
   rouge: '#DC2626', bleu: '#2563EB', 'bleu marine': '#1E3A8A', vert: '#16A34A',
   jaune: '#F59E0B', noir: '#111827', blanc: '#FFFFFF', gris: '#9CA3AF',
