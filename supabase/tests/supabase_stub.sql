@@ -1,4 +1,3 @@
--- Stand-in minimal de la plateforme Supabase (schémas auth/storage, rôles) pour tester les migrations en local.
 -- Minimal stand-in for the Supabase platform, to test migrations locally.
 do $$ begin create role anon nologin; exception when duplicate_object then null; end $$; do $$ begin create role authenticated nologin; exception when duplicate_object then null; end $$; do $$ begin create role service_role nologin bypassrls; exception when duplicate_object then null; end $$;
 create schema auth; create schema storage;

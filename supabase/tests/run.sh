@@ -1,10 +1,10 @@
 #!/bin/bash
-# Rejoue le schéma + toutes les migrations sur un Postgres LOCAL jetable, puis
-# les scénarios fonctionnels et les attaques de sécurité.
-# Ne jamais pointer ce script sur la base Supabase de production.
+# Replays the schema + every migration on a throwaway LOCAL Postgres, then
+# runs the feature scenarios and the security attacks.
+# Never point this script at the production Supabase database.
 #
-# Prérequis : un Postgres 15+ local, un super-utilisateur, et un rôle de
-# connexion "authenticator" (créé par supabase_stub.sql) autorisé en local.
+# Requirements: a local Postgres 15+, a superuser, and an "authenticator"
+# login role (created by supabase_stub.sql) allowed to connect locally.
 #   PGHOST=/tmp PGPORT=5432 PGUSER=postgres ./supabase/tests/run.sh
 set -e
 cd "$(dirname "$0")"
@@ -21,7 +21,7 @@ $P -d $DB -c "grant select, insert, update, delete on all tables in schema publi
 for f in $ROOT/supabase/migrations/202611122*.sql; do $P -d $DB -f "$f"; done
 echo "== Migrations OK"
 
-echo "== Scénarios fonctionnels"
+echo "== Feature scenarios"
 psql -q -d $DB -f features.sql
 
 $P -d postgres -c "drop database $DB" -c "create database $DB"
@@ -32,5 +32,5 @@ $P -d $DB -f $ROOT/supabase/setup/00_buckets.sql
 $P -d $DB -c "grant select, insert, update, delete on all tables in schema public, storage to anon, authenticated, service_role; grant execute on all functions in schema public to anon, authenticated;"
 for f in $ROOT/supabase/migrations/202611122*.sql; do $P -d $DB -f "$f"; done
 psql -q -d $DB -f security_setup.sql
-echo "== Attaques (chaque ligne doit dire 'bloque', aucune 'ECHEC')"
+echo "== Attacks (every line must say 'BLOCKED', none 'FAIL')"
 psql -q -U authenticator -d $DB -f security_attacks.sql 2>&1 | sed 's/^psql:[^ ]*: NOTICE:  //'
