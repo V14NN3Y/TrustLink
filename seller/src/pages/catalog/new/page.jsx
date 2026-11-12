@@ -275,7 +275,7 @@ export default function NewProductPage() {
           </div>
         )}
 
-        {/* Step 2 — Prix, Stock & Variantes */}
+        {/* Step 2 — Price, stock & variants */}
         {step === 2 && (
           <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-5">
             <div className="grid grid-cols-2 gap-4">
