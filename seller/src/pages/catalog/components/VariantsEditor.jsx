@@ -222,7 +222,7 @@ export default function VariantsEditor({ productId, onVariantsChange }) {
         )}
       </div>
 
-      {/* Couleurs */}
+      {/* Colours */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <i className="ri-palette-line text-gray-400 text-sm"></i>
@@ -267,7 +267,7 @@ export default function VariantsEditor({ productId, onVariantsChange }) {
 
       <div className="border-t border-gray-100"></div>
 
-      {/* Tailles */}
+      {/* Sizes */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <i className="ri-ruler-line text-gray-400 text-sm"></i>
