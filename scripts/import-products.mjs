@@ -66,21 +66,21 @@ async function readInput(file) {
 }
 
 function printSummary({ accepted, rejected, duplicates }, rate) {
-  console.log(`\nTaux NGN→XOF utilisé : ${rate ?? '—'}`);
-  console.log(`✔ ${accepted.length} produit(s) valides · ✖ ${rejected.length} rejeté(s) · ${duplicates} doublon(s) ignoré(s)\n`);
+  console.log(`\nNGN→XOF rate used: ${rate ?? '—'}`);
+  console.log(`✔ ${accepted.length} valid product(s) · ✖ ${rejected.length} rejected · ${duplicates} duplicate(s) skipped\n`);
   if (accepted.length) {
     console.table(accepted.map(({ product, images, category }) => ({
-      nom: product.name.slice(0, 45),
+      name: product.name.slice(0, 45),
       site: product.source_site,
-      'prix NGN': product.source_price_ngn ?? '',
-      'prix XOF': product.price,
+      'price NGN': product.source_price_ngn ?? '',
+      'price XOF': product.price,
       stock: product.stock_quantity,
       images: images.length,
-      categorie: category?.slug ?? '',
+      category: category?.slug ?? '',
     })));
   }
   for (const r of rejected) {
-    console.log(`  ✖ #${r.index} ${r.name ?? '(sans nom)'} → ${r.errors.join(', ')}`);
+    console.log(`  ✖ #${r.index} ${r.name ?? '(no name)'} → ${r.errors.join(', ')}`);
   }
 }
 
@@ -111,7 +111,7 @@ async function ensureCategories(supabase, accepted) {
     const { data: created, error: insErr } = await supabase.from('categories').insert(missing).select('id, slug');
     if (insErr) fail(`categories insert failed: ${insErr.message}`);
     created.forEach(c => ids.set(c.slug, c.id));
-    console.log(`+ ${created.length} catégorie(s) créée(s) : ${created.map(c => c.slug).join(', ')}`);
+    console.log(`+ ${created.length} category(ies) created: ${created.map(c => c.slug).join(', ')}`);
   }
   return ids;
 }
@@ -140,10 +140,10 @@ async function main() {
   // ---- Dry run: no Supabase at all ------------------------------------------------
   if (args['dry-run']) {
     const rate = forcedRate ?? (Number(items?.[0]?.xof_rate) || null);
-    const result = mapAll(items, { rate, supplierId: '(fournisseur interne)', status: args.status, defaultStock }, { limit });
+    const result = mapAll(items, { rate, supplierId: '(internal supplier)', status: args.status, defaultStock }, { limit });
     printSummary(result, rate);
-    if (!forcedRate) console.log('\nℹ Dry-run : taux pris dans le fichier (xof_rate) — l\'import réel utilisera celui de la table exchange_rates, sauf --rate.');
-    console.log('\nDry-run : rien n\'a été écrit.');
+    if (!forcedRate) console.log('\nℹ Dry run: rate taken from the file (xof_rate) — the real import uses the exchange_rates table, unless --rate is given.');
+    console.log('\nDry run: nothing was written.');
     return;
   }
 
@@ -190,7 +190,7 @@ async function main() {
       if (error) fail(`products upsert failed (batch ${i / BATCH + 1}): ${error.message}`);
       saved.push(...data);
     }
-    if (updRows.length) console.log(`  (${updRows.length} déjà en catalogue : prix/stock/images mis à jour, statut conservé)`);
+    if (updRows.length) console.log(`  (${updRows.length} already in the catalogue: price/stock/images updated, status kept)`);
 
     const idByUrl = new Map(saved.map(p => [p.source_url, p.id]));
     const productIds = [...idByUrl.values()];
@@ -218,7 +218,7 @@ async function main() {
     if (imgErr) fail(`product_images insert failed: ${imgErr.message}`);
 
     report.imported.push(...saved.map(p => ({ id: p.id, name: p.name, price_xof: Number(p.price), source_url: p.source_url })));
-    console.log(`→ lot ${i / BATCH + 1} : ${saved.length} produit(s), ${imageRows.length} image(s)`);
+    console.log(`→ batch ${i / BATCH + 1}: ${saved.length} product(s), ${imageRows.length} image(s)`);
   }
 
   const outDir = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), 'output');
@@ -226,9 +226,9 @@ async function main() {
   const reportFile = path.join(outDir, `import-report-${report.started_at.replace(/[:.]/g, '-')}.json`);
   await fs.writeFile(reportFile, JSON.stringify(report, null, 2));
 
-  console.log(`\n✔ ${report.imported.length} produit(s) en ligne (statut : ${args.status}).`);
-  if (report.image_errors.length) console.log(`⚠ ${report.image_errors.length} image(s) non ré-hébergée(s) (URL d'origine conservée) — voir le rapport.`);
-  console.log(`Rapport : ${reportFile}`);
+  console.log(`\n✔ ${report.imported.length} product(s) online (status: ${args.status}).`);
+  if (report.image_errors.length) console.log(`⚠ ${report.image_errors.length} image(s) not re-hosted (original URL kept) — see the report.`);
+  console.log(`Report: ${reportFile}`);
 }
 
 main().catch((err) => fail(err.stack || err.message));
