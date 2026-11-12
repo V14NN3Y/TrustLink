@@ -1,22 +1,22 @@
--- Migration: correctifs de sécurité de l'audit du 12/11/2026 (docs/AUDIT_BACKEND.md).
+-- Migration: security fixes from the 12/11/2026 backend audit (docs/AUDIT_BACKEND.md).
 --
---   #1  Inscription : le rôle ne vient plus des métadonnées envoyées par le client.
---       Admin uniquement avec un code de la table invitation_codes, vérifié côté base.
---   #2  Un utilisateur ne peut plus modifier lui-même son rôle ni ses flags KYC.
---   #3  Commande : prix, frais, commission et coupon recalculés côté serveur
---       (RPC create_checkout_order) ; les acheteurs ne peuvent plus insérer
---       directement dans orders / order_items.
---   #4  Les admins peuvent créer des notifications (avant : refusé sans erreur visible).
---   #5  Les emails de stock_notifications ne sont plus lisibles publiquement.
---   #7  Upload des vidéos de livraison limité au dossier de l'utilisateur.
---   +   Fonctions RPC devenues inutiles côté client retirées des rôles publics.
+--   #1  Sign-up: the role no longer comes from client-sent metadata.
+--       Admin only with a code from the invitation_codes table, checked in the database.
+--   #2  Users can no longer change their own role or KYC flags.
+--   #3  Checkout: prices, fees, commission and coupon recomputed server-side
+--       (create_checkout_order RPC); buyers can no longer insert directly into
+--       orders / order_items.
+--   #4  Admins can create notifications (previously rejected with no visible error).
+--   #5  stock_notifications emails are no longer publicly readable.
+--   #7  Delivery video uploads restricted to the user's own folder.
+--   +   RPCs no longer needed client-side revoked from public roles.
 --
--- (#6, paiement vérifié côté serveur : Edge Function supabase/functions/verify-payment.)
+-- (#6, server-side payment verification: Edge Function supabase/functions/verify-payment.)
 --
--- Idempotente.
+-- Idempotent.
 
 -- ============================================================
--- Helper : appel "de confiance" (admin connecté, éditeur SQL, clé service_role).
+-- Helper: "trusted" caller (signed-in admin, SQL editor, service_role key).
 -- ============================================================
 create or replace function is_privileged_caller()
 returns boolean
@@ -32,7 +32,7 @@ as $$
 $$;
 
 -- ============================================================
--- #1 Inscription : rôle contrôlé par la base
+-- #1 Sign-up: role decided by the database
 -- ============================================================
 create or replace function handle_new_user()
 returns trigger
@@ -45,8 +45,8 @@ declare
   v_code text := nullif(trim(new.raw_user_meta_data->>'invite_code'), '');
   v_invite_id uuid;
 begin
-  -- Seul un code d'invitation valide (table invitation_codes) donne le rôle admin.
-  -- Le champ "role" envoyé par le client est ignoré : n'importe qui peut l'écrire.
+  -- Only a valid invitation code (invitation_codes table) grants the admin role.
+  -- The "role" field sent by the client is ignored: anyone can write it.
   if v_code is not null then
     select id into v_invite_id
     from invitation_codes
@@ -75,12 +75,12 @@ begin
 end;
 $$;
 
--- Le fournisseur interne (scripts/create-internal-supplier.mjs) est créé en
--- 'buyer' par ce trigger puis passé en 'seller' par le script avec la clé
--- service_role : autorisé par le trigger #2 ci-dessous.
+-- The internal supplier (scripts/create-internal-supplier.mjs) is created as
+-- 'buyer' by this trigger, then switched to 'seller' by the script with the
+-- service_role key: allowed by trigger #2 below.
 
 -- ============================================================
--- #2 Champs protégés du profil
+-- #2 Protected profile fields
 -- ============================================================
 create or replace function protect_profile_privileged_fields()
 returns trigger
@@ -108,13 +108,13 @@ create trigger trg_profiles_protect_privileged
   for each row execute function protect_profile_privileged_fields();
 
 -- ============================================================
--- #3 Commande calculée côté serveur
+-- #3 Server-side checkout
 -- ============================================================
 -- p_items    : [{"product_id": "<uuid>", "quantity": 2}, ...]
 -- p_shipping : {"district": "...", "city": "Cotonou", "phone": "..."}
--- Retour     : {"group_id", "order_ids", "subtotal", "delivery_fee",
+-- Returns    : {"group_id", "order_ids", "subtotal", "delivery_fee",
 --               "commission_amount", "coupon_discount", "total_amount", "seller_count"}
--- Le front doit utiliser total_amount renvoyé (et non son propre calcul) pour KkiaPay.
+-- The frontend must use the returned total_amount (not its own computation) for KkiaPay.
 create or replace function create_checkout_order(
   p_items jsonb,
   p_shipping jsonb,
@@ -165,7 +165,7 @@ begin
     raise exception 'Moyen de paiement indisponible';
   end if;
 
-  -- Lignes du panier, regroupées par produit.
+  -- Cart lines, grouped by product.
   create temporary table if not exists _checkout_lines (product_id uuid, quantity integer, seller_id uuid, name text, price numeric, stock integer, status product_status) on commit drop;
   truncate _checkout_lines;
 
@@ -203,7 +203,7 @@ begin
   v_delivery := coalesce(v_delivery, 0);
   v_commission := round(v_subtotal * v_spread / 100);
 
-  -- Coupon : mêmes règles que l'écran de checkout, appliquées ici.
+  -- Coupon: same rules as the checkout screen, enforced here.
   if v_code is not null then
     select * into v_coupon from coupons where code = v_code and active for update;
     if v_coupon.id is null then
@@ -225,8 +225,8 @@ begin
 
   v_total := v_subtotal + v_delivery + v_commission - v_discount;
 
-  -- Une commande par vendeur (même group_id), frais répartis au prorata ;
-  -- la dernière absorbe l'arrondi pour que la somme soit exacte.
+  -- One order per seller (same group_id), fees split pro rata;
+  -- the last one absorbs the rounding so that the sum is exact.
   select count(distinct seller_id) into v_seller_count from _checkout_lines;
 
   for s in
@@ -281,18 +281,18 @@ $$;
 revoke execute on function create_checkout_order(jsonb, jsonb, text, text) from public, anon;
 grant execute on function create_checkout_order(jsonb, jsonb, text, text) to authenticated;
 
--- Plus d'insertion directe par l'acheteur : tout passe par create_checkout_order.
+-- No more direct inserts by buyers: everything goes through create_checkout_order.
 drop policy if exists "Buyers can create orders" on orders;
 drop policy if exists "Buyers can insert order items for their own orders" on order_items;
 
--- Le compteur de coupon est incrémenté par create_checkout_order ; l'ancienne
--- RPC permettait à n'importe qui d'épuiser un code promo.
+-- The coupon counter is incremented by create_checkout_order; the old RPC let
+-- anyone exhaust a promo code.
 revoke execute on function increment_coupon_usage(text) from public, anon, authenticated;
--- Remplacée par la vérification dans handle_new_user ; permettait de "brûler" des codes.
+-- Replaced by the check in handle_new_user; it let anyone "burn" invitation codes.
 revoke execute on function use_invitation_code(text) from public, anon, authenticated;
 
 -- ============================================================
--- #4 Notifications créées par l'admin
+-- #4 Notifications created by admins
 -- ============================================================
 drop policy if exists "Admins can create notifications" on notifications;
 create policy "Admins can create notifications"
@@ -302,12 +302,12 @@ create policy "Admins can view all notifications"
   on notifications for select using (is_admin(auth.uid()));
 
 -- ============================================================
--- #5 Emails des alertes de stock
+-- #5 Stock alert emails
 -- ============================================================
 drop policy if exists "Anyone can view stock notifications" on stock_notifications;
 
 -- ============================================================
--- #7 Upload des vidéos : uniquement dans confirmations/<uid>/ ou disputes/<uid>/
+-- #7 Video uploads: only into confirmations/<uid>/ or disputes/<uid>/
 -- ============================================================
 drop policy if exists "Authenticated users can upload delivery videos" on storage.objects;
 drop policy if exists "Buyers can upload delivery videos to their folder" on storage.objects;
