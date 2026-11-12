@@ -275,7 +275,7 @@ export default function Checkout() {
           })}
         </div>
 
-        {/* Step 1 — Adresse */}
+        {/* Step 1 — Address */}
         {step === 1 && (
           <form onSubmit={handleStep1} className="bg-white border border-gray-100 rounded-xl p-6">
             <h2 className="text-base font-poppins font-semibold mb-5" style={{ color: '#111827' }}>{t('checkout.address')}</h2>
@@ -315,7 +315,7 @@ export default function Checkout() {
           </form>
         )}
 
-        {/* Step 2 — Paiement */}
+        {/* Step 2 — Payment */}
         {step === 2 && (
           <div className="bg-white border border-gray-100 rounded-xl p-6">
             <h2 className="text-base font-poppins font-semibold mb-4" style={{ color: '#111827' }}>{t('checkout.orderSummary')}</h2>
