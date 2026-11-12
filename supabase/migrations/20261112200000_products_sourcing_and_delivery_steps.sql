@@ -1,38 +1,37 @@
--- Migration: base de données "produits sourcés" + "étapes de livraison"
--- (tâche Evans + Ramdon, tableau TrustLink EIP).
+-- Migration: "sourced products" + "delivery steps" data model
+-- (Evans + Ramdon task, TrustLink EIP board).
 --
--- 1. PRODUITS — les produits ne viennent plus de vendeurs mais du sourcing
---    de l'équipe (Konga, Jumia, Slot.ng, boutiques Shopify...). On garde la
---    trace de la source pour pouvoir ré-importer sans doublon (upsert sur
---    source_url) et recalculer le prix si le Naira bouge.
+-- 1. PRODUCTS — products no longer come from external sellers but from the
+--    team's sourcing (Konga, Jumia, Slot.ng, Shopify stores...). The source is
+--    kept so that a product can be re-imported without duplicates (upsert on
+--    source_url) and its price recomputed when the Naira moves.
 --
--- 2. ÉTAPES DE LIVRAISON — référentiel `delivery_steps` (les 4 étapes du
---    suivi acheteur : paiement sécurisé → inspection Lagos → en transit →
---    livré) + historique horodaté `order_tracking_events`, rempli
---    AUTOMATIQUEMENT par trigger à chaque changement de statut d'une commande.
---    Aucun code front n'a besoin d'écrire dans l'historique.
+-- 2. DELIVERY STEPS — `delivery_steps` reference table (the 4 steps of buyer
+--    tracking: payment secured → Lagos inspection → in transit → delivered)
+--    + timestamped `order_tracking_events` history, filled AUTOMATICALLY by a
+--    trigger on every order status change. No frontend code has to write to it.
 --
--- Compatible avec la branche `temp` (Joseph) : mêmes noms pour
--- escrow_config.customs_pct, orders.delivered_at et le trigger
--- trg_orders_set_delivered_at ("if not exists" / "create or replace"), donc
--- les deux migrations peuvent être appliquées dans n'importe quel ordre.
+-- Compatible with the `temp` branch (Joseph): same names for
+-- escrow_config.customs_pct, orders.delivered_at and the
+-- trg_orders_set_delivered_at trigger ("if not exists" / "create or replace"),
+-- so both migrations can be applied in any order.
 --
--- Idempotente : peut être relancée sans erreur.
+-- Idempotent: can be re-run without errors.
 
 -- ============================================================
--- 1. PRODUITS SOURCÉS
+-- 1. SOURCED PRODUCTS
 -- ============================================================
 
 alter table products add column if not exists source_url text;
-alter table products add column if not exists source_site text;            -- ex. 'konga', 'jumia', 'slot', 'shopify:<boutique>'
+alter table products add column if not exists source_site text;            -- e.g. 'konga', 'jumia', 'slot', 'shopify:<store>'
 alter table products add column if not exists source_price_ngn numeric(14, 2);
 alter table products add column if not exists source_old_price_ngn numeric(14, 2);
-alter table products add column if not exists exchange_rate_used numeric(12, 4); -- taux NGN→XOF appliqué au dernier import
+alter table products add column if not exists exchange_rate_used numeric(12, 4); -- NGN→XOF rate applied at the last import
 alter table products add column if not exists last_synced_at timestamptz;
 
--- Contrainte unique (et non index partiel) : PostgREST / supabase-js
--- `upsert(..., { onConflict: 'source_url' })` exige une vraie contrainte.
--- Plusieurs NULL restent autorisés (produits saisis à la main dans l'admin).
+-- A real unique constraint (not a partial index): PostgREST / supabase-js
+-- `upsert(..., { onConflict: 'source_url' })` requires one.
+-- Several NULLs are still allowed (products created by hand in the admin).
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'products_source_url_key') then
@@ -40,10 +39,10 @@ begin
   end if;
 end $$;
 
--- Douane en % du prix article (même colonne que la migration de Joseph).
+-- Customs duty as a % of the item price (same column as Joseph's migration).
 alter table escrow_config add column if not exists customs_pct numeric(5, 2) not null default 0;
 
--- Conversion NGN → XOF au taux courant de la table exchange_rates.
+-- NGN → XOF conversion at the current rate of the exchange_rates table.
 create or replace function ngn_to_xof(p_amount_ngn numeric)
 returns numeric
 language sql
@@ -57,11 +56,11 @@ as $$
   limit 1;
 $$;
 
--- Prix "tout compris" affiché à l'acheteur, même formule que
--- buyer/src/lib/pricing.js (branche temp) :
---   article + transport + douane (customs_pct) + séquestre (spread_pct).
--- Le prix stocké dans products.price reste le prix ARTICLE en XOF, les frais
--- sont ajoutés à l'affichage / au checkout : ne pas les inclure deux fois.
+-- "All-inclusive" price shown to the buyer, same formula as
+-- buyer/src/lib/pricing.js (temp branch):
+--   item + transport + customs (customs_pct) + escrow (spread_pct).
+-- products.price stays the ITEM price in XOF; fees are added at display /
+-- checkout time, so never include them twice.
 create or replace function all_inclusive_price_xof(p_price_xof numeric)
 returns numeric
 language sql
@@ -83,11 +82,11 @@ grant execute on function ngn_to_xof(numeric) to anon, authenticated;
 grant execute on function all_inclusive_price_xof(numeric) to anon, authenticated;
 
 -- ============================================================
--- 2. ÉTAPES DE LIVRAISON
+-- 2. DELIVERY STEPS
 -- ============================================================
 
--- Date de livraison, posée automatiquement au passage en 'delivered'.
--- Sert à la fenêtre de litige de 48h et au rappel automatique.
+-- Delivery date, set automatically when the order becomes 'delivered'.
+-- Used by the 48h dispute window and the automatic reminder.
 alter table orders add column if not exists delivered_at timestamptz;
 
 update orders set delivered_at = updated_at
@@ -107,14 +106,15 @@ create trigger trg_orders_set_delivered_at
   before update on orders
   for each row execute function set_delivered_at();
 
--- Référentiel des étapes affichées à l'acheteur.
+-- Reference list of the steps shown to the buyer (labels are buyer-facing
+-- copy, in French like the rest of the buyer UI).
 create table if not exists delivery_steps (
   code text primary key,
   label text not null,
   description text,
   icon text,
   position integer not null,
-  is_main_step boolean not null default true  -- false = étape "hors parcours" (litige, annulation...)
+  is_main_step boolean not null default true  -- false = off-journey step (dispute, cancellation...)
 );
 
 insert into delivery_steps (code, label, description, icon, position, is_main_step) values
@@ -131,7 +131,7 @@ on conflict (code) do update set
   label = excluded.label, description = excluded.description,
   icon = excluded.icon, position = excluded.position, is_main_step = excluded.is_main_step;
 
--- Correspondance statut de commande → étape (les statuts DB ne changent pas).
+-- Order status → step mapping (database statuses are unchanged).
 create or replace function order_status_to_step(p_status order_status)
 returns text
 language sql
@@ -150,7 +150,7 @@ as $$
   end;
 $$;
 
--- Historique horodaté du parcours de chaque commande.
+-- Timestamped journey history of each order.
 create table if not exists order_tracking_events (
   id uuid primary key default uuid_generate_v4(),
   order_id uuid not null references orders(id) on delete cascade,
@@ -183,10 +183,10 @@ drop policy if exists "Admins can manage tracking events" on order_tracking_even
 create policy "Admins can manage tracking events"
   on order_tracking_events for all using (is_admin(auth.uid()));
 
--- Trigger : chaque création de commande / changement de statut ajoute une
--- ligne d'historique. SECURITY DEFINER car les changements de statut faits
--- par les RPC acheteur (confirm_order_receipt, open_order_dispute) doivent
--- aussi être tracés alors que l'acheteur n'a pas le droit d'écrire ici.
+-- Trigger: every order creation / status change appends a history row.
+-- SECURITY DEFINER because status changes made by buyer RPCs
+-- (confirm_order_receipt, open_order_dispute) must be tracked too, although
+-- the buyer has no write access to this table.
 create or replace function log_order_tracking_event()
 returns trigger
 language plpgsql
@@ -207,7 +207,7 @@ create trigger trg_orders_tracking_event
   after insert or update of status on orders
   for each row execute function log_order_tracking_event();
 
--- Rattrapage : une ligne "état actuel" pour les commandes existantes sans historique.
+-- Backfill: one "current state" row for existing orders without history.
 insert into order_tracking_events (order_id, step, status, created_at)
 select o.id, order_status_to_step(o.status), o.status, coalesce(o.updated_at, o.created_at, now())
 from orders o
