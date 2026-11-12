@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { formatDate } from '@/components/base/DataTransformer';
-import StatusBadge from '@/components/base/StatusBadge';
 const ROLES = [
   { key: '', label: 'Tous' },
   { key: 'buyer', label: 'Acheteurs' },
