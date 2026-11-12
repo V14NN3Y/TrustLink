@@ -78,7 +78,7 @@ export default function ReviewForm({ existing, submitting, onSubmit, onCancel })
                     </p>
                 )}
             </div>
-            {/* Commentaire */}
+            {/* Comment */}
             <div className="mb-4">
                 <label
                     className="text-xs font-poppins font-medium block mb-2"
