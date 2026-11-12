@@ -37,7 +37,7 @@ export function useMessages() {
             const msgs = await fetchThreadMessages(threadId);
             setThreadMessages(msgs);
             await markThreadAsRead(threadId, user.id);
-            // Mettre à jour le compteur unread localement
+            // Update the unread counter locally
             setThreads((prev) =>
                 prev.map((t) =>
                     t.threadId === threadId ? { ...t, unread: 0 } : t
