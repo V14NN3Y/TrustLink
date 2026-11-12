@@ -5,7 +5,7 @@ import { fetchOrderInspections } from '@/lib/supabase/tracking';
 const STATUSES_WITH_INSPECTION = ['processing', 'in_transit', 'delivered', 'confirmed', 'disputed', 'refunded'];
 
 /**
- * "Inspection à Lagos" block in the expanded order of /account: shows the
+ * "Lagos inspection" block in the expanded order of /account: shows the
  * photo(s) the Lagos agent took of the goods before dispatch, so the buyer can
  * compare with what they receive.
  */
