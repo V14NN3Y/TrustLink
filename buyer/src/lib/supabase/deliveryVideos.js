@@ -26,8 +26,8 @@ export const createDeliveryVideoRecord = async ({
         .select('id')
         .single();
     if (error) throw error;
-    // Les buyers n'ont pas de droit `update` sur orders (RLS) : la bascule
-    // en 'confirmed' doit passer par cette fonction serveur dédiée.
+    // Buyers have no `update` right on orders (RLS): the switch to
+    // 'confirmed' must go through this dedicated server function.
     const { error: confirmError } = await supabase.rpc('confirm_order_receipt', {
         p_order_id: orderId,
     });
