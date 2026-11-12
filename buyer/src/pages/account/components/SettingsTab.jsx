@@ -183,7 +183,7 @@ export default function SettingsTab() {
     <div>
       <h1 className="text-xl font-poppins font-bold mb-5" style={{ color: '#111827' }}>{t('settings.title')}</h1>
       <div className="space-y-5">
-        {/* Photo de profil */}
+        {/* Profile picture */}
         <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #E5E7EB' }}>
           <div className="flex items-center gap-2 mb-4">
             <i className="ri-camera-line" style={{ color: '#125C8D' }}></i>
@@ -216,7 +216,7 @@ export default function SettingsTab() {
           </div>
         </div>
 
-        {/* Profil & Adresse */}
+        {/* Profile & address */}
         <form onSubmit={handleSave} className="bg-white rounded-xl p-5" style={{ border: '1px solid #E5E7EB' }}>
           <div className="flex items-center gap-2 mb-4">
             <i className="ri-user-3-line" style={{ color: '#125C8D' }}></i>
@@ -292,7 +292,7 @@ export default function SettingsTab() {
           </button>
         </form>
 
-        {/* Taux de change */}
+        {/* Exchange rate */}
         <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #E5E7EB' }}>
           <div className="flex items-center gap-2 mb-4">
             <i className="ri-exchange-funds-line" style={{ color: '#125C8D' }}></i>
