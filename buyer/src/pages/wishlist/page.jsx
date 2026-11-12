@@ -29,7 +29,7 @@ export default function Wishlist() {
             <span>+</span> {t('wishlist.addProducts')}
           </Link>
         </div>
-        {/* Non connecté */}
+        {/* Signed out */}
         {!isAuthenticated && (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: '#EBF4FB' }}>
