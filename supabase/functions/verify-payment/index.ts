@@ -1,17 +1,17 @@
-// Supabase Edge Function : vérifie un paiement KkiaPay côté serveur et passe la
-// commande en 'paid' (audit #6 — avant, seul l'admin pouvait le faire à la main).
+// Supabase Edge Function: verifies a KkiaPay payment server-side and moves the
+// order to 'paid' (audit #6 — before, only an admin could do it by hand).
 //
-// Appelée par le checkout acheteur juste après le succès du widget KkiaPay :
+// Called by the buyer checkout right after the KkiaPay widget reports success:
 //   supabase.functions.invoke('verify-payment', { body: { group_id, transaction_id } })
 //
-// Déploiement :
+// Deployment:
 //   supabase functions deploy verify-payment
 //   supabase secrets set KKIAPAY_PUBLIC_KEY=... KKIAPAY_PRIVATE_KEY=... KKIAPAY_SECRET_KEY=... KKIAPAY_SANDBOX=true
-// (SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont fournis automatiquement par Supabase.)
+// (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided automatically by Supabase.)
 //
-// API KkiaPay : POST {base}/api/v1/transactions/status, body { transactionId },
-// en-têtes x-api-key (clé publique), x-private-key, x-secret-key — identique au
-// SDK officiel @kkiapay-org/nodejs-sdk.
+// KkiaPay API: POST {base}/api/v1/transactions/status, body { transactionId },
+// headers x-api-key (public key), x-private-key, x-secret-key — same as the
+// official @kkiapay-org/nodejs-sdk.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { decide, validateInput, type KkiapayTransaction, type OrderRow } from './logic.ts';
 
@@ -38,7 +38,7 @@ async function fetchKkiapayTransaction(transactionId: string): Promise<KkiapayTr
     },
     body: JSON.stringify({ transactionId }),
   });
-  if (res.status === 404 || res.status === 400) return null; // transaction inconnue
+  if (res.status === 404 || res.status === 400) return null; // unknown transaction
   if (!res.ok) throw new Error(`kkiapay_http_${res.status}`);
   return await res.json();
 }
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
   const decision = decide({ orders: (orders ?? []) as OrderRow[], transactionId: input.transactionId, usedByOtherGroup: (reuse ?? 0) > 0, kkiapay });
 
   if (decision.action === 'reject') {
-    // Garde la trace pour l'admin, sans valider la commande.
+    // Keep the reference for the admin, without validating the order.
     if (decision.reason !== 'transaction_already_used') {
       await admin.from('orders').update({ payment_reference: input.transactionId })
         .eq('group_id', input.groupId).eq('buyer_id', buyerId).eq('status', 'pending');
