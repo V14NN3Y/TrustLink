@@ -213,7 +213,7 @@ notifications — Notifications
 exchange_rates — Taux de change
 - from_currency, to_currency — Paires de devises
 - rate — Le taux de conversion
-- Insert initial : NGN → XOF = 0.89
+- Insert initial : NGN → XOF = 0.41 (valeur du schéma). Source unique du taux : cette table, modifiable par l'admin ; le script d'import produits l'utilise aussi
 IMPORTANT : Pas de contrainte unique sur (from_currency, to_currency).
 admin_logs — Journal des actions admin
 Audit trail de toutes les actions administratives :
@@ -503,7 +503,7 @@ Contexte
 Nigeria (NGN — Naira) ↔ Bénin (XOF — Franc CFA).
 Table exchange_rates
 INSERT INTO exchange_rates (from_currency, to_currency, rate)
-VALUES ('NGN', 'XOF', 0.89);  -- 1 NGN = 0.89 XOF
+VALUES ('NGN', 'XOF', 0.41);  -- 1 NGN = 0.41 XOF (valeur initiale, à mettre à jour par l'admin)
 Utilisation
 Application	Utilisation
 Buyer	Prix en FCFA uniquement. Taux en localStorage

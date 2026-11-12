@@ -1,5 +1,7 @@
 # Audit back-end TrustLink — 12 novembre 2026
 
+> **Mise à jour (même jour) :** les failles #1 à #8, #11 et #12 sont corrigées sur la branche `feat/evans-backend-tasks` (voir §4). #9 et #10 concernent la branche `temp` de Joseph.
+
 Périmètre : Supabase (schéma `schema_new_updated.sql`, `supabase/migrations/`, RLS, fonctions, storage) et l'état des branches `main`, `feat/beta-setup`, `temp`.
 Les failles marquées **testé** ont été reproduites sur une base Postgres 16 chargée avec le schéma du dépôt. La base de production n'a pas été consultée : si des policies y ont été ajoutées à la main, certains points peuvent déjà être corrigés.
 
@@ -62,3 +64,20 @@ Les failles marquées **testé** ont été reproduites sur une base Postgres 16 
 6. Activer pg_cron (Database → Extensions), puis `supabase/setup/01_cron_delivery_reminders.sql`
 
 Toutes les migrations peuvent être relancées sans erreur.
+
+## 4. Correctifs appliqués
+
+| # | Correctif | Où | Vérifié |
+|---|---|---|---|
+| 1 | Le rôle n'est plus lu dans les métadonnées d'inscription. Admin seulement avec un code valide de `invitation_codes` (usage unique), vérifié dans `handle_new_user`. L'admin génère les codes dans Profil → Équipe | migration `20261112220000`, `admin/src/lib/AuthContext.jsx`, `Register.jsx`, `TeamManagement.jsx` | Inscription avec `role: admin` → buyer ; bon code → admin ; code réutilisé → buyer |
+| 2 | Trigger `trg_profiles_protect_privileged` : rôle, flags KYC et `business_slug` modifiables seulement par un admin, l'éditeur SQL ou la clé service_role | migration | Acheteur bloqué ; modification de profil normale OK ; admin et script service_role OK |
+| 3 | RPC `create_checkout_order` : prix, frais de livraison, commission, coupon (règles + compteur) calculés en base ; contrôles stock / produit publié / quantité ; inserts directs supprimés | migration, `buyer/src/lib/supabase/orders.js`, `checkout/page.jsx` | Commande à 1 FCFA refusée ; total serveur exact (somme des commandes = total) ; coupon épuisé, stock, brouillon, quantité négative refusés |
+| 4 | Policy `insert` admin sur `notifications` | migration | OK |
+| 5 | Lecture publique de `stock_notifications` supprimée | migration | 0 ligne visible |
+| 6 | Edge Function `verify-payment` : vérifie la transaction auprès de KkiaPay (statut SUCCESS, montant ≥ total serveur, transaction non réutilisée) puis passe la commande en `paid` ; appelée par le checkout. Sinon la référence reste enregistrée pour validation manuelle | `supabase/functions/verify-payment/` | 5 tests de la logique, typage Deno OK ; non déployée (clés KkiaPay nécessaires) |
+| 7 | Upload `delivery-videos` limité à `confirmations/<uid>/` et `disputes/<uid>/` | migration | Dossier d'un autre refusé, le sien OK |
+| 8 | Admin exempté de la fenêtre de 48h | migration `20261112200200` | OK |
+| + | `increment_coupon_usage` et `use_invitation_code` retirées des rôles publics (permettaient d'épuiser coupons / codes) | migration | OK |
+| 11–12 | Ordre d'application et source unique du taux documentés | `supabase/README.md` | — |
+
+**À faire par Joseph sur `temp` :** remplacer son `createOrder` (inserts directs, désormais refusés) par l'appel à `create_checkout_order` de cette branche ; corriger le mapping de catégorie des TV (#9) ; retirer `scrapedProducts.json` du front et importer les produits avec `scripts/import-products.mjs` (#10).
