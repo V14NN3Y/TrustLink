@@ -89,7 +89,7 @@ export default function Legal() {
   if (active === 'escrow') return null;
 
   return (
-    <div className="pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
+    <div className="pt-28 md:pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       {/* Hero */}
       <div style={{ backgroundColor: '#0E3A4F' }} className="text-white py-10">
         <div className="max-w-[1100px] mx-auto px-4 md:px-6">

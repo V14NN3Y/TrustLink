@@ -4,13 +4,15 @@ import { renderStars } from '@/utils/format';
 import { useCurrencyContext } from '@/lib/CurrencyContext';
 import LazyImage from '@/components/base/LazyImage';
 import { useI18n } from '@/lib/I18nContext';
+import PriceBreakdown from '@/components/feature/PriceBreakdown';
 
 export default function ProductCard({ product }) {
   const { t } = useI18n();
   const navigate = useNavigate();
   const { toggle, isWishlisted } = useWishlist();
   const { formatPrice } = useCurrencyContext();
-  const stars = renderStars(product.rating);
+  const hasRating = Number(product.rating) > 0;
+  const stars = hasRating ? renderStars(product.rating) : [];
   const wishlisted = isWishlisted(product.id);
 
   const sellerStars = renderStars(product.seller_rating || 0);
@@ -22,7 +24,7 @@ export default function ProductCard({ product }) {
       style={{ border: '1px solid #F0F0F0' }}
     >
       {/* Image */}
-      <div className="relative overflow-hidden" style={{ backgroundColor: '#F8FAFC', height: '200px' }}>
+      <div className="relative overflow-hidden h-40 sm:h-[200px]" style={{ backgroundColor: '#F8FAFC' }}>
         <LazyImage
           src={product.images?.[0] || ''}
           alt={product.name}
@@ -41,7 +43,7 @@ export default function ProductCard({ product }) {
         )}
         <button
           onClick={(e) => { e.preventDefault(); toggle(product.id); }}
-          className="absolute top-2.5 right-2.5 w-8 h-8 bg-white rounded-full flex items-center justify-center transition-transform hover:scale-110"
+          className="absolute top-2.5 right-2.5 w-9 h-9 bg-white rounded-full flex items-center justify-center transition-transform hover:scale-110"
           style={{ border: wishlisted ? 'none' : '1px solid #E5E7EB' }}
         >
           <i className={`text-sm ${wishlisted ? 'ri-heart-fill' : 'ri-heart-line'}`} style={{ color: wishlisted ? '#FF6A00' : '#9CA3AF' }}></i>
@@ -53,26 +55,30 @@ export default function ProductCard({ product }) {
         <p className="text-sm font-inter font-medium mb-2 line-clamp-2 leading-snug" style={{ color: '#111827' }}>{product.name}</p>
 
         {/* Seller with rating badge */}
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <i className="ri-store-2-line text-[10px]" style={{ color: '#9CA3AF' }}></i>
-          <span className="text-[11px] font-inter" style={{ color: '#6B7280' }}>{product.seller}</span>
+        <div className="flex items-center gap-1.5 mb-1.5 min-w-0">
+          <i className="ri-store-2-line text-[10px] flex-shrink-0" style={{ color: '#9CA3AF' }}></i>
+          <span className="text-[11px] font-inter truncate min-w-0" style={{ color: '#6B7280' }}>{product.seller}</span>
           {product.seller_rating > 0 && (
-            <span className="flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#D97706' }}>
+            <span className="flex flex-shrink-0 items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#D97706' }}>
               <i className="ri-star-fill" style={{ fontSize: '8px' }}></i>
               {product.seller_rating}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-1 mb-2">
+        <div className="flex flex-wrap items-center gap-x-1 mb-2">
           {stars.map((cls, i) => (
             <i key={i} className={`${cls}`} style={{ fontSize: '11px', color: '#F59E0B' }}></i>
           ))}
-          <span className="text-xs font-inter ml-0.5" style={{ color: '#9CA3AF' }}>{product.rating} ({product.sales} {t('product.sales')})</span>
+          <span className="text-xs font-inter ml-0.5" style={{ color: '#9CA3AF' }}>
+            {hasRating
+              ? `${product.rating}${product.sales > 0 ? ` (${product.sales} ${t('product.sales')})` : ''}`
+              : t('product.noReviews')}
+          </span>
         </div>
 
-        <div className="flex items-baseline gap-2 mb-1">
-          <span className="text-base font-poppins font-bold" style={{ color: '#125C8D' }}>{formatPrice(product.price)}</span>
+        <div className="mb-1">
+          <PriceBreakdown price={product.price} compact size="text-base" />
           {product.originalPrice && (
             <span className="text-xs font-inter line-through" style={{ color: '#9CA3AF' }}>{formatPrice(product.originalPrice)}</span>
           )}

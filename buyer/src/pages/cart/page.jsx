@@ -19,7 +19,7 @@ export default function Cart() {
 
   if (loading) {
     return (
-      <div className="pt-24 pb-12 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
+      <div className="pt-28 md:pt-24 pb-12 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
         <div className="max-w-[1200px] mx-auto px-4 md:px-6">
           <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-12" />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -52,7 +52,7 @@ export default function Cart() {
 
   if (items.length === 0) {
     return (
-      <div className="pt-24 pb-12 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
+      <div className="pt-28 md:pt-24 pb-12 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
         <div className="max-w-[1200px] mx-auto px-4 md:px-6">
           <h1 className="text-2xl font-poppins font-bold mb-12" style={{ color: '#111827' }}>{t('cart.title')}</h1>
           <div className="flex flex-col items-center justify-center py-16">
@@ -72,7 +72,7 @@ export default function Cart() {
   }
 
   return (
-    <div className="pt-24 pb-12 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
+    <div className="pt-28 md:pt-24 pb-12 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       <div className="max-w-[1200px] mx-auto px-4 md:px-6">
         <h1 className="text-2xl font-poppins font-bold mb-6" style={{ color: '#111827' }}>
           {t('cart.title')} <span className="text-base font-inter font-normal" style={{ color: '#6B7280' }}>({items.length} {t('cart.items')})</span>

@@ -27,7 +27,7 @@ export default function InvoicePage() {
 
   if (loading) {
     return (
-      <div className="pt-24 pb-12 flex items-center justify-center min-h-[60vh]">
+      <div className="pt-28 md:pt-24 pb-12 flex items-center justify-center min-h-[60vh]">
         <div className="w-8 h-8 border-4 border-gray-200 border-t-[#125C8D] rounded-full animate-spin"></div>
       </div>
     );
@@ -35,7 +35,7 @@ export default function InvoicePage() {
 
   if (!order) {
     return (
-      <div className="pt-24 pb-12 flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="pt-28 md:pt-24 pb-12 flex flex-col items-center justify-center min-h-[60vh]">
         <h2 className="text-xl font-poppins font-bold mb-3">{t('invoice.notFound')}</h2>
         <Link to="/account" className="text-[#125C8D] underline text-sm">{t('invoice.backToOrders')}</Link>
       </div>
@@ -43,7 +43,7 @@ export default function InvoicePage() {
   }
 
   return (
-    <div className="pt-24 pb-12 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
+    <div className="pt-28 md:pt-24 pb-12 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       <div className="max-w-[800px] mx-auto px-4">
         <div className="flex justify-between items-center mb-6 no-print">
           <Link to="/account" className="text-sm font-inter text-[#125C8D] hover:underline">&larr; {t('invoice.backToOrder')}</Link>

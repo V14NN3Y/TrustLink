@@ -1,114 +1,178 @@
 import { supabase } from '@/lib/supabaseClient';
+import fallbackProducts from '@/data/scrapedProducts.json';
 
 const PLACEHOLDER_IMAGE = '/placeholder-product.svg';
 
 /**
- * Fetch approved products with optional category filter, search, and pagination.
- * Returns an array of normalized products.
+ * Fetch approved products with optional category filter, search, price range, and pagination.
+ * Merges Supabase live products with curated scraped catalog data.
  */
-export const fetchProducts = async ({ category, search, limit = 100 } = {}) => {
-  let query = supabase
-    .from('products')
-    .select(`
-      id,
-      name,
-      description,
-      price,
-      stock_quantity,
-      seller_id,
-      category_id,
-      created_at,
-      delivery_min_days,
-      delivery_max_days,
-      product_images (
-        url,
-        is_primary,
-        sort_order
-      ),
-      categories (
+export const fetchProducts = async ({
+  category,
+  search,
+  minPrice,
+  maxPrice,
+  inStockOnly,
+  sortBy = 'newest',
+  limit = 100,
+} = {}) => {
+  let dbProducts = [];
+  try {
+    const query = supabase
+      .from('products')
+      .select(`
         id,
         name,
-        slug
-      ),
-      profiles!seller_id (
-        full_name,
-        business_name
-      )
-    `)
-    .eq('status', 'approved')
-    .order('created_at', { ascending: false })
-    .limit(limit);
+        description,
+        price,
+        stock_quantity,
+        seller_id,
+        category_id,
+        created_at,
+        delivery_min_days,
+        delivery_max_days,
+        product_images (
+          url,
+          is_primary,
+          sort_order
+        ),
+        categories (
+          id,
+          name,
+          slug,
+          icon
+        ),
+        profiles!seller_id (
+          full_name,
+          business_name
+        )
+      `)
+      .eq('status', 'approved');
 
-  if (category) {
-    const { data: cat } = await supabase
-      .from('categories')
-      .select('id')
-      .eq('slug', category)
-      .maybeSingle();
-    if (cat) query = query.eq('category_id', cat.id);
+    const { data, error } = await query;
+    if (!error && Array.isArray(data)) {
+      dbProducts = data.map(normalizeProduct);
+    }
+  } catch (err) {
+    console.warn('[Supabase] Failed to fetch products, using local catalog:', err);
   }
 
+  // Combine DB products with scraped catalog items (avoiding duplicates by name)
+  const existingNames = new Set(dbProducts.map(p => (p.name || '').trim().toLowerCase()));
+  const newScraped = fallbackProducts.filter(p => !existingNames.has((p.name || '').trim().toLowerCase()));
+
+  let allProducts = [...dbProducts, ...newScraped];
+
+  // Category filter
+  if (category && category !== 'all') {
+    allProducts = allProducts.filter(p =>
+      p.category === category || p.category_slug === category || p.category_key === category
+    );
+  }
+
+  // Search filter
   if (search) {
-    query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+    const q = search.toLowerCase();
+    allProducts = allProducts.filter(p =>
+      (p.name || '').toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q)
+    );
   }
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data || []).map(normalizeProduct);
+  // Price range filters
+  if (minPrice) {
+    allProducts = allProducts.filter(p => Number(p.price) >= Number(minPrice));
+  }
+  if (maxPrice) {
+    allProducts = allProducts.filter(p => Number(p.price) <= Number(maxPrice));
+  }
+
+  // In stock filter
+  if (inStockOnly) {
+    allProducts = allProducts.filter(p => Number(p.stock || p.stock_quantity || 0) > 0);
+  }
+
+  // Sorting
+  if (sortBy === 'price_asc') {
+    allProducts.sort((a, b) => Number(a.price) - Number(b.price));
+  } else if (sortBy === 'price_desc') {
+    allProducts.sort((a, b) => Number(b.price) - Number(a.price));
+  } else if (sortBy === 'rating') {
+    allProducts.sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0));
+  }
+
+  return allProducts.slice(0, limit);
 };
 
 /**
  * Fetch a single product by ID with all images.
  */
 export const fetchProductById = async (id) => {
-  const { data, error } = await supabase
-    .from('products')
-    .select(`
-      id,
-      name,
-      description,
-      price,
-      stock_quantity,
-      seller_id,
-      category_id,
-      created_at,
-      delivery_min_days,
-      delivery_max_days,
-      product_images (
-        url,
-        is_primary,
-        sort_order
-      ),
-      categories (
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select(`
         id,
         name,
-        slug
-      ),
-      profiles!seller_id (
-        full_name,
-        business_name
-      )
-    `)
-    .eq('id', id)
-    .eq('status', 'approved')
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) return null;
-  return normalizeProduct(data);
+        description,
+        price,
+        stock_quantity,
+        seller_id,
+        category_id,
+        created_at,
+        delivery_min_days,
+        delivery_max_days,
+        product_images (
+          url,
+          is_primary,
+          sort_order
+        ),
+        categories (
+          id,
+          name,
+          slug
+        ),
+        profiles!seller_id (
+          full_name,
+          business_name
+        )
+      `)
+      .eq('id', id)
+      .eq('status', 'approved')
+      .maybeSingle();
+
+    if (!error && data) return normalizeProduct(data);
+  } catch (err) {
+    console.warn('[Supabase] Failed to fetch product by id, checking scraped catalog:', err);
+  }
+
+  const found = fallbackProducts.find(p => p.id === id || p.sku === id);
+  return found || null;
 };
 
 /**
  * Fetch all categories.
  */
 export const fetchCategories = async () => {
-  const { data, error } = await supabase
-    .from('categories')
-    .select('id, name, slug, icon')
-    .is('parent_id', null)
-    .order('sort_order', { ascending: true })
-    .order('name');
-  if (error) throw error;
-  return data || [];
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('id, name, slug, icon')
+      .is('parent_id', null)
+      .order('sort_order', { ascending: true })
+      .order('name');
+    if (!error && data && data.length > 0) return data;
+  } catch (err) {
+    console.warn('[Supabase] Failed to fetch categories from DB:', err);
+  }
+
+  return [
+    { id: 'cat-1', name: 'Smartphones & Tablettes', slug: 'smartphones-tablettes', icon: 'ri-smartphone-line' },
+    { id: 'cat-2', name: 'Électronique & TV', slug: 'audio-casques', icon: 'ri-tv-line' },
+    { id: 'cat-3', name: 'Ordinateurs & Bureautique', slug: 'ordinateurs-bureautique', icon: 'ri-laptop-line' },
+    { id: 'cat-4', name: 'Mode & Vêtements', slug: 'mode-vetements', icon: 'ri-t-shirt-line' },
+    { id: 'cat-5', name: 'Cuisine & Arts de la table', slug: 'cuisine-table', icon: 'ri-cup-line' },
+    { id: 'cat-6', name: 'Beauté & Soins', slug: 'beaute-soins', icon: 'ri-sparkling-line' },
+  ];
 };
 
 /**

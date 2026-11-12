@@ -7,7 +7,7 @@ const SLIDES = [
     badge: '⚡ VENTES FLASH',
     title: 'Jusqu\'à -50%\nsur la Mode',
     desc: 'Les meilleures marques nigérianes livrées chez vous en 2 à 7 jours. Paiement 100% en FCFA.',
-    cta1: { label: 'Découvrir les offres →', to: '/?category=mode' },
+    cta1: { label: 'Découvrir les offres →', to: '/catalog?category=mode-vetements' },
     cta2: { label: 'Protection Escrow', to: '/escrow', icon: 'ri-shield-check-line' },
   },
   {
@@ -15,7 +15,7 @@ const SLIDES = [
     badge: '⚡ HIGH-TECH',
     title: 'Smartphones &\nAccessoires',
     desc: 'Dernières technologies nigérianes certifiées. Garantie incluse, livraison express.',
-    cta1: { label: 'Explorer le High-Tech →', to: '/?category=hightech' },
+    cta1: { label: 'Explorer le High-Tech →', to: '/catalog?category=smartphones-tablettes' },
     cta2: { label: 'Protection Escrow', to: '/escrow', icon: 'ri-shield-check-line' },
   },
   {
@@ -23,7 +23,7 @@ const SLIDES = [
     badge: '✨ BEAUTÉ',
     title: 'Soins Naturels\nAfricains',
     desc: 'Cosmétiques formulés pour les peaux africaines. 100% naturels, certifiés premium.',
-    cta1: { label: 'Voir la Beauté →', to: '/?category=beaute' },
+    cta1: { label: 'Voir la Beauté →', to: '/catalog?category=beaute-soins' },
     cta2: { label: 'Protection Escrow', to: '/escrow', icon: 'ri-shield-check-line' },
   },
 ];
@@ -88,14 +88,14 @@ export default function HeroBanner() {
       {/* Arrows */}
       <button
         onClick={prev}
-        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-white transition-colors z-10"
+        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full hidden sm:flex items-center justify-center text-white transition-colors z-10"
         style={{ backgroundColor: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)' }}
       >
         <i className="ri-arrow-left-s-line text-xl"></i>
       </button>
       <button
         onClick={next}
-        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-white transition-colors z-10"
+        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full hidden sm:flex items-center justify-center text-white transition-colors z-10"
         style={{ backgroundColor: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)' }}
       >
         <i className="ri-arrow-right-s-line text-xl"></i>

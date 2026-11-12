@@ -44,7 +44,7 @@ export default function Notifications() {
     return acc;
   }, {});
   return (
-    <div className="pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
+    <div className="pt-28 md:pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       <div style={{ backgroundColor: '#0E3A4F' }} className="text-white py-8">
         <div className="max-w-[760px] mx-auto px-4 md:px-6">
           <div className="flex items-center justify-between">

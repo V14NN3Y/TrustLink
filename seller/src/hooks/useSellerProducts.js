@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import fallbackProducts from "@/data/scrapedProducts.json";
 
 export function useSellerProducts(sellerId) {
   const [products, setProducts] = useState([]);
@@ -58,7 +59,7 @@ export function useSellerProducts(sellerId) {
 
       if (!mountedRef.current) return;
 
-      const formatted = (data || []).map((p) => ({
+      let formatted = (data || []).map((p) => ({
         id: p.id,
         name: p.name,
         category: p.category?.name || "—",
@@ -71,6 +72,23 @@ export function useSellerProducts(sellerId) {
         description: p.description,
         created_at: p.created_at,
       }));
+
+      // If seller has no products yet in Supabase, show curated catalog
+      if (formatted.length === 0 && fallbackProducts && fallbackProducts.length > 0) {
+        formatted = fallbackProducts.map((p) => ({
+          id: p.id,
+          name: p.name,
+          category: p.category_name || "—",
+          price_fcfa: p.price_fcfa || p.price,
+          price_ngn: Math.round((p.price_fcfa || p.price) / rate),
+          image: p.image_url || p.images?.[0] || "",
+          status: "approved",
+          stock_total: p.stock_quantity || 25,
+          sales_count: p.sales || 0,
+          description: p.description,
+          created_at: new Date().toISOString(),
+        }));
+      }
 
       if (mountedRef.current) {
         setProducts(formatted);

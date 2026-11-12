@@ -14,7 +14,7 @@ export default function Wishlist() {
     }
   }, [isAuthenticated, loadWishlistProducts]);
   return (
-    <div className="pt-24 pb-12 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
+    <div className="pt-28 md:pt-24 pb-12 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       <div className="max-w-[1200px] mx-auto px-4 md:px-6">
         <div className="flex items-start justify-between mb-8">
           <div>

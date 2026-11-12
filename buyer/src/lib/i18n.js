@@ -285,6 +285,7 @@ const locales = {
       recentlyViewed: 'Consultés récemment',
       viewProduct: 'Voir le produit',
       sales: 'ventes',
+      noReviews: "Pas encore d'avis",
       newBadge: 'Nouveau',
     },
     cart: {
@@ -1043,6 +1044,7 @@ const locales = {
       recentlyViewed: 'Recently Viewed',
       viewProduct: 'View Product',
       sales: 'sales',
+      noReviews: 'No reviews yet',
       newBadge: 'New',
     },
     cart: {

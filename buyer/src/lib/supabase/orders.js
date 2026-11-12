@@ -99,6 +99,9 @@ export const fetchOrders = async (buyerId) => {
       shipping_city,
       created_at,
       dispatch_id,
+      inspection_photo_url,
+      inspected_at,
+      delivered_at,
       order_items (
         id,
         product_name,
@@ -139,6 +142,9 @@ export const fetchOrders = async (buyerId) => {
         total: 0,
         city: order.shipping_city,
         createdAt: order.created_at,
+        inspectionPhotoUrl: order.inspection_photo_url || null,
+        inspectedAt: order.inspected_at || null,
+        deliveredAt: order.delivered_at || null,
         trackingNumber: `TL-${order.id.substring(0, 8).toUpperCase()}`,
         items: [],
         orderIds: [],
@@ -148,6 +154,9 @@ export const fetchOrders = async (buyerId) => {
     const group = grouped[key];
     group.total += Number(order.total_amount);
     group.orderIds.push(order.id);
+    if (!group.inspectionPhotoUrl && order.inspection_photo_url) group.inspectionPhotoUrl = order.inspection_photo_url;
+    if (!group.inspectedAt && order.inspected_at) group.inspectedAt = order.inspected_at;
+    if (!group.deliveredAt && order.delivered_at) group.deliveredAt = order.delivered_at;
 
     if (order.dispatch_id && dispatchMap[order.dispatch_id]) {
       const dispatch = dispatchMap[order.dispatch_id];

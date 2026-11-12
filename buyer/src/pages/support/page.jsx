@@ -318,7 +318,7 @@ export default function Support() {
     setView('list');
   };
   return (
-    <div className="pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
+    <div className="pt-28 md:pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       <div style={{ backgroundColor: '#0E3A4F' }} className="text-white py-10">
         <div className="max-w-[1100px] mx-auto px-4 md:px-6">
           <div className="flex items-center gap-3 mb-3">

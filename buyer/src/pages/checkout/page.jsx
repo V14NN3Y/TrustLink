@@ -208,7 +208,7 @@ export default function Checkout() {
 
   if (!configLoaded) {
     return (
-      <div className="pt-24 pb-12">
+      <div className="pt-28 md:pt-24 pb-12">
         <div className="max-w-[768px] mx-auto px-4 md:px-6 flex justify-center">
           <div className="w-10 h-10 border-4 border-slate-200 border-t-[#125C8D] rounded-full animate-spin" />
         </div>
@@ -217,7 +217,7 @@ export default function Checkout() {
   }
 
   return (
-    <div className="pt-24 pb-12">
+    <div className="pt-28 md:pt-24 pb-12">
       <div className="max-w-[768px] mx-auto px-4 md:px-6">
         <h1 className="text-2xl font-poppins font-bold mb-6 text-center" style={{ color: '#111827' }}>
           {t('checkout.title')}

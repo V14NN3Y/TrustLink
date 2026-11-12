@@ -50,6 +50,13 @@ export default function CategoryBar() {
               {cat.name}
             </button>
           ))}
+          <button
+            onClick={() => navigate('/catalog')}
+            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-poppins font-semibold text-[#125C8D] bg-blue-50 hover:bg-blue-100 transition-all duration-200 ml-auto cursor-pointer border border-blue-200"
+          >
+            <i className="ri-arrow-right-up-line text-sm" />
+            Voir tout le catalogue
+          </button>
         </div>
       </div>
     </nav>

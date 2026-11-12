@@ -1,3 +1,4 @@
+import { PriceTotal, PriceDetails } from '@/components/feature/PriceBreakdown';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useProduct } from '@/hooks/useProduct';
@@ -36,7 +37,7 @@ export default function ProductPage() {
 
   if (isLoading) {
     return (
-      <div className="pt-24 pb-12">
+      <div className="pt-28 md:pt-24 pb-12">
         <div className="max-w-[1200px] mx-auto px-4 md:px-6">
           <div className="grid md:grid-cols-2 gap-8 animate-pulse">
             <div className="rounded-xl bg-gray-100 h-96" />
@@ -55,7 +56,7 @@ export default function ProductPage() {
   }
   if (error || !product) {
     return (
-      <div className="pt-24 pb-12 flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="pt-28 md:pt-24 pb-12 flex flex-col items-center justify-center min-h-[60vh]">
         <div className="text-6xl mb-4">🔍</div>
         <h1 className="text-xl font-poppins font-bold mb-3" style={{ color: '#111827' }}>{t('product.notFound')}</h1>
         <p className="text-sm font-inter mb-6" style={{ color: '#6B7280' }}>
@@ -102,7 +103,7 @@ export default function ProductPage() {
     navigate('/cart');
   };
   return (
-    <div className="pt-24 pb-12">
+    <div className="pt-28 md:pt-24 pb-12">
       <div className="max-w-[1200px] mx-auto px-4 md:px-6">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-xs font-inter mb-6" style={{ color: '#6B7280' }}>
@@ -183,10 +184,8 @@ export default function ProductPage() {
               </span>
             </div>
             {/* Price */}
-            <div className="flex items-baseline gap-3 mb-2">
-              <span className="text-2xl font-poppins font-bold" style={{ color: '#125C8D' }}>
-                {formatPrice(product.price)}
-              </span>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-2">
+              <PriceTotal price={product.price} className="text-2xl font-poppins font-bold" style={{ color: '#125C8D' }} />
               {product.originalPrice && (
                 <span className="text-sm font-inter line-through" style={{ color: '#6B7280' }}>
                   {formatPrice(product.originalPrice)}
@@ -201,6 +200,7 @@ export default function ProductPage() {
                 </span>
               )}
             </div>
+            <PriceDetails price={product.price} />
             {/* Delivery info */}
             {product.delivery_min_days && product.delivery_max_days && (
               <p className="text-xs font-inter mb-2" style={{ color: '#6B7280' }}>

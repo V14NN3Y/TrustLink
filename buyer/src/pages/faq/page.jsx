@@ -55,7 +55,7 @@ export default function FAQ() {
   const FAQ_DATA = getFaqData(t);
 
   return (
-    <div className="pt-20">
+    <div className="pt-28 md:pt-20">
       <div style={{ backgroundColor: '#0E3A4F' }} className="text-white py-14">
         <div className="max-w-[860px] mx-auto px-4 text-center">
           <h1 className="text-3xl md:text-4xl font-poppins font-bold mb-3">{t('faq.heroTitle')}</h1>

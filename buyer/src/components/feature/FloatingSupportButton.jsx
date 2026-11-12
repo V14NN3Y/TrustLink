@@ -42,9 +42,9 @@ export default function FloatingSupportButton() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 flex flex-col items-end">
       {open && (
-        <div className="mb-3 w-80 bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #E5E7EB', boxShadow: '0 20px 60px rgba(0,0,0,0.18)' }}>
+        <div className="mb-3 w-[calc(100vw-2rem)] max-w-80 bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #E5E7EB', boxShadow: '0 20px 60px rgba(0,0,0,0.18)' }}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: '#0E3A4F' }}>
             <div className="flex items-center gap-3">
@@ -140,7 +140,7 @@ export default function FloatingSupportButton() {
       {/* Trigger button — round circle with headset icon */}
       <button
         onClick={() => setOpen(!open)}
-        className="w-14 h-14 rounded-full flex items-center justify-center text-white transition-transform hover:scale-105"
+        className="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-white transition-transform hover:scale-105"
         style={{ backgroundColor: '#0E3A4F', boxShadow: '0 4px 20px rgba(14,58,79,0.4)' }}
       >
         {open

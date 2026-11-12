@@ -6,6 +6,9 @@ import { useProfile } from '@/hooks/useProfile';
 import SettingsTab from './components/SettingsTab';
 import { useDisputes } from '@/hooks/useDisputes';
 import DisputeModal from './components/DisputeModal';
+import TrackingBar from './components/TrackingBar';
+import DisputeCountdown from './components/DisputeCountdown';
+import { getDisputeDeadline } from '@/lib/disputeWindow';
 import ConfirmDeliveryModal from './components/ConfirmDeliveryModal';
 import { Link } from 'react-router-dom';
 import { useCurrencyContext } from '@/lib/CurrencyContext';
@@ -55,8 +58,8 @@ export default function Account() {
     setConfirmOrder(order);
   };
   return (
-    <div className="pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
-      <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-8">
+    <div className="pt-28 md:pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
+      <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-4 md:py-8">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs font-inter mb-6" style={{ color: '#6B7280' }}>
           <Link to="/" className="hover:underline">{t('account.breadcrumbStore')}</Link>
@@ -75,7 +78,7 @@ export default function Account() {
                 </button>
               </div>
               <div className="px-5 pb-5">
-                <div className="w-16 h-16 rounded-full bg-amber-200 flex items-center justify-center -mt-8 mb-3 border-3 border-white overflow-hidden" style={{ border: '3px solid white' }}>
+                <div className="relative w-16 h-16 rounded-full bg-amber-200 flex items-center justify-center -mt-8 mb-3 border-3 border-white overflow-hidden" style={{ border: '3px solid white' }}>
                   <span className="text-xl font-poppins font-bold text-amber-800">
                     {(userProfile?.full_name || user?.user_metadata?.full_name)
                       ? (userProfile?.full_name || user?.user_metadata?.full_name).split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -118,13 +121,13 @@ export default function Account() {
               </div>
             </div>
 
-            {/* Nav */}
-                  <div className="bg-white rounded-xl overflow-hidden mb-4" style={{ border: '1px solid #E5E7EB' }}>
+            {/* Nav : onglets défilants sur mobile, liste verticale dès md */}
+                  <div className="bg-white rounded-xl overflow-x-auto md:overflow-hidden mb-4 flex md:block" style={{ border: '1px solid #E5E7EB' }}>
                     {NAV.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => setTab(item.id)}
-                      className="w-full flex items-center justify-between px-4 py-3.5 text-sm font-poppins transition-colors border-b border-gray-50 last:border-0"
+                      className="md:w-full flex-shrink-0 whitespace-nowrap flex items-center justify-between gap-2 px-4 py-3.5 text-sm font-poppins transition-colors md:border-b border-gray-50 md:last:border-0"
                       style={tab === item.id
                       ? { backgroundColor: '#EBF4FB', color: '#125C8D', fontWeight: '600' }
                       : { color: '#374151' }}
@@ -143,17 +146,17 @@ export default function Account() {
                         </span>
                       )}
                       </div>
-                      <i className="ri-arrow-right-s-line text-base text-gray-400"></i>
+                      <i className="hidden md:block ri-arrow-right-s-line text-base text-gray-400"></i>
                     </button>
                     ))}
-                    <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-poppins text-red-500 hover:bg-red-50 transition-colors cursor-pointer">
+                    <button onClick={logout} className="md:w-full flex-shrink-0 whitespace-nowrap flex items-center gap-3 px-4 py-3.5 text-sm font-poppins text-red-500 hover:bg-red-50 transition-colors cursor-pointer">
                     <i className="ri-logout-box-r-line text-base"></i>
                     {t('account.logout')}
                     </button>
                   </div>
 
                   {/* Escrow promo */}
-            <div className="rounded-xl p-4" style={{ backgroundColor: '#FFF3EC', border: '1px solid #FFD0B0' }}>
+            <div className="hidden md:block rounded-xl p-4" style={{ backgroundColor: '#FFF3EC', border: '1px solid #FFD0B0' }}>
               <div className="flex items-center gap-2 mb-2">
                 <i className="ri-shield-star-line" style={{ color: '#FF6A00' }}></i>
                 <p className="text-sm font-poppins font-semibold" style={{ color: '#FF6A00' }}>{t('account.escrowProtection')}</p>
@@ -173,12 +176,12 @@ export default function Account() {
             {tab === 'orders' && (
               <div>
                 <h1 className="text-xl font-poppins font-bold mb-5" style={{ color: '#111827' }}>{t('account.myOrders')}</h1>
-                <div className="flex flex-wrap gap-2 mb-5">
+                <div className="flex gap-2 mb-5 overflow-x-auto md:flex-wrap -mx-4 px-4 md:mx-0 md:px-0 pb-1">
                   {ORDER_FILTERS.map((f) => {
                     const count = f.id === 'all' ? orders.length : orders.filter((o) => o.status === f.id).length;
                     return (
                       <button key={f.id} onClick={() => setOrderFilter(f.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-poppins font-medium rounded-full border transition-all"
+                        className="flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-2 text-xs font-poppins font-medium rounded-full border transition-all"
                         style={orderFilter === f.id
                           ? { backgroundColor: '#125C8D', color: '#fff', borderColor: '#125C8D' }
                           : { color: '#374151', borderColor: '#E5E7EB', backgroundColor: '#fff' }}>
@@ -206,12 +209,12 @@ export default function Account() {
                       <div key={order.id} className="bg-white rounded-xl overflow-hidden" style={{ border: '1px solid #E5E7EB' }}>
                         <button
                           onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
-                          className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                          className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-4 text-left hover:bg-gray-50 transition-colors"
                         >
-                          <div className="flex items-center gap-3">
-                            <div>
-                              <div className="flex items-center gap-2 mb-0.5">
-                                <span className="text-sm font-poppins font-bold" style={{ color: '#111827' }}>#{order.id}</span>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-0.5">
+                                <span className="text-sm font-poppins font-bold" style={{ color: '#111827' }}>#{String(order.id).slice(0, 8).toUpperCase()}</span>
                                 <span className="text-xs font-poppins font-semibold rounded-full px-2 py-0.5" style={{ backgroundColor: cfg.bg, color: cfg.color }}>{cfg.label}</span>
                               </div>
                               <p className="text-xs font-inter" style={{ color: '#9CA3AF' }}>
@@ -219,8 +222,8 @@ export default function Account() {
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm font-poppins font-bold" style={{ color: '#111827' }}>
+                          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                            <span className="text-sm font-poppins font-bold whitespace-nowrap" style={{ color: '#111827' }}>
                               {formatPrice(order.total)}
                             </span>
                             <i className={`ri-arrow-${isExpanded ? 'up' : 'down'}-s-line text-lg text-gray-400`}></i>
@@ -253,6 +256,7 @@ export default function Account() {
                                 </div>
                               ))}
                             </div>
+                            <TrackingBar order={order} />
                             <p className="text-xs font-inter mb-2" style={{ color: '#6B7280' }}>
                               {t('account.tracking')} : <span className="font-medium" style={{ color: '#125C8D' }}>{order.trackingNumber}</span>
                             </p>
@@ -268,24 +272,32 @@ export default function Account() {
                                 </p>
                               </div>
                             ))}
-                            <div className="flex gap-2 flex-wrap">
+                            <div className="flex gap-2 flex-wrap items-center">
                {(order.status === 'in_transit' || order.status === 'delivered') && (
-                                 <>
-                                   <button
-                                     onClick={() => handleConfirmDelivery(order)}
-                                     className="flex items-center gap-1.5 px-4 py-2 text-xs font-poppins font-semibold text-white rounded-lg cursor-pointer whitespace-nowrap"
-                                     style={{ backgroundColor: '#16A34A' }}
-                                   >
-                                      <i className="ri-checkbox-circle-line"></i> {t('account.confirmDelivery')}
-                                   </button>
-                                   <button
-                                     onClick={() => setDisputeOrder(order)}
-                                     className="flex items-center gap-1.5 px-4 py-2 text-xs font-poppins font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors cursor-pointer whitespace-nowrap"
-                                   >
-                                      <i className="ri-error-warning-line"></i> {t('account.defectiveProduct')}
-                                   </button>
-                                 </>
+                                 <button
+                                   onClick={() => handleConfirmDelivery(order)}
+                                   className="flex items-center gap-1.5 px-4 py-2 text-xs font-poppins font-semibold text-white rounded-lg cursor-pointer whitespace-nowrap"
+                                   style={{ backgroundColor: '#16A34A' }}
+                                 >
+                                    <i className="ri-checkbox-circle-line"></i> {t('account.confirmDelivery')}
+                                 </button>
                                )}
+                               {order.status === 'delivered' && (() => {
+                                 const deadline = getDisputeDeadline(order);
+                                 const open = !deadline || Date.now() <= deadline;
+                                 return (
+                                   <>
+                                     <button
+                                       onClick={() => open && setDisputeOrder(order)}
+                                       disabled={!open}
+                                       className="flex items-center gap-1.5 px-4 py-2 text-xs font-poppins font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors cursor-pointer whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+                                     >
+                                        <i className="ri-camera-line"></i> Litige caméra
+                                     </button>
+                                     <DisputeCountdown order={order} />
+                                   </>
+                                 );
+                               })()}
                               <button className="flex items-center gap-1.5 px-4 py-2 text-xs font-poppins font-semibold rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer" style={{ color: '#374151' }}>
                                 <i className="ri-eye-line"></i> {t('account.details')}
                               </button>

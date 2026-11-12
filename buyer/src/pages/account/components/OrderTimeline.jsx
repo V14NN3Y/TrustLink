@@ -1,22 +1,8 @@
 import { useCurrencyContext } from '@/lib/CurrencyContext';
-
-const JOURNEY_STEPS = [
-  { key: 'pending', icon: 'ri-time-line', label: 'Commande passée' },
-  { key: 'paid', icon: 'ri-bank-card-line', label: 'Paiement confirmé' },
-  { key: 'processing', icon: 'ri-loader-2-line', label: 'En préparation' },
-  { key: 'in_transit', icon: 'ri-truck-line', label: 'En transit' },
-  { key: 'delivered', icon: 'ri-map-pin-line', label: 'Livré' },
-  { key: 'confirmed', icon: 'ri-check-double-line', label: 'Confirmé' },
-];
-
-const STATUS_PRIORITY = {
-  disputed: 6, cancelled: 6, refunded: 6,
-  pending: 0, paid: 1, processing: 2, in_transit: 3, delivered: 4, confirmed: 5,
-};
+import TrackingBar from './TrackingBar';
 
 export default function OrderTimeline({ order, onConfirmDelivery, onOpenDispute }) {
   const { formatPrice } = useCurrencyContext();
-  const currentIdx = STATUS_PRIORITY[order.status] ?? 0;
   const isTerminal = ['disputed', 'cancelled', 'refunded'].includes(order.status);
 
   return (
@@ -38,26 +24,7 @@ export default function OrderTimeline({ order, onConfirmDelivery, onOpenDispute 
           </div>
         </div>
       ) : (
-        <div className="relative mb-8">
-          <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
-          {JOURNEY_STEPS.map((step, idx) => {
-            const done = idx <= currentIdx;
-            return (
-              <div key={step.key} className="relative flex items-start gap-4 pb-6 last:pb-0">
-                <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${done ? 'text-white' : 'bg-gray-100 text-gray-400'}`}
-                  style={done ? { backgroundColor: idx === currentIdx ? '#FF6A00' : '#10B981' } : {}}>
-                  <i className={`${step.icon} text-sm`}></i>
-                </div>
-                <div className="flex-1 pt-1">
-                  <p className={`text-sm font-poppins font-semibold ${done ? 'text-gray-900' : 'text-gray-400'}`}>{step.label}</p>
-                  {done && idx === currentIdx && (
-                    <p className="text-xs font-inter mt-0.5 text-[#FF6A00]">En cours</p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <TrackingBar order={order} />
       )}
 
       {order.items && (

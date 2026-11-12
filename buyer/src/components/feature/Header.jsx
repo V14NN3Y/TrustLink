@@ -22,7 +22,7 @@ export default function Header() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (query.trim()) navigate('/?search=' + encodeURIComponent(query.trim()));
+    if (query.trim()) navigate('/catalog?search=' + encodeURIComponent(query.trim()));
   };
 
   const toggleLocale = () => setLocale(locale === 'fr' ? 'en' : 'fr');
@@ -34,6 +34,14 @@ export default function Header() {
         <div className="hidden md:flex items-center h-16 gap-6">
           <Link to="/" className="flex items-center gap-2 flex-shrink-0">
             <img src="/TrustLink_Logo_Bleu-Fonce.png" alt="TrustLink" className="h-9 w-auto" />
+          </Link>
+
+          <Link
+            to="/catalog"
+            className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-poppins font-semibold text-gray-700 hover:text-[#125C8D] hover:bg-blue-50/60 transition-colors whitespace-nowrap border border-gray-200"
+          >
+            <i className="ri-store-2-line text-sm text-[#125C8D]" />
+            <span>Catalogue</span>
           </Link>
 
           <form onSubmit={handleSearch} className="flex-1 max-w-xl">
@@ -98,20 +106,20 @@ export default function Header() {
               {/* Currency toggle (mobile) */}
               <div className="flex items-center bg-gray-100 rounded-full p-0.5 mr-0.5">
                 <button onClick={() => setCurrency('XOF')}
-                  className={`px-1.5 py-0.5 text-[10px] font-poppins font-semibold rounded-full transition-all cursor-pointer ${currency === 'XOF' ? 'bg-white text-[#125C8D] shadow-sm' : 'text-gray-500'}`}>
+                  className={`px-2.5 py-1.5 text-[11px] font-poppins font-semibold rounded-full transition-all cursor-pointer ${currency === 'XOF' ? 'bg-white text-[#125C8D] shadow-sm' : 'text-gray-500'}`}>
                   FCFA
                 </button>
                 <button onClick={() => setCurrency('NGN')}
-                  className={`px-1.5 py-0.5 text-[10px] font-poppins font-semibold rounded-full transition-all cursor-pointer ${currency === 'NGN' ? 'bg-white text-[#125C8D] shadow-sm' : 'text-gray-500'}`}>
+                  className={`px-2.5 py-1.5 text-[11px] font-poppins font-semibold rounded-full transition-all cursor-pointer ${currency === 'NGN' ? 'bg-white text-[#125C8D] shadow-sm' : 'text-gray-500'}`}>
                   NGN
                 </button>
               </div>
               <button onClick={toggleLocale}
-                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-[10px] font-poppins font-bold cursor-pointer"
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-[11px] font-poppins font-bold cursor-pointer"
                 style={{ color: '#6B7280' }}>
                 {locale === 'fr' ? 'FR' : 'EN'}
               </button>
-              <Link to="/cart" className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100">
+              <Link to="/cart" className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100">
                 <i className="ri-shopping-cart-line text-lg" style={{ color: '#6B7280' }}></i>
                 {totalItems > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 text-white rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6A00', fontSize: '9px' }}>
@@ -119,7 +127,7 @@ export default function Header() {
                   </span>
                 )}
               </Link>
-              <button onClick={() => setMenuOpen(!menuOpen)} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100">
+              <button onClick={() => setMenuOpen(!menuOpen)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100" aria-label="Menu">
                 <i className={`text-lg ${menuOpen ? 'ri-close-line' : 'ri-menu-line'}`} style={{ color: '#111827' }}></i>
               </button>
             </div>
@@ -127,7 +135,7 @@ export default function Header() {
           <div className="pb-2">
             <form onSubmit={handleSearch}>
               <div className="flex items-center border border-gray-200 rounded-full overflow-hidden">
-                <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('nav.search')} className="flex-1 px-4 py-2 text-sm outline-none font-inter" />
+                <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('nav.search')} className="flex-1 min-w-0 px-4 py-2 text-base outline-none font-inter" />
                 <button type="submit" className="px-3 py-1.5 text-white rounded-full m-1" style={{ backgroundColor: '#125C8D' }}>
                   <i className="ri-search-line text-sm"></i>
                 </button>
@@ -138,15 +146,16 @@ export default function Header() {
       </div>
 
       {menuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-4 pb-4">
+        <div className="md:hidden bg-white border-t border-gray-100 px-4 pb-4 max-h-[calc(100dvh-7rem)] overflow-y-auto">
           {[
             { to: '/', label: t('nav.home') },
+            { to: '/catalog', label: 'Catalogue' },
             { to: '/account', label: t('nav.account') },
             { to: '/wishlist', label: t('nav.wishlist') },
             { to: '/faq', label: t('support.faq') },
             { to: '/support', label: t('nav.support') },
           ].map(({ to, label }) => (
-            <Link key={to} to={to} onClick={() => setMenuOpen(false)} className="block py-3 text-sm font-inter border-b border-gray-50 last:border-0" style={{ color: '#111827' }}>
+            <Link key={to} to={to} onClick={() => setMenuOpen(false)} className="block py-3.5 text-sm font-inter border-b border-gray-50 last:border-0" style={{ color: '#111827' }}>
               {label}
             </Link>
           ))}

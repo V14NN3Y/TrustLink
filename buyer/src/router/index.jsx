@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { useMemo } from 'react';
 import Home from '@/pages/home/page';
+import CatalogPage from '@/pages/catalog/page';
 import ProductPage from '@/pages/product/page';
 import Cart from '@/pages/cart/page';
 import Checkout from '@/pages/checkout/page';
@@ -13,6 +14,7 @@ import Support from '@/pages/support/page';
 import Legal from '@/pages/legal/page';
 import EscrowPage from '@/pages/escrow/page';
 import Returns from '@/pages/returns/page';
+import SourcingPage from '@/pages/sourcing/page';
 import InvoicePage from '@/pages/invoice/page';
 import NotFound from '@/pages/NotFound';
 import MaintenancePage from '@/pages/MaintenancePage';
@@ -59,6 +61,7 @@ export default function AppRoutes() {
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/product/:id" element={<ProductPage />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/help" element={<Help />} />
@@ -74,6 +77,7 @@ export default function AppRoutes() {
           <Route element={<ProtectedRoute />}>
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/sourcing" element={<SourcingPage />} />
             <Route path="/account" element={<Account />} />
             <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/notifications" element={<Notifications />} /> 

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useDisputes } from '@/hooks/useDisputes';
-import VideoRecorder from './VideoRecorder';
+import NativeCameraCapture from './NativeCameraCapture';
+import DisputeCountdown from './DisputeCountdown';
+import { getDisputeDeadline } from '@/lib/disputeWindow';
 import { useCurrencyContext } from '@/lib/CurrencyContext';
 const REASONS = [
   'Produit non conforme à la description',
@@ -23,6 +25,8 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
     const fullReason = reason === 'Autre' ? customReason.trim() : reason;
     if (!fullReason) { setError('Veuillez sélectionner un motif.'); return; }
     if (!videoFilePath) { setError('La vidéo de déballage est obligatoire.'); return; }
+    const deadline = getDisputeDeadline(order);
+    if (deadline && Date.now() > deadline) { setError('Le délai de 48h après livraison est dépassé.'); return; }
     try {
       await openDispute({ orderId: order.id, reason: fullReason, videoFilePath });
       onSuccess?.();
@@ -32,8 +36,8 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
     }
   };
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
-      <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ border: '1px solid #E5E7EB' }}>
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+      <div className="bg-white rounded-t-2xl sm:rounded-xl w-full max-w-lg max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto" style={{ border: '1px solid #E5E7EB' }}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
@@ -44,8 +48,11 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
             <i className="ri-close-line text-lg" style={{ color: '#6B7280' }}></i>
           </button>
         </div>
+        {getDisputeDeadline(order) && (
+          <div className="px-5 pt-3"><DisputeCountdown order={order} /></div>
+        )}
         {/* Steps */}
-        <div className="flex items-center px-5 py-3 gap-2 border-b border-gray-50">
+        <div className="flex items-center px-4 sm:px-5 py-3 gap-1.5 sm:gap-2 border-b border-gray-50 overflow-x-auto">
           {['Motif', 'Vidéo', 'Confirmation'].map((label, idx) => {
             const s = idx + 1;
             const done = step > s;
@@ -61,7 +68,7 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
             );
           })}
         </div>
-        <div className="p-5">
+        <div className="p-4 sm:p-5 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {error && (
             <div className="mb-4 p-3 rounded-lg text-sm font-inter" style={{ backgroundColor: '#FEE2E2', color: '#DC2626' }}>
               {error}
@@ -104,7 +111,7 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
                   </p>
                 </div>
               </div>
-              <VideoRecorder orderId={order.id} onRecorded={setVideoFilePath} />
+              <NativeCameraCapture orderId={order.id} onRecorded={setVideoFilePath} />
               <div className="flex gap-3 mt-4">
                 <button onClick={() => setStep(1)} className="flex-1 py-2.5 text-sm font-poppins font-medium rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer" style={{ color: '#374151' }}>← Retour</button>
                 <button onClick={() => setStep(3)} disabled={!videoFilePath} className="flex-1 py-2.5 text-sm font-poppins font-semibold rounded-lg text-white disabled:opacity-50 cursor-pointer" style={{ backgroundColor: '#125C8D' }}>Continuer →</button>

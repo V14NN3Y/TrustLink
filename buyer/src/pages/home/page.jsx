@@ -28,7 +28,7 @@ export default function Home() {
     ? t('home.category').replace('{name}', category.charAt(0).toUpperCase() + category.slice(1))
     : t('home.allProducts');
   return (
-    <div className="pt-20 md:pt-20">
+    <div className="pt-28 md:pt-20">
       {showHero && <HeroBanner />}
       {showHero && <TrustBanner />}
       <CategoryBar />

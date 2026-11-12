@@ -22,6 +22,9 @@ export default function CatalogPage() {
   const { formatPrice } = useCurrency();
   const [view, setView] = useState("grid");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStock, setFilterStock] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
   const [search, setSearch] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
   const [deletingProduct, setDeletingProduct] = useState(null);
@@ -115,14 +118,32 @@ export default function CatalogPage() {
     refetch();
   };
 
-  const filtered = products.filter((p) => {
-    const matchStatus = filterStatus === "all" || p.status === filterStatus;
-    const matchSearch =
-      search === "" ||
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.category || "").toLowerCase().includes(search.toLowerCase());
-    return matchStatus && matchSearch;
-  });
+  const availableCategories = Array.from(
+    new Set(products.map((p) => p.category).filter((c) => c && c !== "—"))
+  );
+
+  const filtered = products
+    .filter((p) => {
+      const matchStatus = filterStatus === "all" || p.status === filterStatus;
+      const matchCategory = filterCategory === "all" || p.category === filterCategory;
+      const matchStock =
+        filterStock === "all" ||
+        (filterStock === "in_stock" && (p.stock_total || 0) > 0) ||
+        (filterStock === "low_stock" && (p.stock_total || 0) > 0 && (p.stock_total || 0) <= 5) ||
+        (filterStock === "out_of_stock" && (p.stock_total || 0) === 0);
+      const matchSearch =
+        search === "" ||
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.category || "").toLowerCase().includes(search.toLowerCase());
+      return matchStatus && matchCategory && matchStock && matchSearch;
+    })
+    .sort((a, b) => {
+      if (sortBy === "price_asc") return a.price_fcfa - b.price_fcfa;
+      if (sortBy === "price_desc") return b.price_fcfa - a.price_fcfa;
+      if (sortBy === "sales") return (b.sales_count || 0) - (a.sales_count || 0);
+      if (sortBy === "stock") return (b.stock_total || 0) - (a.stock_total || 0);
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
 
   const totalStock = products.reduce((sum, p) => sum + (p.stock_total || 0), 0);
   const totalSales = products.reduce((sum, p) => sum + (p.sales_count || 0), 0);
@@ -239,8 +260,63 @@ export default function CatalogPage() {
         >
           <i className="ri-add-line"></i>{t('catalog.newProduct')}
         </button>
+        {/* Advanced Filters */}
+        <div className="flex items-center gap-2 flex-wrap w-full pt-1">
+          {availableCategories.length > 0 && (
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 bg-white outline-none focus:border-[#125C8D] cursor-pointer"
+            >
+              <option value="all">Toutes les catégories ({availableCategories.length})</option>
+              {availableCategories.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          )}
+
+          <select
+            value={filterStock}
+            onChange={(e) => setFilterStock(e.target.value)}
+            className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 bg-white outline-none focus:border-[#125C8D] cursor-pointer"
+          >
+            <option value="all">Tous les stocks</option>
+            <option value="in_stock">En stock ({products.filter(p => (p.stock_total || 0) > 0).length})</option>
+            <option value="low_stock">Stock faible (≤ 5)</option>
+            <option value="out_of_stock">Rupture de stock ({products.filter(p => (p.stock_total || 0) === 0).length})</option>
+          </select>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 bg-white outline-none focus:border-[#125C8D] cursor-pointer"
+          >
+            <option value="newest">Plus récents</option>
+            <option value="price_asc">Prix : croissant</option>
+            <option value="price_desc">Prix : décroissant</option>
+            <option value="sales">Meilleures ventes</option>
+            <option value="stock">Stock disponible</option>
+          </select>
+
+          {(filterStatus !== "all" || filterCategory !== "all" || filterStock !== "all" || search !== "") && (
+            <button
+              onClick={() => {
+                setFilterStatus("all");
+                setFilterCategory("all");
+                setFilterStock("all");
+                setSearch("");
+              }}
+              className="px-2.5 py-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <i className="ri-close-circle-line text-sm" /> Réinitialiser filtres
+            </button>
+          )}
+
+          <span className="text-xs text-gray-400 ml-auto font-medium">
+            {filtered.length} produit{filtered.length > 1 ? "s" : ""} affiché{filtered.length > 1 ? "s" : ""}
+          </span>
+        </div>
       </div>
-      {/* Grid view */}
       {view === "grid" && (
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((product) => (

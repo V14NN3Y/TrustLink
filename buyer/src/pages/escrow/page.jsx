@@ -103,7 +103,7 @@ const FAQS = [
   },
 ];
   return (
-    <div className="pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
+    <div className="pt-28 md:pt-20 min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
 
       {/* Hero */}
       <div style={{ backgroundColor: '#0E3A4F' }} className="text-white py-14">
