@@ -367,7 +367,7 @@ export default function SettingsTab() {
           </button>
         </div>
 
-        {/* Sécurité */}
+        {/* Security */}
         <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #E5E7EB' }}>
           <div className="flex items-center gap-2 mb-4">
             <i className="ri-lock-line" style={{ color: '#125C8D' }}></i>
