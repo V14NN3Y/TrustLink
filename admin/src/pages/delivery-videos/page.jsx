@@ -100,7 +100,7 @@ export default function DeliveryVideosPage() {
         resolved_at: new Date().toISOString(),
       })
       .eq('id', disputeId);
-    // Mettre à jour le statut de la commande
+    // Update the order status
     const orderStatus = resolution === 'refund' ? 'refunded' : 'confirmed';
     await supabase
       .from('orders')
@@ -229,7 +229,7 @@ export default function DeliveryVideosPage() {
         </div>
       </div>
 
-      {/* Modal review vidéo */}
+      {/* Video review modal */}
       {selected && (
         <VideoReviewModal
           video={selected}
@@ -238,7 +238,7 @@ export default function DeliveryVideosPage() {
         />
       )}
 
-      {/* Modal résolution litige */}
+      {/* Dispute resolution modal */}
       {selectedDispute && (
         <DisputeResolutionModal
           dispute={selectedDispute}
