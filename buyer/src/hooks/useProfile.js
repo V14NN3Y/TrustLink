@@ -33,7 +33,7 @@ export function useProfile() {
       const updated = await updateProfile(user.id, updates);
       setProfile(updated);
       setSaveSuccess(true);
-      // Rafraîchit aussi le contexte Auth
+      // Also refresh the Auth context
       if (refreshProfile) await refreshProfile();
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
