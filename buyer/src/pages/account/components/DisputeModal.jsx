@@ -12,10 +12,10 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
     t('dispute.reason4'), t('dispute.reason5'), t('dispute.reasonOther'),
   ];
   const OTHER = t('dispute.reasonOther');
-  // Si on arrive depuis ConfirmDeliveryModal (produit déclaré défectueux),
-  // order.reason porte déjà le motif saisi par le buyer : on le réinjecte
-  // comme motif "Autre" pour ne pas le perdre, et on peut sauter direct à
-  // l'étape 3 puisque motif + vidéo sont déjà renseignés.
+  // When coming from ConfirmDeliveryModal (product declared defective),
+  // order.reason already holds the reason typed by the buyer: reuse it as the
+  // "Other" reason so it is not lost, and jump straight to step 3 since both
+  // the reason and the video are already provided.
   const [step, setStep] = useState(order.videoFilePath && order.reason ? 3 : 1);
   const [reason, setReason] = useState(order.reason ? OTHER : '');
   const [customReason, setCustomReason] = useState(order.reason || '');
@@ -70,7 +70,7 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
               {error}
             </div>
           )}
-          {/* Étape 1 : Motif */}
+          {/* Step 1: reason */}
           {step === 1 && (
             <form onSubmit={(e) => { e.preventDefault(); if (reason) setStep(2); }}>
               <p className="text-sm font-inter mb-3" style={{ color: '#6B7280' }}>{t('dispute.reasonPrompt')}</p>
@@ -96,7 +96,7 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
               </div>
             </form>
           )}
-          {/* Étape 2 : Vidéo */}
+          {/* Step 2: video */}
           {step === 2 && (
             <div>
               <div className="rounded-xl p-3 mb-4" style={{ backgroundColor: '#FFFBEB', border: '1px solid #FEF3C7' }}>
@@ -114,7 +114,7 @@ export default function DisputeModal({ order, onClose, onSuccess }) {
               </div>
             </div>
           )}
-          {/* Étape 3 : Confirmation */}
+          {/* Step 3: confirmation */}
           {step === 3 && (
             <div>
               <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E5E7EB' }}>
