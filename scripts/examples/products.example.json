@@ -1,0 +1,28 @@
+[
+  {
+    "name": "Samsung Galaxy A15 - 128GB - 4GB RAM - Noir",
+    "source_url": "https://slot.ng/samsung-galaxy-a15-128gb",
+    "price_ngn": 189000,
+    "old_price_ngn": 205000,
+    "images": [
+      "https://slot.ng/media/catalog/product/a15-front.jpg",
+      "https://slot.ng/media/catalog/product/a15-back.jpg"
+    ],
+    "category_slug": "smartphones-tablettes",
+    "category_name": "Smartphones & Tablettes",
+    "description": "Écran 6.5\", 128 Go, double SIM. Neuf, garantie 1 an.",
+    "sku": "SLOT-A15-128",
+    "stock_quantity": 5,
+    "delivery_min_days": 4,
+    "delivery_max_days": 8
+  },
+  {
+    "name": "Robe wax longue - Taille M",
+    "source_url": "https://naija-styles.myshopify.com/products/robe-wax-longue",
+    "price_ngn": 25000,
+    "images": ["https://cdn.shopify.com/s/files/1/0000/robe-wax.jpg"],
+    "category_slug": "mode-vetements",
+    "category_name": "Mode & Vêtements",
+    "source_site": "shopify:naija-styles"
+  }
+]
