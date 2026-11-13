@@ -16,13 +16,24 @@ export default function TeamManagement() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('Support');
   const [inviteDone, setInviteDone] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [inviteError, setInviteError] = useState('');
 
   useEffect(() => {
     setMembers(users.filter(u => u.role === 'admin'));
   }, [users]);
 
+  // Generates a single-use admin invitation code (valid 30 days) in the
+  // invitation_codes table. The new admin types it on the admin sign-up page;
+  // the database checks it at account creation (handle_new_user).
   async function handleInvite() {
     if (!inviteEmail || !user) return;
+    setInviteError('');
+    const { data: code, error } = await supabase.rpc('generate_invitation_code');
+    if (error || !code) {
+      setInviteError("Impossible de générer le code : " + (error?.message || 'erreur inconnue'));
+      return;
+    }
     await supabase.from('admin_logs').insert({
       admin_id: user.id, action: 'team_invite_sent',
       resource_type: 'user', new_value: { email: inviteEmail, role: inviteRole },
@@ -34,8 +45,12 @@ export default function TeamManagement() {
       status: 'pending', joined_at: new Date().toISOString(),
     };
     setMembers(prev => [...prev, newMember]);
+    setInviteCode(code);
     setInviteDone(true);
-    setTimeout(() => { setInviteDone(false); setShowModal(false); setInviteEmail(''); setInviteRole('Support'); }, 2000);
+  }
+
+  function closeInvite() {
+    setInviteDone(false); setShowModal(false); setInviteEmail(''); setInviteRole('Support'); setInviteCode(''); setInviteError('');
   }
 
   return (
@@ -81,13 +96,16 @@ export default function TeamManagement() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => !inviteDone && setShowModal(false)}>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => (inviteDone ? closeInvite() : setShowModal(false))}>
           <div className="bg-white rounded-3xl w-full max-w-md p-6" style={{ animation: 'fadeIn 0.18s ease' }} onClick={e => e.stopPropagation()}>
             {inviteDone ? (
               <div className="text-center py-8">
                 <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4"><i className="ri-checkbox-circle-line text-emerald-500 text-3xl" /></div>
-                <h3 className="font-bold text-slate-800 text-lg mb-1" style={{ fontFamily: 'Poppins, sans-serif' }}>Invitation envoyée !</h3>
-                <p className="text-sm text-slate-500">{inviteEmail}</p>
+                <h3 className="font-bold text-slate-800 text-lg mb-1" style={{ fontFamily: 'Poppins, sans-serif' }}>Code d'invitation créé</h3>
+                <p className="text-sm text-slate-500 mb-4">À transmettre à {inviteEmail} (usage unique, valable 30 jours)</p>
+                <p className="font-mono text-2xl font-bold tracking-widest text-trustblue bg-blue-50 rounded-xl py-3 select-all">{inviteCode}</p>
+                <button onClick={() => navigator.clipboard?.writeText(inviteCode)} className="mt-3 text-xs font-semibold text-trustblue cursor-pointer"><i className="ri-file-copy-line mr-1" />Copier</button>
+                <button onClick={closeInvite} className="block mx-auto mt-4 px-5 py-2 rounded-xl bg-trustblue text-white text-sm font-semibold cursor-pointer">Fermer</button>
               </div>
             ) : (
               <>
@@ -107,8 +125,9 @@ export default function TeamManagement() {
                     </select>
                   </div>
                   <button onClick={handleInvite} disabled={!inviteEmail} className={`w-full py-2.5 rounded-xl font-semibold text-sm ${inviteEmail ? 'bg-trustblue text-white cursor-pointer' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}>
-                    Envoyer l'invitation
+                    Générer le code d'invitation
                   </button>
+                  {inviteError && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{inviteError}</p>}
                 </div>
               </>
             )}

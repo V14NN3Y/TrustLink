@@ -63,7 +63,7 @@ export default function ReviewsPage() {
         ))}
       </div>
 
-      {/* Filtres */}
+      {/* Filters */}
       <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
         {[
           { key: 'all', label: 'Tous' },
@@ -78,7 +78,7 @@ export default function ReviewsPage() {
         ))}
       </div>
 
-      {/* Liste */}
+      {/* List */}
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-64">

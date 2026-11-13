@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 /**
- * Récupère toutes les reviews d'un produit avec le profil du buyer
+ * Fetches every review of a product with the buyer's profile
  */
 export const getProductReviews = async (productId) => {
   const { data, error } = await supabase
@@ -19,7 +19,7 @@ export const getProductReviews = async (productId) => {
   return data || [];
 };
 /**
- * Vérifie si le buyer a déjà reviewé ce produit
+ * Checks whether the buyer has already reviewed this product
  */
 export const getBuyerReview = async (productId, buyerId) => {
   if (!buyerId) return null;
@@ -33,8 +33,8 @@ export const getBuyerReview = async (productId, buyerId) => {
   return data;
 };
 /**
- * Vérifie si le buyer a une commande livrée contenant ce produit
- * (condition pour pouvoir reviewer)
+ * Checks whether the buyer has a delivered order containing this product
+ * (required to be allowed to review it)
  */
 export const canBuyerReview = async (productId, buyerId) => {
   if (!buyerId) return false;
@@ -45,7 +45,7 @@ export const canBuyerReview = async (productId, buyerId) => {
     .in('status', ['delivered', 'confirmed']);
   if (ordersError || !orders?.length) return false;
   const orderIds = orders.map((o) => o.id);
-  // Vérifie si ce produit est dans une de ces commandes
+  // Check whether this product is in one of those orders
   const { data, error } = await supabase
     .from('order_items')
     .select('id')
@@ -56,14 +56,14 @@ export const canBuyerReview = async (productId, buyerId) => {
   return data && data.length > 0;
 };
 /**
- * Soumet une review (création ou mise à jour)
+ * Submits a review (create or update)
  */
 export const submitReview = async ({ productId, buyerId, orderId, rating, comment }) => {
   if (!buyerId) throw new Error('buyerId required');
-  // Vérifie si une review existe déjà
+  // Check whether a review already exists
   const existing = await getBuyerReview(productId, buyerId);
   if (existing) {
-    // Mise à jour
+    // Update
     const { data, error } = await supabase
       .from('reviews')
       .update({ rating, comment, updated_at: new Date().toISOString() })
@@ -73,7 +73,7 @@ export const submitReview = async ({ productId, buyerId, orderId, rating, commen
     if (error) throw error;
     return data;
   } else {
-    // Création
+    // Create
     const { data, error } = await supabase
       .from('reviews')
       .insert({
@@ -90,7 +90,7 @@ export const submitReview = async ({ productId, buyerId, orderId, rating, commen
   }
 };
 /**
- * Calcule la note moyenne et le nombre de reviews d'un produit
+ * Computes a product's average rating and review count
  */
 export const getProductRatingStats = async (productId) => {
   const { data, error } = await supabase

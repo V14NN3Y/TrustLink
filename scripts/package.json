@@ -5,5 +5,10 @@
   "description": "One-off maintenance/admin scripts for TrustLink, run manually with a Supabase service-role key. Not part of any app build.",
   "dependencies": {
     "@supabase/supabase-js": "^2.104.1"
+  },
+  "scripts": {
+    "test": "node --test",
+    "import:dry": "node import-products.mjs --dry-run --file",
+    "import": "node import-products.mjs --file"
   }
 }

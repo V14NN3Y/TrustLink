@@ -43,7 +43,7 @@ const startRecording = async () => {
             const blob = new Blob(chunksRef.current, { type: 'video/webm' });
             const url = URL.createObjectURL(blob);
             setPreviewUrl(url);
-            // Upload automatique vers Supabase Storage
+            // Automatic upload to Supabase Storage
             if (user?.id && orderId) {
                 setUploading(true);
                 try {
@@ -52,7 +52,7 @@ const startRecording = async () => {
                         .from('delivery-videos')
                         .upload(fileName, blob, { contentType: 'video/webm', upsert: false });
                     if (upErr) throw upErr;
-                    onRecorded && onRecorded(fileName, url); // chemin relatif + aperçu local
+                    onRecorded && onRecorded(fileName, url); // relative path + local preview
                 } catch {
                     toast({ title: 'Erreur', description: 'Erreur lors de l\'envoi de la vidéo. Réessayez.', variant: 'destructive' });
                 } finally {

@@ -11,7 +11,7 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
   const [videoFilePath, setVideoFilePath] = useState(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
   const [error, setError] = useState(null);
-  const [confirmationChoice, setConfirmationChoice] = useState(null); // 'ok' ou 'defective'
+  const [confirmationChoice, setConfirmationChoice] = useState(null); // 'ok' or 'defective'
   const [defectReason, setDefectReason] = useState('');
   const handleVideoRecorded = (filePath, previewUrl) => {
     setVideoFilePath(filePath);
@@ -22,7 +22,7 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
     setError(null);
     try {
       if (isDefective) {
-        // Ouvrir un litige avec la vidéo
+        // Open a dispute with the video
         onClose();
         onOpenDispute?.(order, videoFilePath, reason);
       } else {
@@ -74,7 +74,7 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
           })}
         </div>
         <div className="p-5">
-          {/* Étape 1 : Instructions */}
+          {/* Step 1: instructions */}
           {step === 1 && (
             <div>
               <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: '#FFF3EC', border: '1px solid #FFD0B0' }}>
@@ -119,7 +119,7 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
               </button>
             </div>
           )}
-          {/* Étape 2 : Vidéo */}
+          {/* Step 2: video */}
           {step === 2 && (
             <div>
               <div className="rounded-xl p-3 mb-4" style={{ backgroundColor: '#FFFBEB', border: '1px solid #FEF3C7' }}>
@@ -142,7 +142,7 @@ export default function ConfirmDeliveryModal({ order, onClose, onConfirmed, onOp
               </button>
             </div>
           )}
-          {/* Étape 3 : Déclaration */}
+          {/* Step 3: declaration */}
           {step === 3 && (
             <div>
               <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0' }}>

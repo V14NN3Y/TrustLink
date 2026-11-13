@@ -7,6 +7,7 @@ import SettingsTab from './components/SettingsTab';
 import { useDisputes } from '@/hooks/useDisputes';
 import DisputeModal from './components/DisputeModal';
 import ConfirmDeliveryModal from './components/ConfirmDeliveryModal';
+import InspectionPhotos from './components/InspectionPhotos';
 import { Link } from 'react-router-dom';
 import { useCurrencyContext } from '@/lib/CurrencyContext';
 import { useI18n } from '@/lib/I18nContext';
@@ -268,6 +269,7 @@ export default function Account() {
                                 </p>
                               </div>
                             ))}
+                            <InspectionPhotos orderIds={order.orderIds} status={order.status} />
                             <div className="flex gap-2 flex-wrap">
                {(order.status === 'in_transit' || order.status === 'delivered') && (
                                  <>

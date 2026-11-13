@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
-// Construit la timeline de suivi d'un colis à partir du statut de la commande
+// Builds a parcel's tracking timeline from the order status
 function buildStepsFromStatus(status) {
   const allSteps = [
     { key: 'collected',  label: 'Collecté',         status: 'pending' },
@@ -42,7 +42,7 @@ export function useSupabaseLogistics() {
       .select('*')
       .order('created_at', { ascending: false });
 
-    // 2. Packages : article par article avec statut parent
+    // 2. Packages: one entry per item, with the parent order status
     const { data: itemsData } = await supabase
       .from('order_items')
       .select(`
@@ -64,7 +64,7 @@ export function useSupabaseLogistics() {
     }));
     setPackages(normalizedPackages);
 
-    // 3. Commandes complètes pour la vue manifeste
+    // 3. Full orders for the manifest view
     const { data: ordersData } = await supabase
       .from('orders')
       .select(`

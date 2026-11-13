@@ -1,5 +1,5 @@
 -- ============================================
--- TRUSTLINK - Schéma Supabase complet
+-- TRUSTLINK - Complete Supabase schema
 -- Date: 2026-05-15
 -- ============================================
 

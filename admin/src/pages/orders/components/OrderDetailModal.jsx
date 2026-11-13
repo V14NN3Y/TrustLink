@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
 import { JOURNEY_STEPS } from '@/constants/orderStatuses';
 import StatusBadge from '@/components/base/StatusBadge';
+import SignedMedia from '@/components/base/SignedMedia';
+import InspectionTab from './InspectionTab';
 import { formatXOF, formatNGN, formatDate } from '@/components/base/DataTransformer';
 
 const ALL_STATUSES = ['pending', 'paid', 'processing', 'in_transit', 'delivered', 'confirmed', 'disputed', 'cancelled', 'refunded'];
@@ -86,6 +88,7 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
   const tabs = [
     { key: 'info', label: 'Informations', icon: 'ri-information-line' },
     { key: 'journey', label: 'Parcours', icon: 'ri-map-pin-time-line' },
+    { key: 'inspection', label: 'Inspection Lagos', icon: 'ri-camera-line' },
     ...(order.status === 'disputed' ? [{ key: 'dispute', label: 'Vidéo litige', icon: 'ri-video-line' }] : []),
   ];
 
@@ -182,13 +185,15 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
             </div>
           )}
 
+          {tab === 'inspection' && <InspectionTab orderId={order.id} />}
+
           {tab === 'dispute' && order.status === 'disputed' && (
             <div className="space-y-4">
               {order.dispute_video_url ? (
                 <div>
                   <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 block">Vidéo de preuve</label>
                   <div className="relative rounded-xl overflow-hidden border border-slate-100">
-                    <video src={order.dispute_video_url} controls className="w-full rounded-xl" />
+                    <div className="w-full h-64 bg-slate-100"><SignedMedia kind="video" bucket="delivery-videos" src={order.dispute_video_url} className="w-full h-full object-cover" /></div>
                     <span className="absolute top-3 right-3 bg-emerald-500 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1.5">
                       <i className="ri-shield-check-line" />In-app · Certifiée
                     </span>

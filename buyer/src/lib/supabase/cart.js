@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 /**
- * Récupère ou crée le panier de l'utilisateur connecté.
+ * Returns the signed-in user's cart, creating it if needed.
  */
 const getOrCreateCart = async (userId) => {
   if (!userId) throw new Error('User ID required');
@@ -16,10 +16,10 @@ const getOrCreateCart = async (userId) => {
     .select('id')
     .single();
   if (error) {
-    // Course possible (deux onglets, double-clic...) : un autre appel a
-    // créé le panier entre notre select et notre insert. La contrainte
-    // unique sur buyer_id fait échouer CET insert avec le code Postgres
-    // 23505 ; on récupère simplement le panier qui existe désormais.
+    // Possible race (two tabs, double click...): another call created the
+    // cart between our select and our insert. The unique constraint on
+    // buyer_id makes THIS insert fail with Postgres code 23505; we simply
+    // fetch the cart that now exists.
     if (error.code === '23505') {
       const { data: retry } = await supabase
         .from('carts')
@@ -33,7 +33,7 @@ const getOrCreateCart = async (userId) => {
   return created.id;
 };
 /**
- * Fetch tous les items du panier avec les infos produit (y compris seller_id).
+ * Fetches every cart item with its product details (including seller_id).
  */
 export const fetchCartItems = async (userId) => {
   const cartId = await getOrCreateCart(userId);
@@ -74,11 +74,11 @@ export const fetchCartItems = async (userId) => {
   });
 };
 /**
- * Ajoute ou incrémente un item dans le panier.
+ * Adds an item to the cart, or increments its quantity.
  */
 export const addCartItem = async (userId, productId, quantity = 1) => {
   const cartId = await getOrCreateCart(userId);
-  // Vérifie si l'item existe déjà
+  // Check whether the item is already in the cart
   const { data: existing } = await supabase
     .from('cart_items')
     .select('id, quantity')
@@ -99,7 +99,7 @@ export const addCartItem = async (userId, productId, quantity = 1) => {
   }
 };
 /**
- * Met à jour la quantité d'un item.
+ * Updates the quantity of an item.
  */
 export const updateCartItemQuantity = async (itemId, quantity) => {
   if (quantity < 1) {
@@ -112,7 +112,7 @@ export const updateCartItemQuantity = async (itemId, quantity) => {
   if (error) throw error;
 };
 /**
- * Supprime un item du panier.
+ * Removes an item from the cart.
  */
 export const removeCartItem = async (itemId) => {
   const { error } = await supabase
@@ -122,7 +122,7 @@ export const removeCartItem = async (itemId) => {
   if (error) throw error;
 };
 /**
- * Vide entièrement le panier.
+ * Empties the whole cart.
  */
 export const clearCart = async (userId) => {
   const cartId = await getOrCreateCart(userId);

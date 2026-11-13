@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { formatXOF, formatNGN } from '@/components/base/DataTransformer';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { formatXOF } from '@/components/base/DataTransformer';
 
 const PERIODS = [
   { key: '7d', label: '7 jours', days: 7 },

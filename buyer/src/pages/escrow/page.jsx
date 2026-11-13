@@ -129,7 +129,7 @@ const FAQS = [
         </div>
       </div>
 
-      {/* Stats rapides */}
+      {/* Quick stats */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -151,7 +151,7 @@ const FAQS = [
 
       <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-12">
 
-        {/* Comment ça marche */}
+        {/* How it works */}
         <div className="mb-16">
           <div className="text-center mb-10">
             <h2 className="text-2xl font-poppins font-bold mb-2" style={{ color: '#111827' }}>
@@ -163,7 +163,7 @@ const FAQS = [
           </div>
 
           <div className="relative">
-            {/* Ligne connecteur desktop */}
+            {/* Desktop connector line */}
             <div className="hidden md:block absolute top-8 left-[10%] right-[10%] h-0.5" style={{ backgroundColor: '#E5E7EB' }} />
 
             <div className="grid md:grid-cols-5 gap-6">
@@ -188,7 +188,7 @@ const FAQS = [
           </div>
         </div>
 
-        {/* Tes protections */}
+        {/* Your protections */}
         <div className="mb-16">
           <div className="text-center mb-10">
             <h2 className="text-2xl font-poppins font-bold mb-2" style={{ color: '#111827' }}>
@@ -217,7 +217,7 @@ const FAQS = [
           </div>
         </div>
 
-        {/* Schéma flux argent */}
+        {/* Money flow diagram */}
         <div className="bg-white rounded-2xl p-6 md:p-8 mb-16" style={{ border: '1px solid #F0F0F0' }}>
           <h2 className="text-xl font-poppins font-bold mb-2 text-center" style={{ color: '#111827' }}>
             {t('escrow.moneyFlow')}
@@ -289,7 +289,7 @@ const FAQS = [
           </div>
         </div>
 
-        {/* CTA final */}
+        {/* Final CTA */}
         <div className="rounded-2xl p-8 text-center text-white" style={{ backgroundColor: '#0E3A4F' }}>
           <i className="ri-shield-star-fill text-4xl mb-4 block" style={{ color: '#FF6A00' }}></i>
           <h2 className="text-xl font-poppins font-bold mb-2">{t('escrow.ctaFinal')}</h2>

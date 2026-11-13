@@ -15,11 +15,11 @@ export default function LogisticsPage() {
   const [voyages, setVoyages] = useState([]);
   const [selectedVoyage, setSelectedVoyage] = useState(null);
   const [editVoyage, setEditVoyage] = useState(null);
-  // Sync avec Supabase quand les données arrivent
+  // Sync with Supabase when the data arrives
   useEffect(() => {
     if (dispatches.length > 0) setVoyages(dispatches);
   }, [dispatches]);
-  // Normalise les dispatches Supabase au format attendu par VoyageCard
+  // Normalize Supabase dispatches to the shape VoyageCard expects
   const normalizedVoyages = dispatches.length > 0 ? dispatches.map(d => ({
     id: d.id,
     voyage_id: d.dispatch_code,

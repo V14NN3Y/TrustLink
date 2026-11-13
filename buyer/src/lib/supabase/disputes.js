@@ -9,12 +9,11 @@ const uploadDisputeVideo = async (blob, buyerId, orderId) => {
     return data.publicUrl;
 };
 /**
- * Crée un litige + vidéo de déballage + passe la commande en status 'disputed'.
- * Accepte soit un Blob (via videoBlob, upload automatique), soit un chemin déjà uploadé (via videoFilePath).
- * Passe par la fonction serveur open_order_dispute() : les buyers n'ont pas
- * le droit de modifier orders.status directement (RLS), donc la bascule en
- * 'disputed' doit être faite côté serveur, de façon atomique avec la
- * création du litige.
+ * Opens a dispute: stores the unboxing video and moves the order to 'disputed'.
+ * Accepts either a Blob (videoBlob, uploaded here) or an already uploaded path (videoFilePath).
+ * Goes through the open_order_dispute() server function: buyers cannot change
+ * orders.status directly (RLS), so the switch to 'disputed' has to happen
+ * server-side, atomically with the dispute creation.
  */
 export const createDispute = async ({ orderId, buyerId, reason, videoBlob, videoFilePath }) => {
     if (!buyerId || !orderId) throw new Error('buyerId and orderId required');
@@ -30,7 +29,7 @@ export const createDispute = async ({ orderId, buyerId, reason, videoBlob, video
     return { disputeId, videoUrl: resolvedPath };
 };
 /**
- * Récupère les litiges du buyer connecté.
+ * Fetches the signed-in buyer's disputes.
  */
 export const fetchBuyerDisputes = async (buyerId) => {
     if (!buyerId) return [];

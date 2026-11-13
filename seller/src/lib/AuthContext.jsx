@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user) {
-        // Attendre que le trigger ait créé le profil (retry 3x avec délai)
+        // Wait for the trigger to create the profile (3 retries with a delay)
         let profileData = null;
         let attempts = 0;
         while (!profileData && attempts < 3) {
@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }) => {
           }
           return;
         }
-        // Vérification rôle seller
+        // Seller role check
         if (profileData?.role !== 'seller') {
           if (!silent) {
             setAuthError({ type: 'auth_required', message: 'Accès réservé aux vendeurs' });
@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        // Petit délai pour laisser le trigger créer le profil
+        // Short delay to let the trigger create the profile
         await new Promise(r => setTimeout(r, 300));
         await checkUserAuth({ silent: true });
       } else if (event === 'TOKEN_REFRESHED' && session?.user) {

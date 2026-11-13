@@ -29,7 +29,7 @@ as $$
   select id from profiles where role = 'admin' order by created_at asc limit 1;
 $$;
 
--- 3. Buyer declares "produit conforme" -> order(s) move to 'confirmed'.
+-- 3. Buyer declares "product as described" -> order(s) move to 'confirmed'.
 --    Only allowed from 'delivered'/'in_transit', only on the caller's own
 --    order(s) (matches either the exact order id or, if it's part of a
 --    multi-seller checkout, every order sharing the same group_id).
@@ -51,7 +51,7 @@ begin
 end;
 $$;
 
--- 4. Buyer declares "produit défectueux" -> records the unboxing video (if
+-- 4. Buyer declares "defective product" -> records the unboxing video (if
 --    any), opens the dispute, and moves the order(s) to 'disputed', all in
 --    one atomic, ownership-checked transaction.
 create or replace function open_order_dispute(

@@ -29,7 +29,7 @@ export default function Wishlist() {
             <span>+</span> {t('wishlist.addProducts')}
           </Link>
         </div>
-        {/* Non connecté */}
+        {/* Signed out */}
         {!isAuthenticated && (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: '#EBF4FB' }}>
@@ -50,7 +50,7 @@ export default function Wishlist() {
             </Link>
           </div>
         )}
-        {/* Chargement */}
+        {/* Loading */}
         {isAuthenticated && loading && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -64,7 +64,7 @@ export default function Wishlist() {
             ))}
           </div>
         )}
-        {/* Wishlist vide */}
+        {/* Empty wishlist */}
         {isAuthenticated && !loading && products.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24">
             <div className="w-20 h-20 rounded-full flex items-center justify-center mb-5" style={{ backgroundColor: '#FFF0F0' }}>
@@ -86,7 +86,7 @@ export default function Wishlist() {
             </Link>
           </div>
         )}
-        {/* Grille produits */}
+        {/* Product grid */}
         {isAuthenticated && !loading && products.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {products.map((p) => (

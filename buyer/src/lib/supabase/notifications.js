@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabaseClient';
 
 /**
- * Créer une notification pour un utilisateur
+ * Creates a notification for a user
  */
 export const createNotification = async ({ userId, type, title, body, resourceType, resourceId }) => {
   const { error } = await supabase
@@ -18,7 +18,7 @@ export const createNotification = async ({ userId, type, title, body, resourceTy
 };
 
 /**
- * Récupérer les notifications d'un utilisateur
+ * Fetches a user's notifications
  */
 export const fetchNotifications = async (userId) => {
   const { data, error } = await supabase
@@ -31,7 +31,7 @@ export const fetchNotifications = async (userId) => {
 };
 
 /**
- * Marquer une notification comme lue
+ * Marks a notification as read
  */
 export const markNotificationRead = async (notificationId) => {
   const { error } = await supabase
@@ -42,7 +42,7 @@ export const markNotificationRead = async (notificationId) => {
 };
 
 /**
- * Marquer toutes les notifications comme lues
+ * Marks every notification as read
  */
 export const markAllNotificationsRead = async (userId) => {
   const { error } = await supabase

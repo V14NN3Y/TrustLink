@@ -27,7 +27,7 @@ function StatCard({ icon, iconBg, label, value, delta, accent, live }) {
 
 export default function HeroStats() {
   const { stats, loading } = useSupabaseDashboard();
-  // Fallback sur les mocks si pas encore de données Supabase
+  // Fall back to mock data while Supabase data is not loaded yet
   const data = stats || {
     total_orders: 0,
     escrow_volume_xof: 0,

@@ -3,9 +3,8 @@ import { supabase } from '@/lib/supabaseClient';
 
 const CURRENCY_KEY = 'trustlink_currency';
 const RATE_KEY = 'trustlink_rate';
-// Pas de temps réel sur exchange_rates : on revérifie périodiquement pour
-// qu'un onglet resté ouvert plusieurs heures/jours ne continue pas
-// d'afficher un taux NGN périmé indéfiniment.
+// No realtime on exchange_rates: re-check periodically so that a tab left
+// open for hours or days does not keep showing a stale NGN rate forever.
 const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 
 export function useCurrency() {

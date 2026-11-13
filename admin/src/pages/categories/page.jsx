@@ -222,7 +222,7 @@ export default function CategoriesPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Formulaire */}
+        {/* Form */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-6 h-fit sticky top-6">
           <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
             <i className={`${editItem ? 'ri-edit-line' : 'ri-add-line'} text-trustblue`} />
@@ -242,7 +242,7 @@ export default function CategoriesPage() {
               </div>
             </div>
 
-            {/* Icône Remix — grille de sélection */}
+            {/* Remix icon picker grid */}
             <div>
               <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 block">Icône</label>
               <div className="grid grid-cols-6 gap-1.5 max-h-40 overflow-y-auto p-1.5 border border-slate-200 rounded-xl">
@@ -297,7 +297,7 @@ export default function CategoriesPage() {
           </form>
         </div>
 
-        {/* Liste */}
+        {/* List */}
         <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-100 overflow-hidden">
           <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-3">
             <i className="ri-search-line text-slate-400 text-sm" />
