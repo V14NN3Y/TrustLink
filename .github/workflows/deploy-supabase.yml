@@ -1,0 +1,26 @@
+name: Deploy Supabase functions
+
+# Deploys the verify-payment Edge Function.
+# Runs when the function code changes on main, or manually from the Actions tab.
+# Database migrations are NOT applied here: run them by hand (docs/deployment.md).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Deploy verify-payment
+        run: supabase functions deploy verify-payment --project-ref "$SUPABASE_PROJECT_REF"
+        env:
+          # Repository secrets: Settings > Secrets and variables > Actions
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
